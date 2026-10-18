@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import ProductList from '../../components/ProductList.astro';
+import { company } from '../../config/company';
+import { hasContactDetails } from '../../config/navigation';
+---
+
+<BaseLayout
+  title={`Produk | ${company.name}`}
+  description="Kenali kategori suku cadang mesin industri Aneka Logam: shim plate dan pegas."
+>
+  <Breadcrumbs items={[{ label: 'Beranda', href: '/' }, { label: 'Produk' }]} />
+  <div class="page-intro">
+    <h1>Produk</h1>
+    <p class="lead">Temukan informasi produk dan hal yang perlu disiapkan sebelum menanyakan kebutuhan Anda.</p>
+  </div>
+  <section aria-labelledby="categories-heading">
+    <h2 id="categories-heading">Kategori produk</h2>
+    <ProductList />
+  </section>
+  <p class="notice">Pilihan ukuran, material, dan ketersediaan perlu dikonfirmasi kepada Aneka Logam.</p>
+  {hasContactDetails && <a class="button" href="/kontak/">Tanyakan kebutuhan produk</a>}
+</BaseLayout>

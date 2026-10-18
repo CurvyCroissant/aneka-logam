@@ -1,20 +1,17 @@
 ---
-import { company } from '../config/company';
-
-const { email, telephone, whatsapp } = company.contact;
-const phone = telephone.replace(/[\s()-]/g, '');
-const links = [
-  ...(whatsapp ? [{ href: `https://wa.me/${whatsapp}`, label: 'WhatsApp' }] : []),
-  ...(email ? [{ href: `mailto:${email}`, label: email }] : []),
-  ...(phone ? [{ href: `tel:${phone}`, label: telephone }] : []),
-];
+import { contactMethods } from '../config/navigation';
 ---
 
-{links.length > 0 && (
+{contactMethods.length > 0 && (
   <section aria-labelledby="contact-heading">
-    <h2 id="contact-heading">Hubungi kami</h2>
-    <ul class="contact-links">
-      {links.map(({ href, label }) => <li><a href={href}>{label}</a></li>)}
-    </ul>
+    <h2 id="contact-heading">Kontak resmi</h2>
+    <dl class="contact-list">
+      {contactMethods.map(({ label, value, href }) => (
+        <div>
+          <dt>{label}</dt>
+          <dd><a href={href}>{value}</a></dd>
+        </div>
+      ))}
+    </dl>
   </section>
 )}

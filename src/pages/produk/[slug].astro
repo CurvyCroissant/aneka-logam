@@ -1,0 +1,49 @@
+---
+import type { GetStaticPaths, InferGetStaticPropsType } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { company } from '../../config/company';
+import { hasContactDetails } from '../../config/navigation';
+
+export const getStaticPaths = (() => company.products.map((product) => ({
+  params: { slug: product.slug },
+  props: { product },
+}))) satisfies GetStaticPaths;
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+const { product } = Astro.props;
+const otherProducts = company.products.filter(({ slug }) => slug !== product.slug);
+---
+
+<BaseLayout
+  title={`${product.name} | ${company.name}`}
+  description={`${product.summary} Informasi produk ${company.name} dan rincian untuk pertanyaan kebutuhan Anda.`}
+>
+  <Breadcrumbs items={[
+    { label: 'Beranda', href: '/' },
+    { label: 'Produk', href: '/produk/' },
+    { label: product.name },
+  ]} />
+  <div class="page-intro reading-width">
+    <p class="eyebrow">Suku cadang mesin industri</p>
+    <h1>{product.name}</h1>
+    <p class="lead">{product.summary}</p>
+  </div>
+  <section class="reading-width" aria-labelledby="details-heading">
+    <h2 id="details-heading">Informasi yang dapat Anda siapkan</h2>
+    <p>Untuk menjelaskan kebutuhan {product.name.toLowerCase()}, siapkan informasi berikut jika tersedia.</p>
+    <ul class="detail-list">
+      {product.enquiryDetails.map((detail) => <li>{detail}</li>)}
+    </ul>
+    <p class="notice">Spesifikasi, kesesuaian penggunaan, dan ketersediaan produk perlu dikonfirmasi terlebih dahulu.</p>
+    {hasContactDetails && <a class="button" href="/kontak/">Hubungi Aneka Logam</a>}
+  </section>
+  {otherProducts.length > 0 && (
+    <section class="section" aria-labelledby="related-heading">
+      <h2 id="related-heading">Produk lainnya</h2>
+      <ul class="related-links">
+        {otherProducts.map(({ slug, name }) => <li><a href={`/produk/${slug}/`}>{name}</a></li>)}
+      </ul>
+    </section>
+  )}
+</BaseLayout>

@@ -1,0 +1,26 @@
+---
+import { company } from '../config/company';
+import { navigation, contactMethods } from '../config/navigation';
+---
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div>
+      <p class="footer-name">{company.name}</p>
+      <p class="muted">Suku cadang mesin industri.</p>
+      <small>&copy; {new Date().getFullYear()} {company.name}</small>
+    </div>
+    <nav aria-label="Navigasi footer">
+      <ul class="footer-links">
+        {navigation.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}
+      </ul>
+    </nav>
+    {contactMethods.length > 0 && (
+      <ul class="footer-links" aria-label="Kontak resmi">
+        {contactMethods.map(({ label, value, href }) => (
+          <li><a href={href}>{label === 'WhatsApp' ? label : value}</a></li>
+        ))}
+      </ul>
+    )}
+  </div>
+</footer>

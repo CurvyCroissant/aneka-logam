@@ -1,0 +1,25 @@
+---
+import { company } from '../config/company';
+import { navigation } from '../config/navigation';
+
+const pathname = Astro.url.pathname;
+function currentPage(href: string) {
+  if (pathname === href) return 'page' as const;
+  return href !== '/' && pathname.startsWith(href) ? 'true' as const : undefined;
+}
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="wordmark" href="/" aria-label={`${company.name} — beranda`}>
+      {company.name}
+    </a>
+    <nav aria-label="Navigasi utama">
+      <ul class="nav-links">
+        {navigation.map(({ label, href }) => (
+          <li><a href={href} aria-current={currentPage(href)}>{label}</a></li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+</header>

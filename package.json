@@ -12,13 +12,17 @@
     "check": "astro check",
     "build": "astro build",
     "preview": "astro preview",
-    "verify": "npm run check && npm run build && wrangler deploy --dry-run",
-    "deploy": "npm run check && npm run build && wrangler deploy"
+    "verify": "npm run build:checked && wrangler deploy --dry-run",
+    "deploy": "npm run verify && wrangler deploy",
+    "test": "node --test",
+    "check:build": "node scripts/check-build.mjs",
+    "build:checked": "npm run test && npm run check && npm run build && npm run check:build"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
     "@astrojs/sitemap": "3.7.4",
     "astro": "7.4.0",
+    "parse5": "8.0.1",
     "typescript": "6.0.3",
     "wrangler": "4.151.1"
   }

@@ -1,93 +1,155 @@
-/* Minimal defaults only. Brand colours and the final design are undecided. */
+/* Neutral foundation. Final branding and imagery are still undecided. */
 :root {
   color-scheme: light;
+  --color-text: #202124;
+  --color-muted: #535b66;
+  --color-link: #174ea6;
+  --color-border: #dce1e8;
+  --color-surface: #f6f7f9;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #202124;
+  color: var(--color-text);
   background: #fff;
-  line-height: 1.6;
+  line-height: 1.65;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
+*, *::before, *::after { box-sizing: border-box; }
 body {
   margin: 0;
+  min-block-size: 100vh;
   min-block-size: 100svh;
   display: flex;
   flex-direction: column;
   overflow-wrap: anywhere;
 }
-
 .container {
-  inline-size: min(100% - 2rem, 64rem);
+  inline-size: calc(100% - 2rem);
+  max-inline-size: 68rem;
   margin-inline: auto;
 }
-
-.site-header,
-.site-footer {
-  padding-block: 1.5rem;
+.site-header { border-block-end: 1px solid var(--color-border); }
+.header-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 2rem;
+  padding-block: 1rem;
 }
-
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.75rem;
   color: inherit;
+  font-size: 1.15rem;
   font-weight: 700;
   text-decoration: none;
 }
-
+.nav-links, .footer-links, .breadcrumbs ol, .product-grid, .related-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.nav-links a, .footer-links a, .related-links a, .text-link {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.75rem;
+}
+.nav-links a {
+  padding: 0.5rem 0.85rem;
+  color: inherit;
+  border-radius: 0.35rem;
+  text-decoration: none;
+}
+.nav-links [aria-current] {
+  background: var(--color-surface);
+  font-weight: 650;
+  text-decoration: underline;
+}
 main {
   flex: 1;
   padding-block: clamp(1.5rem, 5vw, 4rem);
 }
-
-h1,
-h2 {
-  line-height: 1.2;
-  text-wrap: balance;
-}
-
+.page-intro { margin-block-end: 2.5rem; }
+.reading-width, p { max-inline-size: 68ch; }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
 h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
+  font-size: clamp(2rem, 4vw + 0.5rem, 3.25rem);
   margin-block: 0 1rem;
 }
-
 h2 {
-  font-size: 1.35rem;
+  font-size: clamp(1.4rem, 2vw, 1.75rem);
+  margin-block: 0 1rem;
 }
-
-p {
-  max-inline-size: 65ch;
-}
-
-section + section {
-  margin-block-start: 2rem;
-}
-
-a {
-  color: #174ea6;
-  text-underline-offset: 0.2em;
-}
-
-a:focus-visible {
-  outline: 3px solid currentColor;
-  outline-offset: 4px;
-}
-
-.contact-links {
+h3 { font-size: 1.2rem; margin-block: 0 0.5rem; }
+.eyebrow { color: var(--color-muted); margin-block: 0 0.75rem; font-size: 0.95rem; }
+.lead { font-size: clamp(1.05rem, 1.5vw, 1.2rem); }
+.muted { color: var(--color-muted); }
+.section { margin-block-start: clamp(2.5rem, 5vw, 4rem); }
+a { color: var(--color-link); text-underline-offset: 0.2em; }
+a:focus-visible { outline: 3px solid var(--color-link); outline-offset: 4px; }
+.actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
-  list-style: none;
-  padding: 0;
+  gap: 0.75rem;
+  margin-block-start: 1.5rem;
 }
-
-.contact-links a {
-  display: inline-block;
-  padding-block: 0.5rem;
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 2.75rem;
+  max-inline-size: 100%;
+  padding: 0.65rem 1.15rem;
+  border: 1px solid var(--color-link);
+  border-radius: 0.4rem;
+  background: var(--color-link);
+  color: #fff;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
 }
-
+.button-secondary { background: #fff; color: var(--color-link); }
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+.product-card {
+  min-inline-size: 0;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+}
+.product-card h3 a { display: inline-flex; align-items: center; min-block-size: 2.75rem; }
+.product-card p { margin-block: 0.25rem 0; color: var(--color-muted); }
+.notice {
+  padding: 1rem 1.25rem;
+  margin-block: 1.5rem;
+  background: var(--color-surface);
+  border-inline-start: 3px solid var(--color-border);
+}
+.detail-list { padding-inline-start: 1.5rem; }
+.detail-list li + li { margin-block-start: 0.5rem; }
+.breadcrumbs { margin-block-end: 1.5rem; font-size: 0.95rem; }
+.breadcrumbs ol, .breadcrumbs li { display: flex; flex-wrap: wrap; align-items: center; }
+.breadcrumbs a, .breadcrumbs [aria-current] { display: inline-flex; align-items: center; min-block-size: 2.75rem; }
+.breadcrumb-separator { margin-inline: 0.65rem; color: var(--color-muted); }
+.contact-list { display: grid; gap: 1rem; }
+.contact-list dt { font-weight: 600; }
+.contact-list dd { margin: 0; }
+.contact-list a { display: inline-flex; align-items: center; min-block-size: 2.75rem; }
+.site-footer { border-block-start: 1px solid var(--color-border); padding-block: 2rem; }
+.footer-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1.5rem 3rem; }
+.footer-inner > * { min-inline-size: 0; }
+.footer-name { margin: 0; font-weight: 700; }
+.footer-inner .muted { margin-block: 0.35rem 0.75rem; }
 .skip-link {
   position: absolute;
   inset-block-start: 0.5rem;
@@ -97,13 +159,14 @@ a:focus-visible {
   transform: translateY(-200%);
   z-index: 1;
 }
-
-.skip-link:focus {
-  transform: translateY(0);
+.skip-link:focus { transform: translateY(0); }
+img { display: block; max-inline-size: 100%; block-size: auto; }
+@media (max-width: 40rem) {
+  .header-inner { align-items: stretch; flex-direction: column; gap: 0.25rem; }
+  .nav-links li { flex: 1 1 auto; }
+  .nav-links a { display: flex; justify-content: center; }
 }
-
-img {
-  display: block;
-  max-inline-size: 100%;
-  block-size: auto;
+@media (hover: hover) {
+  .nav-links a:hover { background: var(--color-surface); text-decoration: underline; }
+  .button:hover { text-decoration: underline; }
 }

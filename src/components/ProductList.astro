@@ -1,0 +1,12 @@
+---
+import { company } from '../config/company';
+---
+
+<ul class="product-grid">
+  {company.products.map(({ slug, name, summary }) => (
+    <li class="product-card">
+      <h3><a href={`/produk/${slug}/`}>{name}</a></h3>
+      <p>{summary}</p>
+    </li>
+  ))}
+</ul>
