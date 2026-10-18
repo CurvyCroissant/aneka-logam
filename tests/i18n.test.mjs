@@ -1,16 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { pagePaths, productPaths } from '../src/i18n/routes.ts';
+import { pagePaths, productPath } from '../src/i18n/routes.ts';
 import { copy } from '../src/i18n/copy.ts';
 import { company } from '../src/config/company.ts';
 import { getContactMethods } from '../src/lib/contact.ts';
 
 test('default URLs remain Indonesian and English has its own static URLs', () => {
   assert.deepEqual(pagePaths('home'), { id: '/', en: '/en/' });
-  assert.deepEqual(pagePaths('products'), { id: '/produk/', en: '/en/products/' });
-  assert.deepEqual(pagePaths('contact'), { id: '/kontak/', en: '/en/contact/' });
+  assert.deepEqual(pagePaths('products'), { id: '/#products', en: '/en/#products' });
+  assert.deepEqual(pagePaths('contact'), { id: '/#contact', en: '/en/#contact' });
   const spring = company.products.find(({key}) => key === 'spring');
-  assert.deepEqual(productPaths(spring), { id: '/produk/pegas/', en: '/en/products/springs/' });
+  assert.equal(productPath('id', spring), '/#spring');
+  assert.equal(productPath('en', spring), '/en/#spring');
 });
 
 test('English UI copy is complete; only established shared terms remain unchanged', () => {
@@ -34,10 +35,9 @@ test('the exact shop phrase and proper company details are language invariant', 
   assert.equal(company.phrase, 'Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring');
   assert.deepEqual(company.people, ['Budiyanto', 'Delinah']);
   const methods = getContactMethods(company.contact);
-  assert.equal(methods.find(({kind}) => kind === 'mobile').href, 'tel:+6281385550978');
+  assert.equal(methods.find(({kind}) => kind === 'whatsapp').href, 'https://wa.me/6281386303535');
   assert.equal(methods.find(({kind}) => kind === 'telephone').href, 'tel:+62216395874');
   assert.equal(decodeURIComponent(methods.find(({kind}) => kind === 'email').href), 'mailto:anekalogaminfo@gmail.com');
-  assert.ok(!methods.some(({kind}) => kind === 'whatsapp'));
 });
 
 test('product information has complete translations without fabricated specifications', () => {

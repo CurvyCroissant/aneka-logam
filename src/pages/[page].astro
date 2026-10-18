@@ -1,7 +1,0 @@
----
-import type { GetStaticPaths } from 'astro';
-import { hasContactDetails } from '../config/navigation';
-import ContactPage from '../components/pages/ContactPage.astro';
-export const getStaticPaths = (() => hasContactDetails ? [{ params: { page: 'kontak' } }] : []) satisfies GetStaticPaths;
----
-<ContactPage locale="id" />

@@ -71,13 +71,14 @@ for (const file of files) {
   pages.set(file, { name, nodes, ids: new Set(ids) });
 }
 
-requireThat(pages.size > 0, 'No static HTML pages were generated.');
+requireThat(pages.size === 4, 'Generate only the two main language pages and their localized 404 pages.');
 requireThat(!files.some((file) => file.includes(`${sep}_worker.js`)), 'The company profile must remain static.');
 const robots = await readFile(resolve(root, 'robots.txt'), 'utf8');
 const indexable = !/^Disallow:\s*\/\s*$/m.test(robots);
 if (indexable) {
-  requireThat(pages.has(resolve(root, 'kontak/index.html')), 'Configure official contacts before enabling public search indexing.');
-  requireThat(pages.has(resolve(root, 'en/contact/index.html')), 'An indexable launch needs the English contact page.');
+  for (const name of ['index.html', 'en/index.html']) {
+    requireThat(pages.get(resolve(root, name))?.ids.has('contact'), `${name}: configure official contacts before enabling indexing.`);
+  }
 }
 
 for (const [file, { name, nodes }] of pages) {
@@ -103,12 +104,25 @@ for (const [file, { name, nodes }] of pages) {
   const primaryNav = nodes.find((node) => node.tagName === 'nav' && attr(node, 'class') === 'primary-navigation');
   if (primaryNav) {
     for (const link of elements(primaryNav).filter((node) => node.tagName === 'a')) {
-      const englishLink = attr(link, 'href')?.startsWith('/en/');
+      const target = new URL(attr(link, 'href'), `https://build.invalid${route}`);
+      const englishLink = target.pathname.startsWith('/en/');
       requireThat(language === 'en' ? englishLink : !englishLink, `${name}: primary navigation changed the selected language.`);
+      requireThat(['#home', '#products', '#contact'].includes(target.hash), `${name}: navigation must point to a main-page section.`);
     }
   }
   const phrase = 'Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring';
-  requireThat(nodes.some((node) => node.tagName === 'p' && attr(node, 'lang') === 'en' && text(node).trim() === phrase), `${name}: keep the supplied English phrase unchanged.`);
+  if (!errorPage) {
+    requireThat(nodes.filter((node) => node.tagName === 'p' && attr(node, 'lang') === 'en' && text(node).trim() === phrase).length === 1, `${name}: show the exact English phrase once.`);
+    for (const id of ['home', 'products', 'contact']) requireThat(pages.get(file).ids.has(id), `${name}: missing ${id} section.`);
+    const bodyText = text(nodes.find((node) => node.tagName === 'body'));
+    requireThat((bodyText.match(/Metro Glodok/g) ?? []).length === 1 && (bodyText.match(/Jakarta Pusat/g) ?? []).length === 1, `${name}: keep location details in the address only.`);
+    requireThat(!bodyText.includes('SUKU CADANG MESIN INDUSTRI') && !bodyText.includes('Seluler') && !bodyText.includes('Telepon toko'), `${name}: obsolete labels must not return.`);
+    const copies = nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-copy'));
+    requireThat(copies.length === 4, `${name}: phone and email copy actions must work in the contact section and footer.`);
+    requireThat(nodes.filter((node) => attr(node, 'href') === 'https://wa.me/6281386303535').length === 2, `${name}: use the confirmed WhatsApp number in the contact section and footer.`);
+  }
+  const footer = nodes.find((node) => node.tagName === 'footer');
+  requireThat(Boolean(footer) && !elements(footer).some((node) => ['nav', 'address', 'h1', 'h2', 'h3'].includes(node.tagName)), `${name}: footer should contain only contacts and copyright.`);
   const robotsMeta = nodes.find((node) => attr(node, 'name') === 'robots');
   if (!indexable || name === '404.html' || name.endsWith('/404.html')) {
     requireThat(Boolean(robotsMeta && attr(robotsMeta, 'content')?.includes('noindex')), `${name}: prelaunch/error pages must remain noindex.`);
@@ -143,6 +157,18 @@ for (const [file, { name, nodes }] of pages) {
       errors.push(`${name}: broken local link or resource ${href}.`);
     }
   }
+}
+
+// Older deep links must reach the corresponding section after consolidation.
+const redirects = (await readFile(resolve(root, '_redirects'), 'utf8')).trim().split('\n');
+const sources = new Set();
+for (const line of redirects) {
+  const [source, destination, status] = line.trim().split(/\s+/);
+  requireThat(!sources.has(source) && status === '301', `Invalid or duplicate redirect: ${line}`);
+  sources.add(source);
+  const target = new URL(destination, 'https://build.invalid');
+  const page = pages.get(resolve(root, '.' + target.pathname, 'index.html'));
+  requireThat(Boolean(page?.ids.has(target.hash.slice(1))), `Redirect must target an existing section: ${line}`);
 }
 
 // Conservative compressed-size ceilings. These are budgets, not load-time claims.

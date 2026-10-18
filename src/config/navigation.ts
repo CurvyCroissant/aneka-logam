@@ -9,9 +9,9 @@ export const hasContactDetails = contactMethods.length > 0;
 export function navigation(locale: Locale) {
   const t = copy(locale);
   return [
-    { label: t.home, href: pagePath(locale, 'home') },
-    { label: t.products, href: pagePath(locale, 'products') },
-    ...(hasContactDetails ? [{ label: t.contact, href: pagePath(locale, 'contact') }] : []),
+    { id: 'home', label: t.home, href: `${pagePath(locale, 'home')}#home` },
+    { id: 'products', label: t.products, href: pagePath(locale, 'products') },
+    ...(hasContactDetails ? [{ id: 'contact', label: t.contact, href: pagePath(locale, 'contact') }] : []),
   ];
 }
 

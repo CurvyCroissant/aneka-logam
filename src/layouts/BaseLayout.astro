@@ -55,5 +55,9 @@ const favicon = await getImage({ src: logo, width: 48, height: 48, format: 'png'
     <SiteHeader locale={locale} paths={paths} />
     <main id="main" tabindex="-1"><slot /></main>
     <SiteFooter locale={locale} />
+    <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-copy-status></p>
+    <script>
+      import '../scripts/site';
+    </script>
   </body>
 </html>

@@ -9,41 +9,28 @@ test('unconfigured contacts do not produce placeholder links', () => {
   assert.deepEqual(getContactMethods({ email: ' ', telephone: '\t', whatsapp: ' ' }), []);
 });
 
-test('formatted international telephone numbers remain readable but dial correctly', () => {
-  const [method] = getContactMethods({ ...empty, telephone: ' +1 (202) 555-0123 ' });
-  assert.equal(method.href, 'tel:+12025550123');
-  assert.equal(method.value, '+1 (202) 555-0123');
+test('formatted international numbers remain readable and link to the correct applications', () => {
+  const methods = getContactMethods({ ...empty, telephone: ' +1 (202) 555-0123 ', whatsapp: ' +62 813 8630 3535 ' });
+  assert.equal(methods.find(({ kind }) => kind === 'telephone').href, 'tel:+12025550123');
+  assert.equal(methods.find(({ kind }) => kind === 'telephone').value, '+1 (202) 555-0123');
+  assert.equal(methods.find(({ kind }) => kind === 'whatsapp').href, 'https://wa.me/6281386303535');
+  assert.equal(methods.find(({ kind }) => kind === 'whatsapp').value, '+62 813 8630 3535');
 });
 
-test('mobile and landline contacts keep their separate numbers', () => {
-  const methods = getContactMethods({ ...empty, mobile: '+1 (202) 555-0123', telephone: '+1 (202) 555-0199' });
-  assert.equal(methods.find(({kind}) => kind === 'mobile').href, 'tel:+12025550123');
-  assert.equal(methods.find(({kind}) => kind === 'telephone').href, 'tel:+12025550199');
-  assert.throws(() => getContactMethods({ ...empty, mobile: '08123456789' }), /mobile/);
-});
-
-test('WhatsApp uses the full country code and omits unconfigured methods', () => {
-  const methods = getContactMethods({ ...empty, whatsapp: ' 628001234567 ' });
-  assert.equal(methods.length, 1);
-  assert.equal(methods[0].href, 'https://wa.me/628001234567');
-});
-
-test('email addresses are encoded without losing a plus-addressed recipient', () => {
+test('email addresses preserve plus-addressed recipients', () => {
   const [method] = getContactMethods({ ...empty, email: ' parts+enquiry@example.invalid ' });
   assert.equal(decodeURIComponent(method.href.slice('mailto:'.length)), 'parts+enquiry@example.invalid');
   assert.equal(method.value, 'parts+enquiry@example.invalid');
 });
 
-test('invalid configured phone numbers fail instead of publishing unusable links', () => {
-  for (const telephone of ['08123456789', '---', '+62abc1234567', '+123', '+0123456789']) {
-    assert.throws(() => getContactMethods({ ...empty, telephone }), /telephone/);
-  }
-  for (const whatsapp of ['08123456789', '+628001234567', '62 8001234567', 'https://example.invalid']) {
-    assert.throws(() => getContactMethods({ ...empty, whatsapp }), /WhatsApp/);
+test('invalid configured international phone numbers fail the build', () => {
+  for (const number of ['08123456789', '---', '+62abc1234567', '+123', '+0123456789']) {
+    assert.throws(() => getContactMethods({ ...empty, telephone: number }), /telephone/);
+    assert.throws(() => getContactMethods({ ...empty, whatsapp: number }), /WhatsApp/);
   }
 });
 
-test('email input cannot accidentally add a query, fragment, or mail header', () => {
+test('email input cannot inject queries, fragments, or mail headers', () => {
   for (const email of ['not-an-email', 'parts@example.invalid?bcc=other', 'parts@example.invalid#x', 'parts@example.invalid\r\nBcc: other']) {
     assert.throws(() => getContactMethods({ ...empty, email }), /email/);
   }

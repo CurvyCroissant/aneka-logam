@@ -8,10 +8,7 @@ const t = copy(locale);
 ---
 <BaseLayout locale={locale} title={t.notFoundTitle} description={t.notFoundMessage} paths={pagePaths('home')} noindex>
   <section class="section error-section"><div class="container">
-    <p class="eyebrow">404</p><h1>{t.notFound}</h1><p class="lead">{t.notFoundMessage}</p>
-    <div class="actions">
-      <a class="button" href={pagePath(locale,'home')}>{t.backHome}</a>
-      <a class="button button-outline" href={pagePath(locale,'products')}>{t.browse}</a>
-    </div>
+    <p class="error-code">404</p><h1>{t.notFound}</h1><p class="lead">{t.notFoundMessage}</p>
+    <a class="button" href={pagePath(locale, 'home')}>{t.backHome}</a>
   </div></section>
 </BaseLayout>

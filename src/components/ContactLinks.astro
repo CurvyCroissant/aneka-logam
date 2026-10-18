@@ -2,21 +2,21 @@
 import { contactMethods } from '../config/navigation';
 import { copy } from '../i18n/copy';
 import type { Locale } from '../i18n/routes';
+import ContactAction from './ContactAction.astro';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
 ---
 {contactMethods.length > 0 && (
-  <section class="contact-panel" aria-labelledby="contact-heading">
-    <p class="eyebrow">{t.contact}</p>
-    <h2 id="contact-heading">{t.contactMethods}</h2>
-    <dl class="contact-list">
-      {contactMethods.map(({ kind, value, href }) => (
-        <div>
-          <dt>{t.contactLabels[kind]}</dt>
-          <dd><a href={href}>{kind === 'whatsapp' ? t.whatsappAction : value}</a></dd>
-        </div>
+  <div class="contact-panel" data-reveal>
+    <h3>{t.contactMethods}</h3>
+    <ul class="contact-list">
+      {contactMethods.map((method) => (
+        <li>
+          <p class="contact-label">{t.contactLabels[method.kind]}</p>
+          <ContactAction method={method} locale={locale} />
+        </li>
       ))}
-    </dl>
-  </section>
+    </ul>
+  </div>
 )}

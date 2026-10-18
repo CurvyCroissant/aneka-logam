@@ -10,7 +10,7 @@ export const company = {
   products: [
     {
       key: 'shimPlate',
-      slugs: { id: 'shim-plate', en: 'shim-plate' },
+      id: 'shim-plate',
       name: 'Shim Plate',
       summary: {
         id: 'Pelat tipis untuk penyesuaian celah atau posisi antar komponen mesin.',
@@ -31,7 +31,7 @@ export const company = {
     },
     {
       key: 'spring',
-      slugs: { id: 'pegas', en: 'springs' },
+      id: 'spring',
       name: 'Spring',
       summary: {
         id: 'Komponen pegas untuk kebutuhan mekanis pada mesin industri.',
@@ -52,10 +52,9 @@ export const company = {
     },
   ],
   contact: {
-    mobile: '+62 813 8555 0978',
+    whatsapp: '+62 813 8630 3535',
     telephone: '+62 21 6395 874',
     email: 'anekalogaminfo@gmail.com',
-    whatsapp: '', // Add only after the company confirms a WhatsApp account.
   },
   address: {
     building: 'Gedung Metro Glodok No. 35',
@@ -66,5 +65,3 @@ export const company = {
   },
   people: ['Budiyanto', 'Delinah'],
 } as const;
-
-export type Product = (typeof company.products)[number];
