@@ -1,12 +1,21 @@
 ---
 import { company } from '../config/company';
+import { copy } from '../i18n/copy';
+import { productPath, type Locale } from '../i18n/routes';
+import Arrow from './Arrow.astro';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const t = copy(locale);
 ---
-
 <ul class="product-grid">
-  {company.products.map(({ slug, name, summary }) => (
+  {company.products.map((product, index) => (
     <li class="product-card">
-      <h3><a href={`/produk/${slug}/`}>{name}</a></h3>
-      <p>{summary}</p>
+      <span class="product-number" aria-hidden="true">0{index + 1}</span>
+      <h3 lang="en">{product.name}</h3>
+      <p>{product.summary[locale]}</p>
+      <a class="product-link" href={productPath(locale, product)} aria-label={`${t.viewDetails}: ${product.name}`}>
+        <span>{t.viewDetails}</span><Arrow />
+      </a>
     </li>
   ))}
 </ul>

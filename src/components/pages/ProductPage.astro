@@ -1,0 +1,41 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { company, type Product } from '../../config/company';
+import { hasContactDetails } from '../../config/navigation';
+import { copy } from '../../i18n/copy';
+import { pagePath, productPath, productPaths, type Locale } from '../../i18n/routes';
+import PageBanner from '../PageBanner.astro';
+import Arrow from '../Arrow.astro';
+interface Props { locale: Locale; product: Product }
+const { locale, product } = Astro.props;
+const t = copy(locale);
+const otherProducts = company.products.filter(({ key }) => key !== product.key);
+---
+<BaseLayout locale={locale} title={`${product.name} | ${company.name}`} description={product.summary[locale]} paths={productPaths(product)}>
+  <PageBanner locale={locale} title={product.name} intro={product.summary[locale]} items={[
+    {label:t.home,href:pagePath(locale,'home')},
+    {label:t.products,href:pagePath(locale,'products')},
+    {label:product.name},
+  ]} />
+  <section class="section">
+    <div class="container detail-grid">
+      <div class="detail-content">
+        <h2>{t.detailsHeading}</h2>
+        <p class="muted">{t.detailsIntro}</p>
+        <ol class="enquiry-list">
+          {product.enquiryDetails[locale].map((detail) => <li>{detail}</li>)}
+        </ol>
+        <p class="notice">{t.availability}</p>
+        {hasContactDetails && <a class="button" href={pagePath(locale,'contact')}>{t.contactCompany}<Arrow /></a>}
+      </div>
+      <aside class="related-panel" aria-labelledby="related-heading">
+        <p class="eyebrow">{t.products}</p>
+        <h2 id="related-heading">{t.related}</h2>
+        <ul class="related-links">
+          {otherProducts.map((item) => <li><a href={productPath(locale,item)}><span lang="en">{item.name}</span><Arrow /></a></li>)}
+        </ul>
+        <a class="text-link" href={pagePath(locale,'products')}>{t.backProducts}</a>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>

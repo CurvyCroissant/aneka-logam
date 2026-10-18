@@ -1,31 +1,7 @@
 ---
 import type { GetStaticPaths } from 'astro';
-import BaseLayout from '../layouts/BaseLayout.astro';
-import Breadcrumbs from '../components/Breadcrumbs.astro';
-import ContactLinks from '../components/ContactLinks.astro';
-import { company } from '../config/company';
 import { hasContactDetails } from '../config/navigation';
-
-// Generate /kontak/ only after at least one real contact method is configured.
-// This avoids publishing an empty contact page or non-working calls to action.
-export const getStaticPaths = (() => hasContactDetails
-  ? [{ params: { page: 'kontak' } }]
-  : []) satisfies GetStaticPaths;
+import ContactPage from '../components/pages/ContactPage.astro';
+export const getStaticPaths = (() => hasContactDetails ? [{ params: { page: 'kontak' } }] : []) satisfies GetStaticPaths;
 ---
-
-<BaseLayout
-  title={`Kontak | ${company.name}`}
-  description="Hubungi Aneka Logam melalui kontak resmi untuk pertanyaan shim plate, pegas, dan kebutuhan suku cadang mesin industri."
->
-  <Breadcrumbs items={[{ label: 'Beranda', href: '/' }, { label: 'Kontak' }]} />
-  <div class="page-intro reading-width">
-    <h1>Hubungi {company.name}</h1>
-    <p class="lead">Gunakan kontak resmi berikut untuk menanyakan kebutuhan produk Anda.</p>
-  </div>
-  <ContactLinks />
-  <section class="section reading-width" aria-labelledby="enquiry-heading">
-    <h2 id="enquiry-heading">Siapkan informasi kebutuhan Anda</h2>
-    <p>Sertakan nama produk, ukuran atau nomor referensi, serta jumlah kebutuhan. Bila ada, siapkan juga foto atau gambar komponen.</p>
-    <a class="text-link" href="/produk/">Lihat informasi produk</a>
-  </section>
-</BaseLayout>
+<ContactPage locale="id" />

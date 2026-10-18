@@ -15,6 +15,13 @@ test('formatted international telephone numbers remain readable but dial correct
   assert.equal(method.value, '+1 (202) 555-0123');
 });
 
+test('mobile and landline contacts keep their separate numbers', () => {
+  const methods = getContactMethods({ ...empty, mobile: '+1 (202) 555-0123', telephone: '+1 (202) 555-0199' });
+  assert.equal(methods.find(({kind}) => kind === 'mobile').href, 'tel:+12025550123');
+  assert.equal(methods.find(({kind}) => kind === 'telephone').href, 'tel:+12025550199');
+  assert.throws(() => getContactMethods({ ...empty, mobile: '08123456789' }), /mobile/);
+});
+
 test('WhatsApp uses the full country code and omits unconfigured methods', () => {
   const methods = getContactMethods({ ...empty, whatsapp: ' 628001234567 ' });
   assert.equal(methods.length, 1);

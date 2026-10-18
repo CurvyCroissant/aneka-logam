@@ -1,11 +1,10 @@
 ---
-interface Props {
-  items: { label: string; href?: string }[];
-}
-const { items } = Astro.props;
+import { copy } from '../i18n/copy';
+import type { Locale } from '../i18n/routes';
+interface Props { locale: Locale; items: { label: string; href?: string }[] }
+const { locale, items } = Astro.props;
 ---
-
-<nav class="breadcrumbs" aria-label="Jejak halaman">
+<nav class="breadcrumbs" aria-label={copy(locale).breadcrumbs}>
   <ol>
     {items.map(({ label, href }, index) => (
       <li>

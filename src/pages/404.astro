@@ -1,17 +1,4 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import { company } from '../config/company';
+import NotFoundPage from '../components/pages/NotFoundPage.astro';
 ---
-
-<BaseLayout
-  title={`Halaman tidak ditemukan | ${company.name}`}
-  description="Halaman yang Anda cari tidak ditemukan."
-  noindex
->
-  <h1>Halaman tidak ditemukan</h1>
-  <p>Halaman yang Anda cari tidak tersedia.</p>
-  <div class="actions">
-    <a class="button" href="/">Kembali ke beranda</a>
-    <a class="button button-secondary" href="/produk/">Lihat produk</a>
-  </div>
-</BaseLayout>
+<NotFoundPage locale="id" />

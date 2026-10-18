@@ -10,3 +10,6 @@
 
 /404.html
   X-Robots-Tag: noindex, nofollow
+
+/en/404.html
+  X-Robots-Tag: noindex, nofollow

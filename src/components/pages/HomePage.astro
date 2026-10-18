@@ -1,0 +1,58 @@
+---
+import { Image } from 'astro:assets';
+import logo from '../../assets/aneka-logam-logo.jpg';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { company } from '../../config/company';
+import { hasContactDetails } from '../../config/navigation';
+import { copy } from '../../i18n/copy';
+import { pagePath, pagePaths, type Locale } from '../../i18n/routes';
+import ProductList from '../ProductList.astro';
+import ContactLinks from '../ContactLinks.astro';
+import AddressBlock from '../AddressBlock.astro';
+import Arrow from '../Arrow.astro';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const t = copy(locale);
+---
+<BaseLayout locale={locale} title={t.homeTitle} description={company.description[locale]} paths={pagePaths('home')}>
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="accent-line" aria-hidden="true"></span>{t.industry}</p>
+        <h1 id="hero-heading" class="hero-title">{company.displayName}</h1>
+        <p class="hero-description">{company.description[locale]}</p>
+        <p class="hero-intro">{t.homeIntro}</p>
+        <div class="actions">
+          <a class="button" href={pagePath(locale, 'products')}>{t.browse}<Arrow /></a>
+          {hasContactDetails && <a class="button button-secondary" href={pagePath(locale, 'contact')}>{t.contactUs}</a>}
+        </div>
+        <p class="hero-location">Metro Glodok <span aria-hidden="true">/</span> Jakarta Pusat</p>
+      </div>
+      <div class="hero-brand">
+        <Image src={logo} alt={company.name} width={480} height={480} widths={[240, 480]} sizes="(max-width: 48rem) 260px, 320px" layout="none" format="webp" loading="eager" fetchpriority="high" class="hero-logo" />
+        <p class="store-phrase" lang="en">{company.phrase}</p>
+      </div>
+    </div>
+  </section>
+  <section class="section section-products" aria-labelledby="products-heading">
+    <div class="container">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">{t.products}</p>
+          <h2 id="products-heading">{t.productHeading}</h2>
+        </div>
+        <p>{t.productIntro}</p>
+      </div>
+      <ProductList locale={locale} />
+    </div>
+  </section>
+  <section class="section section-visit" aria-labelledby="visit-heading">
+    <div class="container">
+      <div class="section-heading">
+        <div><p class="eyebrow">Glodok, Jakarta</p><h2 id="visit-heading">{t.visitHeading}</h2></div>
+        <p>{t.visitIntro}</p>
+      </div>
+      <div class="visit-grid"><AddressBlock locale={locale} /><ContactLinks locale={locale} /></div>
+    </div>
+  </section>
+</BaseLayout>

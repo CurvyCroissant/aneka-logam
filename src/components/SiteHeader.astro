@@ -1,25 +1,35 @@
 ---
+import { Image } from 'astro:assets';
+import logo from '../assets/aneka-logam-logo.jpg';
 import { company } from '../config/company';
 import { navigation } from '../config/navigation';
-
+import { copy } from '../i18n/copy';
+import { pagePath, type Locale, type LocalizedPaths } from '../i18n/routes';
+interface Props { locale: Locale; paths: LocalizedPaths }
+const { locale, paths } = Astro.props;
+const t = copy(locale);
 const pathname = Astro.url.pathname;
 function currentPage(href: string) {
   if (pathname === href) return 'page' as const;
-  return href !== '/' && pathname.startsWith(href) ? 'true' as const : undefined;
+  return href !== pagePath(locale, 'home') && pathname.startsWith(href) ? 'true' as const : undefined;
 }
 ---
-
 <header class="site-header">
   <div class="container header-inner">
-    <a class="wordmark" href="/" aria-label={`${company.name} — beranda`}>
-      {company.name}
+    <a class="wordmark" href={pagePath(locale, 'home')} aria-label={`${company.name} — ${t.home}`}>
+      <Image src={logo} alt="" width={56} height={56} widths={[56, 112]} sizes="56px" layout="none" format="webp" loading="eager" class="logo-mark" />
+      <span class="brand-name">{company.displayName}</span>
     </a>
-    <nav aria-label="Navigasi utama">
+    <nav class="primary-navigation" aria-label={t.mainNavigation}>
       <ul class="nav-links">
-        {navigation.map(({ label, href }) => (
+        {navigation(locale).map(({ label, href }) => (
           <li><a href={href} aria-current={currentPage(href)}>{label}</a></li>
         ))}
       </ul>
+    </nav>
+    <nav class="language-switch" aria-label={t.languageNavigation}>
+      <a href={paths.id} hreflang="id" lang="id" aria-label="Bahasa Indonesia" aria-current={locale === 'id' ? 'true' : undefined}>ID</a>
+      <a href={paths.en} hreflang="en" lang="en" aria-label="English" aria-current={locale === 'en' ? 'true' : undefined}>EN</a>
     </nav>
   </div>
 </header>

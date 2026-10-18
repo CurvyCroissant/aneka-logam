@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { copy } from '../../i18n/copy';
+import { pagePath, pagePaths, type Locale } from '../../i18n/routes';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const t = copy(locale);
+---
+<BaseLayout locale={locale} title={t.notFoundTitle} description={t.notFoundMessage} paths={pagePaths('home')} noindex>
+  <section class="section error-section"><div class="container">
+    <p class="eyebrow">404</p><h1>{t.notFound}</h1><p class="lead">{t.notFoundMessage}</p>
+    <div class="actions">
+      <a class="button" href={pagePath(locale,'home')}>{t.backHome}</a>
+      <a class="button button-outline" href={pagePath(locale,'products')}>{t.browse}</a>
+    </div>
+  </div></section>
+</BaseLayout>

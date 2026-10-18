@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { company } from '../../config/company';
+import { copy } from '../../i18n/copy';
+import { pagePath, pagePaths, type Locale } from '../../i18n/routes';
+import PageBanner from '../PageBanner.astro';
+import ContactLinks from '../ContactLinks.astro';
+import AddressBlock from '../AddressBlock.astro';
+import Arrow from '../Arrow.astro';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const t = copy(locale);
+---
+<BaseLayout locale={locale} title={`${t.contact} | ${company.name}`} description={t.contactDescription} paths={pagePaths('contact')}>
+  <PageBanner locale={locale} title={t.contactTitle} intro={t.contactIntro} items={[{label:t.home,href:pagePath(locale,'home')},{label:t.contact}]} />
+  <section class="section">
+    <div class="container">
+      <div class="visit-grid"><ContactLinks locale={locale} /><AddressBlock locale={locale} /></div>
+      <div class="contact-notes">
+        <section class="people-panel" aria-labelledby="people-heading">
+          <h2 id="people-heading">{t.people}</h2>
+          <ul class="people-list">{company.people.map((name) => <li>{name}</li>)}</ul>
+        </section>
+        <section class="enquiry-panel" aria-labelledby="enquiry-heading">
+          <h2 id="enquiry-heading">{t.enquiryHeading}</h2>
+          <p>{t.enquiryIntro}</p>
+          <a class="text-link" href={pagePath(locale,'products')}>{t.browse}<Arrow /></a>
+        </section>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

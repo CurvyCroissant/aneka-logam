@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { appendFile } from 'node:fs/promises';
+import { appendFile, rename, rm } from 'node:fs/promises';
 import { loadEnvFile } from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
@@ -39,12 +39,22 @@ export default defineConfig({
   output: 'static',
   site,
   trailingSlash: 'always',
+  i18n: {
+    defaultLocale: 'id',
+    locales: ['id', 'en'],
+    routing: { prefixDefaultLocale: false },
+  },
   integrations: [
-    ...(site && indexableSetting === 'true' ? [sitemap()] : []),
+    ...(site && indexableSetting === 'true' ? [sitemap({
+      filter: (page) => !/\/404(?:\.html|\/)?$/.test(new URL(page).pathname),
+    })] : []),
     {
       name: 'prelaunch-indexing',
       hooks: {
         'astro:build:done': async ({ dir }) => {
+          // Cloudflare serves the nearest 404.html for each language directory.
+          await rename(new URL('en/404/index.html', dir), new URL('en/404.html', dir));
+          await rm(new URL('en/404/', dir), { recursive: true });
           if (indexableSetting !== 'true') {
             await appendFile(
               new URL('_headers', dir),

@@ -1,49 +1,59 @@
 ---
+import { getImage } from 'astro:assets';
+import logo from '../assets/aneka-logam-logo.jpg';
+import montserratUrl from '@fontsource/montserrat/files/montserrat-latin-700-normal.woff2?url';
 import { company } from '../config/company';
 import { indexingEnabled } from '../config/site';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import { copy } from '../i18n/copy';
+import type { Locale, LocalizedPaths } from '../i18n/routes';
+import '../styles/font.css';
 import '../styles/global.css';
 
 interface Props {
-  title?: string;
-  description?: string;
+  locale: Locale;
+  title: string;
+  description: string;
+  paths: LocalizedPaths;
   noindex?: boolean;
 }
-
-const {
-  title = company.name,
-  description = company.description,
-  noindex = false,
-} = Astro.props;
+const { locale, title, description, paths, noindex = false } = Astro.props;
+const t = copy(locale);
 const shouldIndex = indexingEnabled && Boolean(Astro.site) && !noindex;
-const canonical = Astro.site && !noindex
-  ? new URL(Astro.url.pathname, Astro.site)
-  : undefined;
+const canonical = Astro.site && !noindex ? new URL(paths[locale], Astro.site) : undefined;
+const favicon = await getImage({ src: logo, width: 48, height: 48, format: 'png' });
 ---
-
 <!doctype html>
-<html lang={company.language}>
+<html lang={locale}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="robots" content={shouldIndex ? 'index, follow' : 'noindex, nofollow'} />
     <title>{title}</title>
+    <link rel="icon" type="image/png" href={favicon.src} />
+    <link rel="preload" href={montserratUrl} as="font" type="font/woff2" crossorigin="anonymous" />
     {canonical && <link rel="canonical" href={canonical} />}
+    {Astro.site && !noindex && (
+      <>
+        <link rel="alternate" hreflang="id" href={new URL(paths.id, Astro.site)} />
+        <link rel="alternate" hreflang="en" href={new URL(paths.en, Astro.site)} />
+        <link rel="alternate" hreflang="x-default" href={new URL(paths.id, Astro.site)} />
+      </>
+    )}
     <meta property="og:type" content="website" />
-    <meta property="og:locale" content="id_ID" />
+    <meta property="og:locale" content={locale === 'id' ? 'id_ID' : 'en_US'} />
+    <meta property="og:locale:alternate" content={locale === 'id' ? 'en_US' : 'id_ID'} />
     <meta property="og:site_name" content={company.name} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     {canonical && <meta property="og:url" content={canonical} />}
   </head>
   <body>
-    <a class="skip-link" href="#main">Lewati ke konten utama</a>
-    <SiteHeader />
-    <main id="main" class="container" tabindex="-1">
-      <slot />
-    </main>
-    <SiteFooter />
+    <a class="skip-link" href="#main">{t.skip}</a>
+    <SiteHeader locale={locale} paths={paths} />
+    <main id="main" tabindex="-1"><slot /></main>
+    <SiteFooter locale={locale} />
   </body>
 </html>

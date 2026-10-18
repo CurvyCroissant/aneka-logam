@@ -1,27 +1,31 @@
 # Aneka Logam
 
-The static company profile website for Aneka Logam, a supplier of industrial machinery spare parts including shim plates and springs. The information structure is implemented with neutral styling; final branding and imagery are undecided.
+The static company profile website for Aneka Logam, a supplier of industrial machinery spare parts including shim plates and springs. The site uses the supplied black/gold logo, the brand colour `#F5AA23`, and locally hosted Montserrat Bold for the company title.
 
 ## Stack
 
 - Astro static generation and strict TypeScript checking.
-- Plain CSS and system fonts; no browser JavaScript in the initial pages.
+- Plain CSS, system body fonts, and locally hosted Montserrat Bold; no browser JavaScript.
 - GitHub for source control and checks.
 - Cloudflare Workers Static Assets for hosting; no runtime backend or database.
 
-Source repository: https://github.com/CurvyCroissant/aneka-logam. Cloudflare deployment and the custom domain are separate setup steps. The repository does not publish until you connect it to Cloudflare. Official contact values are still needed.
+Source repository: https://github.com/CurvyCroissant/aneka-logam. Cloudflare deployment and the custom domain are separate setup steps. The repository does not publish until you connect it to Cloudflare. The owner-supplied phone numbers, email, store address, and people to contact are configured.
 
-## Information structure
+## Information structure and languages
 
-| Route | Content |
-| --- | --- |
-| `/` | Company overview, product categories, and enquiry preparation |
-| `/produk/` | Product directory |
-| `/produk/shim-plate/` | Shim plate information and useful enquiry details |
-| `/produk/pegas/` | Spring information and useful enquiry details |
-| `/kontak/` | Official contact methods; generated only after a contact is configured |
+| Content | Bahasa Indonesia (default) | English |
+| --- | --- | --- |
+| Company overview | `/` | `/en/` |
+| Product directory | `/produk/` | `/en/products/` |
+| Shim Plate | `/produk/shim-plate/` | `/en/products/shim-plate/` |
+| Spring | `/produk/pegas/` | `/en/products/springs/` |
+| Contact | `/kontak/` | `/en/contact/` |
 
-The small navigation stays visible on narrow screens and works without JavaScript. Header, footer, current-section indicators, breadcrumbs, and keyboard skip navigation are shared. A separate company-history page is deferred until there is verified history to publish.
+ID/EN links switch to the equivalent page, with no JavaScript or automatic browser-language redirect. Navigation and refresh preserve the selected language through the URL. Shared page views avoid maintaining duplicate layouts. Copy lives in `src/i18n/copy.ts`, with product descriptions in `src/config/company.ts`.
+
+The store phrase stays exactly `Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring` in both languages, with `lang="en"` for pronunciation. Product names, people, and the postal address remain proper names rather than automatic translations. The phrase does not add unconfirmed specifications or inventory claims to the catalogue.
+
+Header, footer, breadcrumbs, keyboard skip navigation, phone links, and map directions are shared. Cloudflare serves the nearest localized `404.html`; the build places an English error document at `dist/en/404.html`. Error pages remain outside the sitemap.
 
 ## Run locally
 
@@ -53,18 +57,22 @@ npm run preview
 | `src/config/navigation.ts` | Shared navigation and validated contact methods |
 | `src/components/SiteHeader.astro`, `SiteFooter.astro` | Responsive shared navigation |
 | `src/layouts/BaseLayout.astro` | Shared document metadata, header, and footer |
-| `src/pages/index.astro` | Homepage content |
+| `src/components/pages/` | Shared page views parameterized by language |
+| `src/i18n/` | Complete interface translations and equivalent URL helpers |
+| `src/pages/index.astro`, `src/pages/en/` | Indonesian and English route wrappers |
 | `src/pages/produk/` | Directory and statically generated product detail pages |
 | `src/pages/[page].astro` | Conditional static contact page |
 | `src/pages/404.astro` | Missing-page content |
-| `src/styles/global.css` | Minimal responsive and accessibility defaults |
+| `src/styles/global.css` | Fluid branded layouts and accessibility defaults |
+| `src/assets/aneka-logam-logo.jpg` | Unmodified supplied logo, optimized by Astro during build |
+| `src/styles/font.css` | One self-hosted Montserrat Latin Bold face |
 | `src/pages/robots.txt.ts` | Build-generated crawler instructions |
 | `public/_headers` | Cloudflare security and cache headers; build adds prelaunch noindex |
 | `astro.config.mjs` | Static output, optional canonical origin, and optional sitemap |
 | `wrangler.jsonc` | Cloudflare project name, asset folder, and 404 routing |
 | `scripts/check-build.mjs` | Static page checks and performance budgets |
 
-The default content language is Indonesian. Add only verified company details. No address, legal entity type, founding date, stock claims, certifications, testimonials, customer logos, or contact numbers have been invented.
+The default language is Indonesian. Company details were supplied by the owner. No legal entity type, founding date, opening hours, stock claims, certifications, testimonials, or phone-to-person assignments have been invented.
 
 ## Domain and search indexing
 
@@ -138,17 +146,17 @@ For an intentional manual deployment, first authenticate with Cloudflare, then u
 
 ## Contacts and future features
 
-Fill the official contact values in `src/config/company.ts`. A valid contact automatically adds the `/kontak/` page, header/footer contact links, and enquiry calls to action on the next build. Empty contact values produce no placeholders or dead buttons. Invalid configured values fail the build.
+Official contact values are in `src/config/company.ts`. Mobile and store telephone numbers remain separate, along with the email, address, and the two people to contact. A valid contact generates both contact pages and enquiry links. Empty values produce no placeholders or dead buttons; invalid configured values fail the build. The mobile number is a telephone link; WhatsApp remains optional until its account is confirmed by the owner.
 
 Use a full international WhatsApp number with digits only (Indonesian country code `62`, replacing a domestic leading `0`). Telephone numbers need the international `+` prefix; formatting spaces, brackets, and hyphens are accepted. `mailto:` and `tel:` links open the visitor's chosen application.
 
 ## Performance and accessibility
 
-- The current pages require no browser JavaScript or third-party asset requests.
-- Native page navigation, system fonts, fluid layouts, wrapping navigation, and visible keyboard focus keep the foundation small and usable.
-- Build budgets are 12 KiB gzip for all emitted CSS, 20 KiB gzip for all emitted JavaScript, and 12 KiB gzip for each HTML page. These are ceilings, not claimed load times or Lighthouse scores.
+- Pages and language switching require no browser JavaScript or third-party asset requests. Map directions are an ordinary external link, not an embedded map.
+- Native navigation, fluid type, intrinsic/wrapping grids, system body fonts, and visible keyboard focus keep the foundation small and usable. Gold text is used on dark backgrounds, with dark text on gold buttons for contrast.
+- Build budgets are 12 KiB gzip for CSS, 20 KiB gzip for JavaScript, and 12 KiB gzip per HTML page, plus 40 KiB for fonts and 160 KiB for optimized logo variants. These are ceilings, not claimed load times or Lighthouse scores. Review the image budget when real product photography is added.
 - Use Astro's image tools when real photography is supplied. Give images dimensions and useful alt text; lazy-load below-the-fold images and avoid lazy-loading the main visible image.
-- Before launch, visually check 320, 375, 768, and 1440 CSS-pixel widths, portrait/landscape, enlarged text, keyboard navigation, iOS Safari, and desktop browsers. Automated build checks cannot guarantee every device layout.
+- Responsiveness is a continuing requirement: use fluid layouts rather than fixed device widths. Before launch and after layout changes, visually check narrow widths (including 320 CSS pixels), intermediate widths around every breakpoint, tablets, wide desktops, portrait/landscape, 200% text enlargement, and 400% browser zoom. Never hide overflow or disable zoom to conceal a layout issue. Test iOS Safari and desktop browsers when supported browser tooling is available; report any unverified visual checks.
 
 Navigation/content references (structure only; no affiliation or product specification claims):
 
@@ -157,7 +165,7 @@ Navigation/content references (structure only; no affiliation or product specifi
 - https://www.w3.org/WAI/tutorials/menus/
 - https://www.w3.org/WAI/WCAG22/Understanding/reflow.html
 
-No contact form, analytics, external fonts, cookies, embedded map, or third-party tracking script is installed. This describes the project code; the hosting provider can still process technical request information. Review data handling before adding forms, analytics, or other external services.
+No contact form, analytics, externally fetched fonts, cookies, embedded map, or third-party tracking script is installed. Montserrat is bundled locally using Fontsource; the SIL Open Font License is included at `public/fonts/montserrat-OFL.txt`. This describes the project code; the hosting provider can still process technical request information. Review data handling before adding forms, analytics, or other external services.
 
 The Content Security Policy permits local scripts, styles, and images. If a future design uses an external service, deliberately review and update the policy instead of disabling it. Do not put confidential credentials in frontend code or environment values exposed to the browser.
 
