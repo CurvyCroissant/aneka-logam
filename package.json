@@ -24,7 +24,7 @@
     "@fontsource/montserrat": "5.3.0",
     "astro": "7.4.0",
     "parse5": "8.0.1",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "wrangler": "4.151.1"
   }
 }
