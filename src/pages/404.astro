@@ -1,0 +1,14 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { company } from '../config/company';
+---
+
+<BaseLayout
+  title={`Halaman tidak ditemukan | ${company.name}`}
+  description="Halaman yang Anda cari tidak ditemukan."
+  noindex
+>
+  <h1>Halaman tidak ditemukan</h1>
+  <p>Halaman yang Anda cari tidak tersedia.</p>
+  <a href="/">Kembali ke beranda</a>
+</BaseLayout>

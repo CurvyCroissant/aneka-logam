@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ContactLinks from '../components/ContactLinks.astro';
+import { company } from '../config/company';
+---
+
+<BaseLayout>
+  <h1>{company.name}</h1>
+  <p>{company.description}</p>
+  <section aria-labelledby="products-heading">
+    <h2 id="products-heading">Produk</h2>
+    <ul>
+      {company.products.map((product) => <li>{product}</li>)}
+    </ul>
+  </section>
+  <ContactLinks />
+</BaseLayout>

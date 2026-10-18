@@ -1,0 +1,109 @@
+/* Minimal defaults only. Brand colours and the final design are undecided. */
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #202124;
+  background: #fff;
+  line-height: 1.6;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-block-size: 100svh;
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+
+.container {
+  inline-size: min(100% - 2rem, 64rem);
+  margin-inline: auto;
+}
+
+.site-header,
+.site-footer {
+  padding-block: 1.5rem;
+}
+
+.wordmark {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+main {
+  flex: 1;
+  padding-block: clamp(1.5rem, 5vw, 4rem);
+}
+
+h1,
+h2 {
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin-block: 0 1rem;
+}
+
+h2 {
+  font-size: 1.35rem;
+}
+
+p {
+  max-inline-size: 65ch;
+}
+
+section + section {
+  margin-block-start: 2rem;
+}
+
+a {
+  color: #174ea6;
+  text-underline-offset: 0.2em;
+}
+
+a:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 4px;
+}
+
+.contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  list-style: none;
+  padding: 0;
+}
+
+.contact-links a {
+  display: inline-block;
+  padding-block: 0.5rem;
+}
+
+.skip-link {
+  position: absolute;
+  inset-block-start: 0.5rem;
+  inset-inline-start: 1rem;
+  padding: 0.75rem;
+  background: #fff;
+  transform: translateY(-200%);
+  z-index: 1;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+img {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+}

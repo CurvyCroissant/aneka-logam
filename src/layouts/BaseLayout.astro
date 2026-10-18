@@ -1,0 +1,51 @@
+---
+import { company } from '../config/company';
+import { indexingEnabled } from '../config/site';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  noindex?: boolean;
+}
+
+const {
+  title = company.name,
+  description = company.description,
+  noindex = false,
+} = Astro.props;
+const shouldIndex = indexingEnabled && Boolean(Astro.site) && !noindex;
+const canonical = Astro.site && !noindex
+  ? new URL(Astro.url.pathname, Astro.site)
+  : undefined;
+---
+
+<!doctype html>
+<html lang={company.language}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="robots" content={shouldIndex ? 'index, follow' : 'noindex, nofollow'} />
+    <title>{title}</title>
+    {canonical && <link rel="canonical" href={canonical} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:site_name" content={company.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {canonical && <meta property="og:url" content={canonical} />}
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Lewati ke konten utama</a>
+    <header class="site-header container">
+      <a class="wordmark" href="/">{company.name}</a>
+    </header>
+    <main id="main" class="container" tabindex="-1">
+      <slot />
+    </main>
+    <footer class="site-footer container">
+      <small>&copy; {new Date().getFullYear()} {company.name}</small>
+    </footer>
+  </body>
+</html>

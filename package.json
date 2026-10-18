@@ -1,0 +1,25 @@
+{
+  "name": "aneka-logam",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Static company profile website for Aneka Logam.",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "check": "astro check",
+    "build": "astro build",
+    "preview": "astro preview",
+    "verify": "npm run check && npm run build && wrangler deploy --dry-run",
+    "deploy": "npm run check && npm run build && wrangler deploy"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "@astrojs/sitemap": "3.7.4",
+    "astro": "7.4.0",
+    "typescript": "6.0.3",
+    "wrangler": "4.151.1"
+  }
+}
