@@ -57,6 +57,7 @@ export const company = {
     email: 'anekalogaminfo@gmail.com',
   },
   address: {
+    mapsUrl: 'https://maps.app.goo.gl/E5ESBkS3XxmUQYEx9',
     building: 'Gedung Metro Glodok No. 35',
     street: 'Jl. Blustru / Hayam Wuruk',
     city: 'Jakarta Pusat',

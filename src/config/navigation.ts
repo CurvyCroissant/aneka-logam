@@ -7,7 +7,7 @@ export const contactMethods = getContactMethods(company.contact);
 export const hasContactDetails = contactMethods.length > 0;
 
 export function navigation(locale: Locale) {
-  const t = copy(locale);
+  const t = copy('en');
   return [
     { id: 'home', label: t.home, href: `${pagePath(locale, 'home')}#home` },
     { id: 'products', label: t.products, href: pagePath(locale, 'products') },
@@ -17,4 +17,4 @@ export function navigation(locale: Locale) {
 
 const address = company.address;
 export const addressLines = [address.building, address.street, `${address.city}, ${address.province}`, address.country];
-export const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressLines.join(', '))}`;
+export const directionsUrl = address.mapsUrl;

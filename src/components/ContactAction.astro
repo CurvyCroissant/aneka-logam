@@ -9,7 +9,7 @@ const t = copy(locale);
 const hint = t.contactActions[method.kind];
 ---
 {method.kind === 'whatsapp' ? (
-  <a class="contact-action" href={method.href} aria-label={`${hint}: ${method.value}`}>
+  <a class="contact-action" href={method.href} target="_blank" rel="noopener noreferrer" aria-describedby="new-tab-note" aria-label={`${hint}: ${method.value}`}>
     <ContactIcon kind={method.kind} />
     <span class="contact-action-text">
       <span class="contact-value">{method.value}</span>

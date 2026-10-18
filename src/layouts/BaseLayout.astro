@@ -1,6 +1,7 @@
 ---
 import { getImage } from 'astro:assets';
-import logo from '../assets/aneka-logam-logo.jpg';
+import logo from '../assets/logo-no-bg.png';
+import shareLogo from '../assets/logo.jpg';
 import montserratUrl from '@fontsource/montserrat/files/montserrat-latin-700-normal.woff2?url';
 import { company } from '../config/company';
 import { indexingEnabled } from '../config/site';
@@ -23,6 +24,7 @@ const t = copy(locale);
 const shouldIndex = indexingEnabled && Boolean(Astro.site) && !noindex;
 const canonical = Astro.site && !noindex ? new URL(paths[locale], Astro.site) : undefined;
 const favicon = await getImage({ src: logo, width: 48, height: 48, format: 'png' });
+const shareImage = await getImage({ src: shareLogo, width: 1200, height: 1200, format: 'jpg', quality: 80 });
 ---
 <!doctype html>
 <html lang={locale}>
@@ -48,6 +50,8 @@ const favicon = await getImage({ src: logo, width: 48, height: 48, format: 'png'
     <meta property="og:site_name" content={company.name} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    {Astro.site && <meta property="og:image" content={new URL(shareImage.src, Astro.site)} />}
+    {Astro.site && <meta property="og:image:alt" content={`${company.name} logo`} />}
     {canonical && <meta property="og:url" content={canonical} />}
   </head>
   <body>
@@ -56,6 +60,7 @@ const favicon = await getImage({ src: logo, width: 48, height: 48, format: 'png'
     <main id="main" tabindex="-1"><slot /></main>
     <SiteFooter locale={locale} />
     <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-copy-status></p>
+    <span class="sr-only" id="new-tab-note">{t.opensNewTab}</span>
     <script>
       import '../scripts/site';
     </script>

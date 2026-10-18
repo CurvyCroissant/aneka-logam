@@ -1,20 +1,25 @@
 ---
 import { company } from '../config/company';
+import { productPhotos } from '../config/media';
 import { copy } from '../i18n/copy';
 import type { Locale } from '../i18n/routes';
+import MediaGallery from './MediaGallery.astro';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
 ---
 <ul class="product-grid">
-  {company.products.map((product) => (
-    <li id={product.id} class="product-card" data-reveal>
-      <h3 lang="en">{product.name}</h3>
-      <p>{product.summary[locale]}</p>
-      <details class="product-details">
-        <summary><span>{t.detailsHeading}</span><span class="details-mark" aria-hidden="true">+</span></summary>
-        <ul class="enquiry-list">{product.enquiryDetails[locale].map((line) => <li>{line}</li>)}</ul>
-      </details>
+  {company.products.map((product, index) => (
+    <li id={product.id} class="product-card" data-reveal data-reveal-order={index}>
+      <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={product.key} locale={locale} />
+      <div class="product-copy">
+        <div class="product-title"><h3 lang="en">{product.name}</h3><span class="product-index" aria-hidden="true">0{index + 1}</span></div>
+        <p>{product.summary[locale]}</p>
+        <details id={`details-${product.id}`} class="product-details" data-remember-details>
+          <summary><span>{t.detailsHeading}</span><span class="details-mark" aria-hidden="true">+</span></summary>
+          <ul class="enquiry-list">{product.enquiryDetails[locale].map((line) => <li>{line}</li>)}</ul>
+        </details>
+      </div>
     </li>
   ))}
 </ul>

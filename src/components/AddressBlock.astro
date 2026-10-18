@@ -1,19 +1,19 @@
 ---
-import { company } from '../config/company';
 import { addressLines, directionsUrl } from '../config/navigation';
+import { storefrontPhotos } from '../config/media';
 import { copy } from '../i18n/copy';
 import type { Locale } from '../i18n/routes';
 import Arrow from './Arrow.astro';
+import MediaGallery from './MediaGallery.astro';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
 ---
 <div class="address-panel" data-reveal>
-  <h3>{t.address}</h3>
-  <address lang="id">{addressLines.map((line) => <span>{line}</span>)}</address>
-  <a class="text-link" href={directionsUrl}>{t.directions}<Arrow /></a>
-  <div class="people">
-    <h3>{t.people}</h3>
-    <p>{company.people.join(' · ')}</p>
+  <MediaGallery id="storefront" images={storefrontPhotos} kind="store" locale={locale} />
+  <div class="address-copy">
+    <h3>{t.address}</h3>
+    <address lang="id">{addressLines.map((line) => <span>{line}</span>)}</address>
+    <a class="text-link" href={directionsUrl} target="_blank" rel="noopener noreferrer" aria-describedby="new-tab-note">{t.directions}<Arrow /></a>
   </div>
 </div>

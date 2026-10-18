@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import logo from '../assets/aneka-logam-logo.jpg';
+import logo from '../assets/logo-no-bg.png';
 import { company } from '../config/company';
 import { navigation } from '../config/navigation';
 import { copy } from '../i18n/copy';
@@ -12,20 +12,21 @@ const isHome = Astro.url.pathname === pagePath(locale, 'home');
 ---
 <header class="site-header">
   <div class="container header-inner">
-    <a class="wordmark" href={isHome ? '#home' : pagePath(locale, 'home')} aria-label={`${company.name} — ${t.home}`}>
-      <Image src={logo} alt="" width={56} height={56} widths={[56, 112]} sizes="56px" layout="none" format="webp" loading="eager" class="logo-mark" />
+    <a class="wordmark" href={isHome ? '#home' : pagePath(locale, 'home')} target={!isHome ? '_blank' : undefined} rel={!isHome ? 'noopener noreferrer' : undefined} aria-label={`${company.name} — Home`}>
+      <Image src={logo} alt="" width={64} height={64} widths={[64, 128]} sizes="48px" layout="none" format="webp" loading="eager" class="logo-mark" />
       <span class="brand-name">{company.displayName}</span>
     </a>
     <nav class="primary-navigation" aria-label={t.mainNavigation}>
       <ul class="nav-links">
         {navigation(locale).map(({ id, label, href }) => (
-          <li><a href={isHome ? `#${id}` : href} data-section-link={id} aria-current={isHome && id === 'home' ? 'location' : undefined}>{label}</a></li>
+          <li><a lang="en" href={isHome ? `#${id}` : href} target={!isHome ? '_blank' : undefined} rel={!isHome ? 'noopener noreferrer' : undefined} data-section-link={id} aria-current={isHome && id === 'home' ? 'location' : undefined}><span>{label}</span></a></li>
         ))}
       </ul>
     </nav>
     <nav class="language-switch" aria-label={t.languageNavigation}>
-      <a href={paths.id} hreflang="id" lang="id" data-language-link aria-label="Bahasa Indonesia" aria-current={locale === 'id' ? 'true' : undefined}>ID</a>
-      <a href={paths.en} hreflang="en" lang="en" data-language-link aria-label="English" aria-current={locale === 'en' ? 'true' : undefined}>EN</a>
+      {(['id', 'en'] as const).map((language) => (
+        <a href={paths[language]} hreflang={language} lang={language} data-language-link target={language !== locale || !isHome ? '_blank' : undefined} rel={language !== locale || !isHome ? 'noopener noreferrer' : undefined} aria-label={language === 'id' ? 'Bahasa Indonesia' : 'English'} aria-describedby={language !== locale || !isHome ? 'new-tab-note' : undefined} aria-current={locale === language ? 'true' : undefined}>{language.toUpperCase()}</a>
+      ))}
     </nav>
   </div>
 </header>

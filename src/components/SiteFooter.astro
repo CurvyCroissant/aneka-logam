@@ -1,15 +1,21 @@
 ---
 import { company } from '../config/company';
-import { contactMethods } from '../config/navigation';
+import { contactMethods, navigation } from '../config/navigation';
 import { copy } from '../i18n/copy';
-import type { Locale } from '../i18n/routes';
+import { pagePath, type Locale } from '../i18n/routes';
 import ContactAction from './ContactAction.astro';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
+const isHome = Astro.url.pathname === pagePath(locale, 'home');
 ---
 <footer class="site-footer">
   <div class="container footer-inner">
+    <nav class="footer-navigation" aria-label={t.footerNavigation}>
+      <ul class="nav-links">
+        {navigation(locale).map(({ id, label, href }) => <li><a lang="en" href={isHome ? `#${id}` : href} target={!isHome ? '_blank' : undefined} rel={!isHome ? 'noopener noreferrer' : undefined} data-section-link={id}><span>{label}</span></a></li>)}
+      </ul>
+    </nav>
     <ul class="footer-contacts" aria-label={t.contactMethods}>
       {contactMethods.map((method) => <li><ContactAction method={method} locale={locale} /></li>)}
     </ul>

@@ -1,4 +1,6 @@
 ---
+import { Image } from 'astro:assets';
+import logo from '../../assets/logo-no-bg.png';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { company } from '../../config/company';
 import { hasContactDetails } from '../../config/navigation';
@@ -7,7 +9,6 @@ import { pagePaths, type Locale } from '../../i18n/routes';
 import ProductList from '../ProductList.astro';
 import ContactLinks from '../ContactLinks.astro';
 import AddressBlock from '../AddressBlock.astro';
-import Arrow from '../Arrow.astro';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
@@ -15,14 +16,21 @@ const t = copy(locale);
 <BaseLayout locale={locale} title={t.homeTitle} description={company.description[locale]} paths={pagePaths('home')}>
   <section id="home" class="hero" aria-labelledby="hero-heading" tabindex="-1" data-section>
     <div class="container hero-content">
-      <h1 id="hero-heading" class="hero-title">{company.displayName}</h1>
-      <p class="store-phrase" lang="en">{company.phrase}</p>
-      <a class="button hero-action" href="#products">{t.browse}<Arrow /></a>
+      <div class="hero-copy">
+        <span class="hero-rule" aria-hidden="true"></span>
+        <h1 id="hero-heading" class="hero-title" aria-label={company.displayName}><span>ANEKA</span> <span>LOGAM</span></h1>
+        <p class="store-phrase" lang="en">{company.phrase}</p>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <span class="hero-orbit hero-orbit-outer"></span><span class="hero-orbit hero-orbit-inner"></span>
+        <Image src={logo} alt="" width={560} height={560} widths={[280, 560]} sizes="(min-width: 52rem) 36vw, 240px" layout="none" format="webp" loading="eager" class="hero-emblem" />
+        <span class="hero-cross hero-cross-a"></span><span class="hero-cross hero-cross-b"></span>
+      </div>
     </div>
   </section>
   <section id="products" class="section section-products" aria-labelledby="products-heading" tabindex="-1" data-section>
     <div class="container">
-      <h2 id="products-heading" class="section-title" data-reveal>{t.products}</h2>
+      <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">01</span><h2 id="products-heading">{t.products}</h2><span class="section-rule" aria-hidden="true"></span></div>
       <ProductList locale={locale} />
       <p class="product-note" data-reveal>{t.rangeNote}</p>
     </div>
@@ -30,8 +38,8 @@ const t = copy(locale);
   {hasContactDetails && (
     <section id="contact" class="section section-contact" aria-labelledby="contact-heading" tabindex="-1" data-section>
       <div class="container">
-        <h2 id="contact-heading" class="section-title" data-reveal>{t.contact}</h2>
-        <div class="contact-grid"><ContactLinks locale={locale} /><AddressBlock locale={locale} /></div>
+        <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">02</span><h2 id="contact-heading">{t.contact}</h2><span class="section-rule" aria-hidden="true"></span></div>
+        <div class="contact-grid"><AddressBlock locale={locale} /><ContactLinks locale={locale} /></div>
       </div>
     </section>
   )}

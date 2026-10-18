@@ -22,4 +22,4 @@ npm run verify   # Tests, type checks, build checks, and deployment dry run
 npm run preview  # Preview the production build locally
 ```
 
-Company details live in `src/config/company.ts`; translations live in `src/i18n/copy.ts`. Search indexing stays disabled until the domain and launch are ready.
+Company details live in `src/config/company.ts`, photos in `src/config/media.ts`, and translations in `src/i18n/copy.ts`. Product galleries support multiple photos. Scroll position is remembered on refresh. Search indexing stays disabled until launch.

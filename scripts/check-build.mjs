@@ -42,6 +42,7 @@ for (const file of files) {
   if (name.endsWith('.js') || name.endsWith('.mjs')) scriptBytes += gzipSync(bytes).length;
   if (/\.(woff2?|ttf|otf)$/.test(name)) fontBytes += bytes.length;
   if (/\.(webp|avif|png|jpe?g)$/.test(name)) imageBytes += bytes.length;
+  if (/\.(webp|avif|png|jpe?g)$/.test(name)) requireThat(bytes.length <= 300 * 1024, `${name}: optimize photographs below 300 KiB per variant.`);
   requireThat(bytes.length <= 25 * 1024 * 1024, `${name}: exceeds Cloudflare's individual asset limit.`);
   if (!name.endsWith('.html')) continue;
 
@@ -103,6 +104,7 @@ for (const [file, { name, nodes }] of pages) {
   }
   const primaryNav = nodes.find((node) => node.tagName === 'nav' && attr(node, 'class') === 'primary-navigation');
   if (primaryNav) {
+    requireThat(elements(primaryNav).filter((node) => node.tagName === 'a').map((node) => text(node).trim()).join(',') === 'Home,Products,Contact', `${name}: keep the navigation labels in English.`);
     for (const link of elements(primaryNav).filter((node) => node.tagName === 'a')) {
       const target = new URL(attr(link, 'href'), `https://build.invalid${route}`);
       const englishLink = target.pathname.startsWith('/en/');
@@ -122,7 +124,13 @@ for (const [file, { name, nodes }] of pages) {
     requireThat(nodes.filter((node) => attr(node, 'href') === 'https://wa.me/6281386303535').length === 2, `${name}: use the confirmed WhatsApp number in the contact section and footer.`);
   }
   const footer = nodes.find((node) => node.tagName === 'footer');
-  requireThat(Boolean(footer) && !elements(footer).some((node) => ['nav', 'address', 'h1', 'h2', 'h3'].includes(node.tagName)), `${name}: footer should contain only contacts and copyright.`);
+  requireThat(Boolean(footer) && !elements(footer).some((node) => ['address', 'h1', 'h2', 'h3'].includes(node.tagName)), `${name}: do not repeat the address or brand pitch in the footer.`);
+  const footerNav = footer && elements(footer).find((node) => node.tagName === 'nav');
+  requireThat(Boolean(footerNav) && elements(footerNav).filter((node) => node.tagName === 'a').length === 3, `${name}: footer needs the three section links.`);
+  if (!errorPage) {
+    requireThat(nodes.filter((node) => attr(node, 'data-gallery') !== undefined).length === 3, `${name}: keep media areas for both products and the storefront.`);
+    requireThat(nodes.some((node) => attr(node, 'href') === 'https://maps.app.goo.gl/E5ESBkS3XxmUQYEx9'), `${name}: use the owner's exact map location.`);
+  }
   const robotsMeta = nodes.find((node) => attr(node, 'name') === 'robots');
   if (!indexable || name === '404.html' || name.endsWith('/404.html')) {
     requireThat(Boolean(robotsMeta && attr(robotsMeta, 'content')?.includes('noindex')), `${name}: prelaunch/error pages must remain noindex.`);
@@ -141,6 +149,9 @@ for (const [file, { name, nodes }] of pages) {
     if (!href) continue;
     const url = new URL(href, `https://build.invalid${route}`);
     if (isLink && ['mailto:', 'tel:'].includes(url.protocol)) continue;
+    if (isLink && (url.origin !== 'https://build.invalid' || url.pathname !== route)) {
+      requireThat(attr(node, 'target') === '_blank' && attr(node, 'rel')?.split(/\s+/).includes('noopener'), `${name}: links that load another page must open a safe new tab (${href}).`);
+    }
     requireThat(['https:', 'http:'].includes(url.protocol), `${name}: unsupported URL protocol in ${href}.`);
     if (url.origin !== 'https://build.invalid') {
       requireThat(!resource, `${name}: external assets require an explicit performance/privacy review (${href}).`);
@@ -176,8 +187,8 @@ requireThat(cssBytes <= 12 * 1024, 'Total CSS exceeds the 12 KiB gzip budget.');
 requireThat(scriptBytes <= 20 * 1024, 'Total JavaScript exceeds the 20 KiB gzip budget.');
 requireThat(maxHtmlBytes <= 12 * 1024, 'A page exceeds the 12 KiB gzip HTML budget.');
 requireThat(fontBytes <= 40 * 1024, 'Fonts exceed the 40 KiB asset budget.');
-requireThat(imageBytes <= 160 * 1024, 'Optimized logo variants exceed the 160 KiB image budget.');
+requireThat(imageBytes <= 2 * 1024 * 1024, 'Responsive logo and photograph variants exceed the 2 MiB image budget.');
 if (errors.length) throw new Error(errors.join('\n'));
 console.log(`Verified ${pages.size} HTML pages: local links, landmarks, metadata, and asset budgets.`);
 console.log(`Gzip sizes: CSS ${cssBytes} bytes; JavaScript ${scriptBytes} bytes; largest HTML ${maxHtmlBytes} bytes.`);
-console.log(`Local assets: fonts ${fontBytes} bytes; optimized logo variants ${imageBytes} bytes.`);
+console.log(`Local assets: fonts ${fontBytes} bytes; optimized image variants ${imageBytes} bytes.`);
