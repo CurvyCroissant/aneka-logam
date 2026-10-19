@@ -7,6 +7,7 @@ import type { Locale } from '../i18n/routes';
 interface Props {
   src: ImageMetadata;
   alt: string;
+  altTexts?: Record<Locale, string>;
   locale: Locale;
   widths: number[];
   sizes: string;
@@ -15,9 +16,11 @@ interface Props {
   loading?: 'eager' | 'lazy';
   class?: string;
 }
-const { src, alt, locale, widths, sizes, width = src.width, height = src.height, loading = 'lazy', class: className = '' } = Astro.props;
+const { src, alt, altTexts = { id: alt, en: alt }, locale, widths, sizes, width = src.width, height = src.height, loading = 'lazy', class: className = '' } = Astro.props;
 const fullImage = await getImage({ src, width: Math.min(1600, src.width), format: 'webp', quality: 82 });
 ---
-<a class={`image-trigger ${className}`} href={fullImage.src} data-image-trigger data-image-width={src.width} data-image-height={src.height} aria-label={`${copy(locale).enlargeImage}: ${alt}`} aria-haspopup="dialog" aria-controls="image-viewer">
-  <Image src={src} alt={alt} width={width} height={height} widths={widths} sizes={sizes} layout="none" format="webp" loading={loading} data-image-content />
+<a class={`image-trigger ${className}`} href={fullImage.src} data-image-trigger data-image-loader data-image-state="loading" data-image-alt-id={altTexts.id} data-image-alt-en={altTexts.en} data-image-width={src.width} data-image-height={src.height} aria-label={`${copy(locale).enlargeImage}: ${alt}`} aria-haspopup="dialog" aria-controls="image-viewer">
+  <span class="image-skeleton" aria-hidden="true"></span>
+  <span class="image-error" data-i18n="imageError">{copy(locale).imageError}</span>
+  <Image decoding="async" src={src} alt={alt} width={width} height={height} widths={widths} sizes={sizes} layout="none" format="webp" loading={loading} data-image-content />
 </a>

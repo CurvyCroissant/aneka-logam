@@ -14,10 +14,10 @@ const t = copy(locale);
       <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={product.key} locale={locale} />
       <div class="product-copy">
         <div class="product-title"><h3 lang="en">{product.name}</h3><span class="product-index" aria-hidden="true">0{index + 1}</span></div>
-        <p>{product.summary[locale]}</p>
+        <p data-i18n={`product.${product.key}.summary`}>{product.summary[locale]}</p>
         <details id={`details-${product.id}`} class="product-details" data-remember-details>
-          <summary><span>{t.detailsHeading}</span><span class="details-mark" aria-hidden="true">+</span></summary>
-          <ul class="enquiry-list">{product.enquiryDetails[locale].map((line) => <li>{line}</li>)}</ul>
+          <summary><span data-i18n="detailsHeading">{t.detailsHeading}</span><span class="details-mark" aria-hidden="true">+</span></summary>
+          <ul class="enquiry-list">{product.enquiryDetails[locale].map((line, index) => <li data-i18n={`product.${product.key}.detail.${index}`}>{line}</li>)}</ul>
         </details>
       </div>
     </li>

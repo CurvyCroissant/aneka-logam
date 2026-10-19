@@ -30,10 +30,11 @@ test('a refreshed/restored viewport reveals immediately; later components reveal
   const { visible, below, observer } = environment(t);
   let ready;
   setupReveals(new Promise((resolve) => { ready = resolve; }));
-  assert.ok(visible.classes.has('reveal-pending'));
+  assert.ok(!visible.classes.has('reveal-pending'), 'Font skeletons must remain visible while waiting');
   ready(true); // This is the restored-page case previously skipped entirely.
   await Promise.resolve();
   assert.ok(visible.classes.has('is-revealing'));
+  assert.ok(visible.classes.has('reveal-still'), 'Restored content fades without moving vertically');
   assert.ok(!visible.classes.has('reveal-pending'));
   assert.ok(observer().observed.has(below));
   observer().callback([{ target: below, isIntersecting: true }]);
@@ -49,7 +50,7 @@ test('a refreshed/restored viewport reveals immediately; later components reveal
 test('slow or failed restoration never leaves visible content hidden', async (t) => {
   const { visible } = environment(t);
   setupReveals(new Promise(() => {}));
-  t.mock.timers.tick(1800);
+  t.mock.timers.tick(10000);
   assert.ok(!visible.classes.has('reveal-pending'));
   assert.ok(visible.classes.has('is-revealing'));
 });

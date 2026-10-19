@@ -2,6 +2,6 @@
   font-family: 'Montserrat';
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url('@fontsource/montserrat/files/montserrat-latin-700-normal.woff2') format('woff2');
 }

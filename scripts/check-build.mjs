@@ -3,6 +3,7 @@ import { relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { parse } from 'parse5';
+import { catalog } from '../src/i18n/catalog.ts';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const errors = [];
@@ -66,11 +67,17 @@ for (const file of files) {
   requireThat(nodes.some((node) => attr(node, 'name') === 'description' && attr(node, 'content')?.trim()), `${name}: description is missing.`);
   requireThat(!nodes.some((node) => node.tagName === 'style' || attr(node, 'style') !== undefined), `${name}: inline CSS conflicts with the Content Security Policy.`);
   requireThat(!nodes.some((node) => node.tagName === 'script' && !attr(node, 'src')), `${name}: inline scripts require an explicit Content Security Policy review.`);
+  const head = nodes.find((node) => node.tagName === 'head');
+  const startup = elements(head).find((node) => node.tagName === 'script');
+  requireThat(Boolean(startup && attr(startup, 'src')?.startsWith('/') && !attr(startup, 'type') && attr(startup, 'defer') === undefined && attr(startup, 'async') === undefined), `${name}: scroll ownership and font masking must start in an external blocking head script.`);
+  requireThat(nodes.some((node) => attr(node, 'rel') === 'preload' && attr(node, 'as') === 'font' && attr(node, 'crossorigin') !== undefined), `${name}: preload the self-hosted brand font.`);
   for (const image of nodes.filter((node) => node.tagName === 'img')) {
     requireThat(attr(image, 'alt') !== undefined && Boolean(attr(image, 'width')) && Boolean(attr(image, 'height')), `${name}: images need alt text and explicit dimensions.`);
     let trigger = image.parentNode;
     while (trigger && attr(trigger, 'data-image-trigger') === undefined) trigger = trigger.parentNode;
     requireThat(Boolean(trigger), `${name}: every content image must open in the image viewer.`);
+    requireThat(Boolean(trigger && attr(trigger, 'data-image-loader') !== undefined && elements(trigger).some((node) => attr(node, 'class') === 'image-skeleton')), `${name}: image loaders need a reserved skeleton.`);
+    requireThat(attr(image, 'loading') === (attr(trigger, 'class')?.includes('logo-mark') ? 'eager' : 'lazy'), `${name}: only the small header logo should load eagerly.`);
   }
   const viewer = nodes.find((node) => node.tagName === 'dialog' && attr(node, 'id') === 'image-viewer');
   requireThat(Boolean(viewer && attr(viewer, 'aria-label') && attr(viewer, 'aria-describedby')), `${name}: image viewer needs an accessible name and dismissal instructions.`);
@@ -123,6 +130,16 @@ for (const [file, { name, nodes }] of pages) {
   }
   const phrase = 'Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring';
   if (!errorPage) {
+    const dictionary = catalog(language);
+    for (const node of nodes) {
+      for (const [binding, attribute] of [['data-i18n', null], ['data-i18n-aria-label', 'aria-label'], ['data-i18n-content', 'content']]) {
+        const key = attr(node, binding);
+        if (key === undefined) continue;
+        const value = attribute ? attr(node, attribute) : text(node);
+        requireThat(dictionary[key] !== undefined && value === dictionary[key], `${name}: ${binding}="${key}" must match the static translation.`);
+        if (!attribute) requireThat(!(node.childNodes ?? []).some((child) => child.tagName), `${name}: replacing ${key} must not remove icons or other elements.`);
+      }
+    }
     requireThat(nodes.filter((node) => node.tagName === 'p' && attr(node, 'lang') === 'en' && text(node).trim() === phrase).length === 1, `${name}: show the exact English phrase once.`);
     for (const id of ['home', 'products', 'contact']) requireThat(pages.get(file).ids.has(id), `${name}: missing ${id} section.`);
     const bodyText = text(nodes.find((node) => node.tagName === 'body'));

@@ -11,17 +11,17 @@ const t = copy(locale);
 ---
 {contactMethods.length > 0 && (
   <div class="contact-panel" data-reveal data-reveal-order="1">
-    <h3>{t.contactMethods}</h3>
+    <h3 data-i18n="contactMethods">{t.contactMethods}</h3>
     <ul class="contact-list">
       {contactMethods.map((method) => (
         <li class="contact-row">
-          <p class="contact-label">{t.contactLabels[method.kind]}</p>
+          <p class="contact-label" data-i18n={`contactLabels.${method.kind}`}>{t.contactLabels[method.kind]}</p>
           <ContactAction method={method} locale={locale} />
         </li>
       ))}
     </ul>
     <div class="people">
-      <h3>{t.owners}</h3>
+      <h3 data-i18n="owners">{t.owners}</h3>
       <ul class="owner-list">
         {company.owners.map(({ name, icon }) => <li><OwnerIcon kind={icon} /><span>{name}</span></li>)}
       </ul>

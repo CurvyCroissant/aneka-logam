@@ -28,6 +28,7 @@ export function setupImageViewer(reducedMotion: MediaQueryList) {
   }
   function cancelAnimations() { imageAnimation?.cancel(); scrimAnimation?.cancel(); }
   function cleanup() {
+    if (!source) return;
     cancelAnimations();
     sourceImage?.classList.remove('image-source-hidden');
     root.classList.remove('image-viewer-open');
@@ -35,7 +36,8 @@ export function setupImageViewer(reducedMotion: MediaQueryList) {
     stage!.removeAttribute('style');
     scrim!.removeAttribute('style');
     window.scrollTo({ left: scrollLeft, top: scrollTop, behavior: 'instant' });
-    source?.focus({ preventScroll: true });
+    source.classList.add('focus-returned');
+    source.focus({ preventScroll: true });
     source = undefined;
     sourceImage = undefined;
     closing = false;
@@ -56,10 +58,12 @@ export function setupImageViewer(reducedMotion: MediaQueryList) {
       scrimAnimation = scrim!.animate([{ opacity }, { opacity: 0 }], { duration, fill: 'both' });
       await imageAnimation.finished.catch(() => {});
     }
-    if (dialog!.open) dialog!.close();
+    if (dialog!.open) { source?.classList.add('focus-returned'); dialog!.close(); }
   }
 
   for (const trigger of document.querySelectorAll<HTMLElement>('[data-image-trigger]')) {
+    trigger.addEventListener('blur', () => trigger.classList.remove('focus-returned'));
+    trigger.addEventListener('keydown', () => trigger.classList.remove('focus-returned'));
     trigger.addEventListener('click', (event) => {
       // Retain normal modified-click behavior for the image's fallback URL.
       if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || dialog.open) return;
@@ -117,4 +121,5 @@ export function setupImageViewer(reducedMotion: MediaQueryList) {
   window.visualViewport?.addEventListener('resize', resize, { passive: true });
   reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) resize(); });
   window.addEventListener('pagehide', () => { if (dialog.open) { dialog.close(); cleanup(); } });
+  document.addEventListener('aneka:before-navigation', () => { if (dialog.open) { dialog.close(); cleanup(); } });
 }

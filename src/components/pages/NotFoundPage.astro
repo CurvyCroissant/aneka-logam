@@ -8,7 +8,7 @@ const t = copy(locale);
 ---
 <BaseLayout locale={locale} title={t.notFoundTitle} description={t.notFoundMessage} paths={pagePaths('home')} noindex>
   <section class="section error-section"><div class="container" data-reveal>
-    <p class="error-code">404</p><h1>{t.notFound}</h1><p class="lead">{t.notFoundMessage}</p>
+    <p class="error-code">404</p><h1 data-font-text>{t.notFound}</h1><p class="lead">{t.notFoundMessage}</p>
     <a class="button" href={pagePath(locale, 'home')}>{t.backHome}</a>
   </div></section>
 </BaseLayout>

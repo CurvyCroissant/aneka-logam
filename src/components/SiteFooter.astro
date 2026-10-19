@@ -11,12 +11,12 @@ const isHome = Astro.url.pathname === pagePath(locale, 'home');
 ---
 <footer class="site-footer">
   <div class="container footer-inner" data-reveal>
-    <nav class="footer-navigation" aria-label={t.footerNavigation}>
+    <nav class="footer-navigation" aria-label={t.footerNavigation} data-i18n-aria-label="footerNavigation">
       <ul class="nav-links">
         {navigation(locale).map(({ id, label, href }) => <li><a lang="en" href={isHome ? `#${id}` : href} data-section-link={id}><span>{label}</span></a></li>)}
       </ul>
     </nav>
-    <ul class="footer-contacts" aria-label={t.contactMethods}>
+    <ul class="footer-contacts" aria-label={t.contactMethods} data-i18n-aria-label="contactMethods">
       {contactMethods.map((method) => <li><ContactAction method={method} locale={locale} /></li>)}
     </ul>
     <small class="copyright">&copy; {new Date().getFullYear()} {company.name}</small>

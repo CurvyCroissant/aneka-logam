@@ -18,27 +18,27 @@ const t = copy(locale);
     <div class="container hero-content">
       <div class="hero-copy" data-reveal data-reveal-order="1">
         <span class="hero-rule" aria-hidden="true"></span>
-        <h1 id="hero-heading" class="hero-title" aria-label={company.displayName}><span>ANEKA</span> <span>LOGAM</span></h1>
+        <h1 id="hero-heading" class="hero-title" aria-label={company.displayName}><span data-font-text>ANEKA</span> <span data-font-text>LOGAM</span></h1>
         <p class="store-phrase" lang="en">{company.phrase}</p>
       </div>
       <div class="hero-art" data-reveal data-reveal-order="2">
         <span class="hero-orbit hero-orbit-outer" aria-hidden="true"></span><span class="hero-orbit hero-orbit-inner" aria-hidden="true"></span>
-        <ZoomImage src={logo} alt={`Logo ${company.name}`} locale={locale} width={560} height={560} widths={[280, 560]} sizes="(min-width: 52rem) 36vw, 240px" loading="eager" class="hero-emblem" />
+        <ZoomImage src={logo} alt={`Logo ${company.name}`} locale={locale} width={560} height={560} widths={[280, 560]} sizes="(min-width: 52rem) 36vw, 240px" loading="lazy" class="hero-emblem" />
         <span class="hero-cross hero-cross-a" aria-hidden="true"></span><span class="hero-cross hero-cross-b" aria-hidden="true"></span>
       </div>
     </div>
   </section>
   <section id="products" class="section section-products" aria-labelledby="products-heading" tabindex="-1" data-section>
     <div class="container">
-      <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">01</span><h2 id="products-heading">{t.products}</h2><span class="section-rule" aria-hidden="true"></span></div>
+      <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">01</span><h2 id="products-heading" data-i18n="products">{t.products}</h2><span class="section-rule" aria-hidden="true"></span></div>
       <ProductList locale={locale} />
-      <p class="product-note" data-reveal>{t.rangeNote}</p>
+      <p class="product-note" data-reveal data-i18n="rangeNote">{t.rangeNote}</p>
     </div>
   </section>
   {hasContactDetails && (
     <section id="contact" class="section section-contact" aria-labelledby="contact-heading" tabindex="-1" data-section>
       <div class="container">
-        <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">02</span><h2 id="contact-heading">{t.contact}</h2><span class="section-rule" aria-hidden="true"></span></div>
+        <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">02</span><h2 id="contact-heading" data-i18n="contact">{t.contact}</h2><span class="section-rule" aria-hidden="true"></span></div>
         <div class="contact-grid"><AddressBlock locale={locale} /><ContactLinks locale={locale} /></div>
       </div>
     </section>

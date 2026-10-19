@@ -2,6 +2,7 @@
 import { getImage } from 'astro:assets';
 import logo from '../assets/logo-no-bg.png';
 import shareLogo from '../assets/logo.jpg';
+import bootUrl from '../scripts/boot.js?url';
 import montserratUrl from '@fontsource/montserrat/files/montserrat-latin-700-normal.woff2?url';
 import { company } from '../config/company';
 import { indexingEnabled } from '../config/site';
@@ -27,11 +28,12 @@ const favicon = await getImage({ src: logo, width: 48, height: 48, format: 'png'
 const shareImage = await getImage({ src: shareLogo, width: 1200, height: 1200, format: 'jpg', quality: 80 });
 ---
 <!doctype html>
-<html lang={locale}>
+<html lang={locale} data-page={noindex ? 'error' : 'home'}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content={description} />
+    <script is:inline src={bootUrl}></script>
+    <meta name="description" content={description} data-i18n-content="description" />
     <meta name="robots" content={shouldIndex ? 'index, follow' : 'noindex, nofollow'} />
     <title>{title}</title>
     <link rel="icon" type="image/png" href={favicon.src} />
@@ -48,23 +50,23 @@ const shareImage = await getImage({ src: shareLogo, width: 1200, height: 1200, f
     <meta property="og:locale" content={locale === 'id' ? 'id_ID' : 'en_US'} />
     <meta property="og:locale:alternate" content={locale === 'id' ? 'en_US' : 'id_ID'} />
     <meta property="og:site_name" content={company.name} />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
+    <meta property="og:title" content={title} data-i18n-content="homeTitle" />
+    <meta property="og:description" content={description} data-i18n-content="description" />
     {Astro.site && <meta property="og:image" content={new URL(shareImage.src, Astro.site)} />}
     {Astro.site && <meta property="og:image:alt" content={`${company.name} logo`} />}
     {canonical && <meta property="og:url" content={canonical} />}
   </head>
   <body>
-    <a class="skip-link" href="#main">{t.skip}</a>
+    <a class="skip-link" href="#main" data-i18n="skip">{t.skip}</a>
     <SiteHeader locale={locale} paths={paths} />
     <main id="main" tabindex="-1"><slot /></main>
     <SiteFooter locale={locale} />
     <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-copy-status></p>
-    <span class="sr-only" id="new-tab-note">{t.opensNewTab}</span>
-    <dialog id="image-viewer" class="image-viewer" aria-label={t.imageViewer} aria-describedby="image-viewer-help">
+    <span class="sr-only" id="new-tab-note" data-i18n="opensNewTab">{t.opensNewTab}</span>
+    <dialog id="image-viewer" class="image-viewer" aria-label={t.imageViewer} data-i18n-aria-label="imageViewer" aria-describedby="image-viewer-help">
       <div class="image-viewer-scrim" data-image-scrim aria-hidden="true"></div>
-      <div class="image-viewer-media" data-image-stage tabindex="0" role="img" autofocus></div>
-      <p class="sr-only" id="image-viewer-help">{t.closeImageHint}</p>
+      <div class="image-viewer-media" data-image-stage tabindex="0" role="img"></div>
+      <p class="sr-only" id="image-viewer-help" data-i18n="closeImageHint">{t.closeImageHint}</p>
     </dialog>
     <script>
       import '../scripts/site';

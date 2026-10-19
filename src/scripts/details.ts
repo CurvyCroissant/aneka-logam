@@ -30,6 +30,7 @@ export function setupDetails(reducedMotion: MediaQueryList) {
     });
     details.addEventListener('toggle', () => { if (!animation) expanded = details.open; });
     window.addEventListener('resize', () => { if (animation) finish(); }, { passive: true });
+    document.addEventListener('aneka:before-navigation', () => { if (animation) finish(); });
     reducedMotion.addEventListener('change', () => { if (reducedMotion.matches && animation) finish(); });
   }
 }

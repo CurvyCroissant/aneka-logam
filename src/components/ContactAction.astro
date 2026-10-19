@@ -9,15 +9,15 @@ const t = copy(locale);
 const hint = t.contactActions[method.kind];
 ---
 {method.kind === 'whatsapp' ? (
-  <a class="contact-action" href={method.href} target="_blank" rel="noopener noreferrer" aria-describedby="new-tab-note" aria-label={`${hint}: ${method.value}`}>
+  <a class="contact-action" data-contact-kind={method.kind} href={method.href} target="_blank" rel="noopener noreferrer" aria-describedby="new-tab-note" aria-label={`${hint}: ${method.value}`}>
     <ContactIcon kind={method.kind} />
     <span class="contact-action-text">
       <span class="contact-value">{method.value}</span>
-      <span class="contact-hint-window" aria-hidden="true"><span class="contact-hint">{hint}</span></span>
+      <span class="contact-hint-window" aria-hidden="true"><span class="contact-hint" data-i18n={`contactActions.${method.kind}`}>{hint}</span></span>
     </span>
   </a>
 ) : (
-  <button class="contact-action" type="button" data-copy={method.value} data-copy-success={t.copied} data-copy-failure={t.copyFailed} aria-label={`${hint}: ${method.value}`}>
+  <button class="contact-action" data-contact-kind={method.kind} type="button" data-copy={method.value} data-copy-success={t.copied} data-copy-failure={t.copyFailed} aria-label={`${hint}: ${method.value}`}>
     <ContactIcon kind={method.kind} />
     <span class="contact-action-text">
       <span class="contact-value">{method.value}</span>

@@ -4,9 +4,15 @@ import { setupGalleries } from './galleries';
 import { setupReveals } from './reveals';
 import { setupImageViewer } from './image-viewer';
 import { setupDetails } from './details';
+import { waitForBrandFont, setupImageLoading } from './loading';
+import { setupNavigation, currentLocale } from './language';
+import { copy } from '../i18n/copy';
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-const restoration = setupScrollMemory().catch(() => false);
+const memory = setupScrollMemory(waitForBrandFont());
+const restoration = memory.ready;
+setupImageLoading();
+setupNavigation(memory, reducedMotion);
 setupReveals(restoration);
 setupGalleries(reducedMotion);
 setupImageViewer(reducedMotion);
@@ -16,7 +22,7 @@ const liveStatus = document.querySelector<HTMLElement>('[data-copy-status]');
 for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-copy]')) {
   const hint = button.querySelector<HTMLElement>('[data-copy-hint]');
   const value = button.querySelector<HTMLElement>('.contact-value');
-  const defaultHint = hint?.textContent ?? '';
+  const defaultHint = () => copy(currentLocale()).contactActions[button.dataset.contactKind as 'telephone' | 'email'];
   let resetTimer: ReturnType<typeof setTimeout> | undefined;
   button.addEventListener('click', async () => {
     const text = button.dataset.copy ?? '';
@@ -36,7 +42,7 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-c
     if (copied) {
       resetTimer = setTimeout(() => {
         delete button.dataset.copyState;
-        if (hint) hint.textContent = defaultHint;
+        if (hint) hint.textContent = defaultHint();
       }, 2500);
     }
   });
@@ -44,7 +50,6 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-c
 
 const sections = [...document.querySelectorAll<HTMLElement>('[data-section]')];
 const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-section-link]')];
-const languageLinks = [...document.querySelectorAll<HTMLAnchorElement>('[data-language-link]')];
 const header = document.querySelector<HTMLElement>('.site-header');
 let headerHeight = header?.offsetHeight ?? 0;
 let framePending = false;
@@ -69,7 +74,6 @@ function updateNavigation() {
     if (link.dataset.sectionLink === active.id) link.setAttribute('aria-current', 'location');
     else link.removeAttribute('aria-current');
   }
-  for (const link of languageLinks) link.hash = `#${active.id}`;
 }
 
 function scheduleNavigation() {
@@ -92,6 +96,7 @@ if (sections.length) {
   window.addEventListener('resize', updateHeader, { passive: true });
   window.addEventListener('hashchange', scheduleNavigation);
   window.addEventListener('pageshow', scheduleNavigation);
+  document.addEventListener('aneka:location-change', updateHeader);
 }
 
 void restoration.then(updateHeader);
