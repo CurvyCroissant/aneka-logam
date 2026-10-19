@@ -68,6 +68,15 @@ for (const file of files) {
   requireThat(!nodes.some((node) => node.tagName === 'script' && !attr(node, 'src')), `${name}: inline scripts require an explicit Content Security Policy review.`);
   for (const image of nodes.filter((node) => node.tagName === 'img')) {
     requireThat(attr(image, 'alt') !== undefined && Boolean(attr(image, 'width')) && Boolean(attr(image, 'height')), `${name}: images need alt text and explicit dimensions.`);
+    let trigger = image.parentNode;
+    while (trigger && attr(trigger, 'data-image-trigger') === undefined) trigger = trigger.parentNode;
+    requireThat(Boolean(trigger), `${name}: every content image must open in the image viewer.`);
+  }
+  const viewer = nodes.find((node) => node.tagName === 'dialog' && attr(node, 'id') === 'image-viewer');
+  requireThat(Boolean(viewer && attr(viewer, 'aria-label') && attr(viewer, 'aria-describedby')), `${name}: image viewer needs an accessible name and dismissal instructions.`);
+  requireThat(Boolean(viewer) && !elements(viewer).some((node) => ['button', 'a', 'nav'].includes(node.tagName)), `${name}: keep the image viewer free of visible controls.`);
+  for (const trigger of nodes.filter((node) => attr(node, 'data-image-trigger') !== undefined)) {
+    requireThat(attr(trigger, 'aria-controls') === 'image-viewer' && attr(trigger, 'aria-haspopup') === 'dialog', `${name}: image triggers must identify the viewer.`);
   }
   pages.set(file, { name, nodes, ids: new Set(ids) });
 }
@@ -128,6 +137,10 @@ for (const [file, { name, nodes }] of pages) {
   const footerNav = footer && elements(footer).find((node) => node.tagName === 'nav');
   requireThat(Boolean(footerNav) && elements(footerNav).filter((node) => node.tagName === 'a').length === 3, `${name}: footer needs the three section links.`);
   if (!errorPage) {
+    const ownerList = nodes.find((node) => attr(node, 'class') === 'owner-list');
+    const owners = ownerList ? elements(ownerList).filter((node) => node.tagName === 'li') : [];
+    requireThat(owners.map((node) => text(node).trim()).join(',') === 'Budiyanto,Delinah', `${name}: show each owner on a separate row.`);
+    requireThat(nodes.some((node) => node.tagName === 'h3' && text(node).trim() === (language === 'id' ? 'Pemilik' : 'Owners')), `${name}: use the confirmed owner heading.`);
     requireThat(nodes.filter((node) => attr(node, 'data-gallery') !== undefined).length === 3, `${name}: keep media areas for both products and the storefront.`);
     requireThat(nodes.some((node) => attr(node, 'href') === 'https://maps.app.goo.gl/E5ESBkS3XxmUQYEx9'), `${name}: use the owner's exact map location.`);
   }
@@ -149,9 +162,10 @@ for (const [file, { name, nodes }] of pages) {
     if (!href) continue;
     const url = new URL(href, `https://build.invalid${route}`);
     if (isLink && ['mailto:', 'tel:'].includes(url.protocol)) continue;
-    if (isLink && (url.origin !== 'https://build.invalid' || url.pathname !== route)) {
-      requireThat(attr(node, 'target') === '_blank' && attr(node, 'rel')?.split(/\s+/).includes('noopener'), `${name}: links that load another page must open a safe new tab (${href}).`);
+    if (isLink && url.origin !== 'https://build.invalid') {
+      requireThat(attr(node, 'target') === '_blank' && attr(node, 'rel')?.split(/\s+/).includes('noopener'), `${name}: external links must open a safe new tab (${href}).`);
     }
+    if (isLink && url.origin === 'https://build.invalid') requireThat(!attr(node, 'target'), `${name}: internal links must stay in the current tab (${href}).`);
     requireThat(['https:', 'http:'].includes(url.protocol), `${name}: unsupported URL protocol in ${href}.`);
     if (url.origin !== 'https://build.invalid') {
       requireThat(!resource, `${name}: external assets require an explicit performance/privacy review (${href}).`);

@@ -1,5 +1,5 @@
 ---
-import { Image } from 'astro:assets';
+import ZoomImage from './ZoomImage.astro';
 import logo from '../assets/logo-no-bg.png';
 import { company } from '../config/company';
 import { navigation } from '../config/navigation';
@@ -11,21 +11,21 @@ const t = copy(locale);
 const isHome = Astro.url.pathname === pagePath(locale, 'home');
 ---
 <header class="site-header">
-  <div class="container header-inner">
-    <a class="wordmark" href={isHome ? '#home' : pagePath(locale, 'home')} target={!isHome ? '_blank' : undefined} rel={!isHome ? 'noopener noreferrer' : undefined} aria-label={`${company.name} — Home`}>
-      <Image src={logo} alt="" width={64} height={64} widths={[64, 128]} sizes="48px" layout="none" format="webp" loading="eager" class="logo-mark" />
-      <span class="brand-name">{company.displayName}</span>
-    </a>
+  <div class="container header-inner" data-reveal>
+    <div class="wordmark">
+      <ZoomImage src={logo} alt={`Logo ${company.name}`} locale={locale} width={64} height={64} widths={[64, 128]} sizes="48px" loading="eager" class="logo-mark" />
+      <a class="brand-name" href={isHome ? '#home' : pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>{company.displayName}</a>
+    </div>
     <nav class="primary-navigation" aria-label={t.mainNavigation}>
       <ul class="nav-links">
         {navigation(locale).map(({ id, label, href }) => (
-          <li><a lang="en" href={isHome ? `#${id}` : href} target={!isHome ? '_blank' : undefined} rel={!isHome ? 'noopener noreferrer' : undefined} data-section-link={id} aria-current={isHome && id === 'home' ? 'location' : undefined}><span>{label}</span></a></li>
+          <li><a lang="en" href={isHome ? `#${id}` : href} data-section-link={id} aria-current={isHome && id === 'home' ? 'location' : undefined}><span>{label}</span></a></li>
         ))}
       </ul>
     </nav>
     <nav class="language-switch" aria-label={t.languageNavigation}>
       {(['id', 'en'] as const).map((language) => (
-        <a href={paths[language]} hreflang={language} lang={language} data-language-link target={language !== locale || !isHome ? '_blank' : undefined} rel={language !== locale || !isHome ? 'noopener noreferrer' : undefined} aria-label={language === 'id' ? 'Bahasa Indonesia' : 'English'} aria-describedby={language !== locale || !isHome ? 'new-tab-note' : undefined} aria-current={locale === language ? 'true' : undefined}>{language.toUpperCase()}</a>
+        <a href={paths[language]} hreflang={language} lang={language} data-language-link aria-label={language === 'id' ? 'Bahasa Indonesia' : 'English'} aria-current={locale === language ? 'true' : undefined}>{language.toUpperCase()}</a>
       ))}
     </nav>
   </div>

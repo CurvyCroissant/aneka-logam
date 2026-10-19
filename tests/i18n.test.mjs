@@ -33,7 +33,7 @@ test('English UI copy is complete; only established shared terms remain unchange
 
 test('the exact shop phrase and proper company details are language invariant', () => {
   assert.equal(company.phrase, 'Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring');
-  assert.deepEqual(company.people, ['Budiyanto', 'Delinah']);
+  assert.deepEqual(company.owners.map(({ name }) => name), ['Budiyanto', 'Delinah']);
   const methods = getContactMethods(company.contact);
   assert.equal(methods.find(({kind}) => kind === 'whatsapp').href, 'https://wa.me/6281386303535');
   assert.equal(methods.find(({kind}) => kind === 'telephone').href, 'tel:+62216395874');

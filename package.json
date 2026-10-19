@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "astro dev",
     "check": "astro check",
-    "build": "astro build",
+    "build": "node scripts/clean-dist.mjs && astro build",
     "preview": "astro preview",
     "verify": "npm run build:checked && wrangler deploy --dry-run",
     "deploy": "npm run verify && wrangler deploy",

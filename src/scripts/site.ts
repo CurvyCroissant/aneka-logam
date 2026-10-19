@@ -1,10 +1,16 @@
 import { copyText } from '../lib/clipboard';
 import { setupScrollMemory } from './scroll-memory';
 import { setupGalleries } from './galleries';
+import { setupReveals } from './reveals';
+import { setupImageViewer } from './image-viewer';
+import { setupDetails } from './details';
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const restoration = setupScrollMemory().catch(() => false);
+setupReveals(restoration);
 setupGalleries(reducedMotion);
-const restoration = setupScrollMemory();
+setupImageViewer(reducedMotion);
+setupDetails(reducedMotion);
 
 const liveStatus = document.querySelector<HTMLElement>('[data-copy-status]');
 for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-copy]')) {
@@ -88,35 +94,4 @@ if (sections.length) {
   window.addEventListener('pageshow', scheduleNavigation);
 }
 
-function setupReveals(restored: boolean) {
-  const elements = [...document.querySelectorAll<HTMLElement>('[data-reveal]')];
-  const animate = (element: HTMLElement) => {
-    if (!element.animate) return;
-    const frames = reducedMotion.matches
-      ? [{ opacity: 0 }, { opacity: 1 }]
-      : [{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'translateY(0)' }];
-    element.animate(frames, {
-      duration: reducedMotion.matches ? 160 : 720,
-      delay: reducedMotion.matches ? 0 : Math.min(2, Number(element.dataset.revealOrder) || 0) * 100,
-      easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)', fill: 'backwards',
-    });
-  };
-  if (!('IntersectionObserver' in window)) return;
-  const observer = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
-      observer.unobserve(entry.target);
-      if (entry.target instanceof HTMLElement) animate(entry.target);
-    }
-  }, { threshold: 0.01, rootMargin: '0px 0px -8px 0px' });
-  for (const element of elements) {
-    const bounds = element.getBoundingClientRect();
-    // Restored content stays steady; first visits animate visible items as well.
-    if (restored && bounds.top < innerHeight && bounds.bottom > 0) continue;
-    observer.observe(element);
-  }
-}
-restoration.catch(() => false).then((restored) => { updateHeader(); setupReveals(restored); });
-reducedMotion.addEventListener('change', () => {
-  if (reducedMotion.matches) document.getAnimations().forEach((animation) => animation.finish());
-});
+void restoration.then(updateHeader);

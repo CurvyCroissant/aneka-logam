@@ -19,7 +19,7 @@ export async function setupScrollMemory(): Promise<boolean> {
     if (!ready) return;
     const snapshot: ScrollSnapshot = {
       version: 1, url: currentUrl(), x: Math.max(0, scrollX), y: Math.max(0, scrollY),
-      details: details.filter((element) => element.open).map((element) => element.id),
+      details: details.filter((element) => element.dataset.expanded === 'true' || (element.dataset.expanded !== 'false' && element.open)).map((element) => element.id),
       galleries: Object.fromEntries(galleries.map((track) => [track.id, Math.max(0, Math.round(track.scrollLeft / Math.max(1, track.clientWidth)))])),
     };
     saveScrollSnapshot(storage, key, snapshot);

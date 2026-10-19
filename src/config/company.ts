@@ -64,5 +64,5 @@ export const company = {
     province: 'DKI Jakarta',
     country: 'Indonesia',
   },
-  people: ['Budiyanto', 'Delinah'],
+  owners: [{ name: 'Budiyanto', icon: 'male' }, { name: 'Delinah', icon: 'female' }],
 } as const;

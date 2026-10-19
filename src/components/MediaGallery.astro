@@ -1,5 +1,5 @@
 ---
-import { Image } from 'astro:assets';
+import ZoomImage from './ZoomImage.astro';
 import type { SitePhoto } from '../config/media';
 import { copy } from '../i18n/copy';
 import type { Locale } from '../i18n/routes';
@@ -16,7 +16,7 @@ const label = kind === 'store' ? t.storePhotos : t.productPhotos;
       <div class="gallery-track" id={`${id}-track`} data-gallery-track tabindex={images.length > 1 ? 0 : undefined} role="region" aria-label={label}>
         {images.map((photo, index) => (
           <figure class="gallery-slide" aria-label={`${index + 1} / ${images.length}`}>
-            <Image src={photo.src} alt={photo.alt[locale]} widths={[360, 720, 1080]} sizes="(min-width: 80rem) 550px, (min-width: 48rem) 44vw, 92vw" layout="none" format="webp" loading="lazy" />
+            <ZoomImage src={photo.src} alt={photo.alt[locale]} locale={locale} widths={[360, 720, 1080]} sizes="(min-width: 80rem) 550px, (min-width: 48rem) 44vw, 92vw" />
           </figure>
         ))}
       </div>
@@ -28,5 +28,5 @@ const label = kind === 'store' ? t.storePhotos : t.productPhotos;
         </div>
       )}
     </>
-  ) : <MediaPlaceholder kind={kind} label={kind === 'store' ? t.storePhotoPending : t.productPhotoPending} />}
+  ) : <MediaPlaceholder kind={kind} label={kind === 'store' ? t.storePhotoPending : t.productPhotoPending} enlargeLabel={t.enlargeImage} />}
 </div>

@@ -61,6 +61,11 @@ const shareImage = await getImage({ src: shareLogo, width: 1200, height: 1200, f
     <SiteFooter locale={locale} />
     <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-copy-status></p>
     <span class="sr-only" id="new-tab-note">{t.opensNewTab}</span>
+    <dialog id="image-viewer" class="image-viewer" aria-label={t.imageViewer} aria-describedby="image-viewer-help">
+      <div class="image-viewer-scrim" data-image-scrim aria-hidden="true"></div>
+      <div class="image-viewer-media" data-image-stage tabindex="0" role="img" autofocus></div>
+      <p class="sr-only" id="image-viewer-help">{t.closeImageHint}</p>
+    </dialog>
     <script>
       import '../scripts/site';
     </script>
