@@ -24,7 +24,7 @@ const t = copy(locale);
       </div>
       <div class="hero-art" data-reveal data-reveal-order="2">
         <span class="hero-orbit hero-orbit-outer" aria-hidden="true"></span><span class="hero-orbit hero-orbit-inner" aria-hidden="true"></span>
-        <ZoomImage src={logo} alt={`Logo ${company.name}`} locale={locale} width={560} height={560} widths={[280, 560]} sizes="(min-width: 52rem) 36vw, 240px" loading="lazy" class="hero-emblem" />
+        <ZoomImage src={logo} alt={locale === 'zh' ? `${company.name} 标志` : `Logo ${company.name}`} altTexts={{ id: `Logo ${company.name}`, en: `${company.name} logo`, zh: `${company.name} 标志` }} locale={locale} width={560} height={560} widths={[280, 560]} sizes="(min-width: 52rem) 36vw, 240px" loading="lazy" class="hero-emblem" />
         <span class="hero-cross hero-cross-a" aria-hidden="true"></span><span class="hero-cross hero-cross-b" aria-hidden="true"></span>
       </div>
     </div>

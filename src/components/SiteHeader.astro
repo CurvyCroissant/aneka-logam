@@ -2,9 +2,9 @@
 import { Image } from 'astro:assets';
 import logo from '../assets/logo-no-bg.png';
 import { company } from '../config/company';
-import { navigation } from '../config/navigation';
 import { copy } from '../i18n/copy';
-import { pagePath, type Locale, type LocalizedPaths } from '../i18n/routes';
+import { pagePath, categoryPath, locales, localeInfo, type Locale, type LocalizedPaths } from '../i18n/routes';
+import Chevron from './Chevron.astro';
 interface Props { locale: Locale; paths: LocalizedPaths }
 const { locale, paths } = Astro.props;
 const t = copy(locale);
@@ -13,7 +13,7 @@ const isProducts = Astro.url.pathname === pagePath(locale, 'products');
 ---
 <header class="site-header">
   <div class="container header-inner" data-reveal>
-    <a class="wordmark" tabindex="0" data-brand-link data-page-link={isHome ? undefined : 'home'} href={isHome ? '#home' : pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>
+    <a class="wordmark" tabindex="0" data-brand-link data-page-link="home" href={pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>
       <span class="logo-mark" data-image-loader data-image-state="loading" aria-hidden="true">
         <span class="image-skeleton"></span>
         <Image draggable="false" src={logo} alt="" width={64} height={64} widths={[64, 128]} sizes="48px" layout="none" format="webp" loading="eager" decoding="async" />
@@ -22,15 +22,36 @@ const isProducts = Astro.url.pathname === pagePath(locale, 'products');
     </a>
     <nav class="primary-navigation" aria-label={t.mainNavigation} data-i18n-aria-label="mainNavigation">
       <ul class="nav-links">
-        {navigation(locale).map(({ id, label, href }) => (
-          <li><a tabindex="0" lang="en" href={isHome ? `#${id}` : isProducts && id === 'products' ? '#main' : href} data-section-link={isHome ? id : undefined} data-page-link={!isHome && !(isProducts && id === 'products') ? id : undefined} aria-current={isHome && id === 'home' ? 'location' : isProducts && id === 'products' ? 'page' : undefined}><span>{label}</span></a></li>
-        ))}
+        <li class="nav-dropdown" data-dropdown>
+          <div class="nav-topline">
+            <a class="page-link" tabindex="0" lang="en" href={pagePath(locale, 'home')} data-page-link="home" aria-current={isHome ? 'page' : undefined}><span>Home</span></a>
+            <button class="dropdown-toggle" type="button" tabindex="0" data-dropdown-toggle aria-controls="home-dropdown" aria-expanded="false" aria-label={t.homeSections} data-i18n-aria-label="homeSections"><Chevron /></button>
+          </div>
+          <ul id="home-dropdown" class="dropdown-panel" data-dropdown-panel>
+            {(['home', 'products', 'contact'] as const).map((section) => <li><a tabindex="0" lang="en" href={isHome ? `#${section}` : `${pagePath(locale, 'home')}#${section}`} data-section-destination={section} data-section-link={isHome ? section : undefined}>{t[section]}</a></li>)}
+          </ul>
+        </li>
+        <li class="nav-dropdown" data-dropdown>
+          <div class="nav-topline">
+            <a class="page-link" tabindex="0" lang="en" href={pagePath(locale, 'products')} data-page-link="products" aria-current={isProducts ? 'page' : undefined}><span>Products</span></a>
+            <button class="dropdown-toggle" type="button" tabindex="0" data-dropdown-toggle aria-controls="products-dropdown" aria-expanded="false" aria-label={t.productSections} data-i18n-aria-label="productSections"><Chevron /></button>
+          </div>
+          <ul id="products-dropdown" class="dropdown-panel" data-dropdown-panel>
+            <li><a tabindex="0" href={pagePath(locale, 'products')} data-category-destination="all"><span data-i18n="allProducts">{t.allProducts}</span></a></li>
+            {company.categories.map((category) => <li><a tabindex="0" href={categoryPath(locale, category)} data-category-destination={category.id}>{category.name}</a></li>)}
+          </ul>
+        </li>
       </ul>
     </nav>
     <nav class="language-switch" aria-label={t.languageNavigation} data-i18n-aria-label="languageNavigation">
-      {(['id', 'en'] as const).map((language) => (
-        <a tabindex="0" href={paths[language]} hreflang={language} lang={language} data-language-link aria-label={language === 'id' ? 'Bahasa Indonesia' : 'English'} aria-current={locale === language ? 'true' : undefined}><span>{language.toUpperCase()}</span></a>
-      ))}
+      <div class="nav-dropdown language-dropdown" data-dropdown>
+        <button class="language-toggle dropdown-toggle" type="button" tabindex="0" data-dropdown-toggle aria-controls="language-dropdown" aria-expanded="false" aria-label={t.languageNavigation} data-i18n-aria-label="languageNavigation">
+          <svg class="language-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><ellipse cx="12" cy="12" rx="4" ry="9" /><path d="M3 12h18M5 6.5h14M5 17.5h14" /></svg><Chevron />
+        </button>
+        <ul id="language-dropdown" class="dropdown-panel" data-dropdown-panel>
+          {locales.map((language) => <li><a tabindex="0" href={paths[language]} hreflang={localeInfo[language].tag} lang={localeInfo[language].tag} data-language-link aria-current={locale === language ? 'true' : undefined}>{localeInfo[language].name}</a></li>)}
+        </ul>
+      </div>
     </nav>
   </div>
 </header>

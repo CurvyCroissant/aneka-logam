@@ -30,6 +30,10 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
     animation?.cancel();
     for (const card of cards) card.hidden = next !== 'all' && card.dataset.productCategory !== next;
     for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.productFilter === next));
+    for (const link of document.querySelectorAll<HTMLElement>('[data-category-destination]')) {
+      if (link.dataset.categoryDestination === next) link.setAttribute('aria-current', 'true');
+      else link.removeAttribute('aria-current');
+    }
     catalog!.dataset.category = next;
     if (animate && changed && typeof list!.animate === 'function') {
       try {

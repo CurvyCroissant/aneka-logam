@@ -1,20 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { pagePaths, productPath, categoryPath } from '../src/i18n/routes.ts';
+import { pagePaths, productPath, categoryPath, locales, localeInfo, localeFromTag, localeFromPath } from '../src/i18n/routes.ts';
 import { copy } from '../src/i18n/copy.ts';
 import { company } from '../src/config/company.ts';
 import { getContactMethods } from '../src/lib/contact.ts';
 
 test('default URLs remain Indonesian and English has its own static URLs', () => {
-  assert.deepEqual(pagePaths('home'), { id: '/', en: '/en/' });
-  assert.deepEqual(pagePaths('products'), { id: '/products/', en: '/en/products/' });
-  assert.deepEqual(pagePaths('contact'), { id: '/#contact', en: '/en/#contact' });
+  assert.deepEqual(pagePaths('home'), { id: '/', en: '/en/', zh: '/zh/' });
+  assert.deepEqual(pagePaths('products'), { id: '/products/', en: '/en/products/', zh: '/zh/products/' });
+  assert.deepEqual(pagePaths('contact'), { id: '/#contact', en: '/en/#contact', zh: '/zh/#contact' });
   const spring = company.products.find(({key}) => key === 'spring');
   assert.equal(productPath('id', spring), '/products/#per');
   assert.equal(productPath('en', spring), '/en/products/#per');
   for (const category of company.categories) {
     assert.equal(categoryPath('id', category), `/products/#${category.id}`);
     assert.equal(categoryPath('en', category), `/en/products/#${category.id}`);
+    assert.equal(categoryPath('zh', category), `/zh/products/#${category.id}`);
   }
 });
 
@@ -33,6 +34,10 @@ test('English UI copy is complete; only established shared terms remain unchange
     }
   }
   check(copy('id'), copy('en'));
+  check(copy('id'), copy('zh'));
+  assert.equal(localeInfo.zh.tag, 'zh-Hans');
+  assert.equal(localeFromTag('zh-Hans'), 'zh');
+  assert.equal(localeFromPath('/zh/products/'), 'zh');
 });
 
 test('the exact shop phrase and proper company details are language invariant', () => {
@@ -49,14 +54,16 @@ test('all supplied product names stay fixed and belong to a translated general c
   assert.deepEqual(company.products.map(({ name }) => name), ['Shim Plate', 'Per', 'Kawat', 'As']);
   assert.equal(new Set(company.categories.map(({ id }) => id)).size, company.categories.length);
   for (const category of company.categories) {
-    assert.ok(category.name && category.summary.id && category.summary.en);
+    assert.ok(category.name);
+    for (const locale of locales) assert.ok(category.summary[locale]);
     assert.notEqual(category.summary.id, category.summary.en);
     assert.ok(company.products.some((product) => product.category === category.id));
   }
   for (const product of company.products) {
     assert.equal(typeof product.name, 'string', 'Names must not be locale-dependent');
     assert.ok(company.categories.some((category) => category.id === product.category));
-    assert.ok(product.summary.id && product.summary.en);
+    for (const locale of locales) assert.ok(product.summary[locale]);
+    assert.ok(product.summary.zh);
     assert.notEqual(product.summary.id, product.summary.en);
     assert.equal(product.enquiryDetails, undefined, 'The enquiry disclosure was removed');
   }

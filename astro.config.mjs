@@ -41,7 +41,7 @@ export default defineConfig({
   trailingSlash: 'always',
   i18n: {
     defaultLocale: 'id',
-    locales: ['id', 'en'],
+    locales: ['id', 'en', 'zh'],
     routing: { prefixDefaultLocale: false },
   },
   integrations: [
@@ -53,8 +53,10 @@ export default defineConfig({
       hooks: {
         'astro:build:done': async ({ dir }) => {
           // Cloudflare serves the nearest 404.html for each language directory.
-          await rename(new URL('en/404/index.html', dir), new URL('en/404.html', dir));
-          await rm(new URL('en/404/', dir), { recursive: true });
+          for (const locale of ['en', 'zh']) {
+            await rename(new URL(`${locale}/404/index.html`, dir), new URL(`${locale}/404.html`, dir));
+            await rm(new URL(`${locale}/404/`, dir), { recursive: true });
+          }
           if (indexableSetting !== 'true') {
             await appendFile(
               new URL('_headers', dir),

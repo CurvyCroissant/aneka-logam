@@ -46,6 +46,14 @@ export function setupScrollMemory(fontsReady: Promise<unknown>, catalog?: Produc
     window.scrollTo({ left: clampScroll(x, root.scrollWidth - innerWidth), top: clampScroll(y, root.scrollHeight - innerHeight), behavior: 'instant' });
   }
   function restore(snapshot: ScrollSnapshot) { setDetails(snapshot); position(snapshot.x, snapshot.y); }
+  function selectCategory(id: string) {
+    const category = catalog?.categoryForFragment(id);
+    if (!category) return false;
+    catalog!.select(category, true);
+    position(0, 0);
+    save();
+    return true;
+  }
   function navigateFragment() {
     const id = fragmentId(location.hash);
     const category = catalog?.categoryForFragment(id);
@@ -97,5 +105,5 @@ export function setupScrollMemory(fontsReady: Promise<unknown>, catalog?: Produc
     save();
     return Boolean(saved && !interrupted);
   });
-  return { ready: initialized, capture, save, restore, position, push, cleanUrl, fromHistory, navigateFragment };
+  return { ready: initialized, capture, save, restore, position, push, cleanUrl, fromHistory, navigateFragment, selectCategory };
 }

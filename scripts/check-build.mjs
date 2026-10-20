@@ -5,7 +5,7 @@ import { gzipSync } from 'node:zlib';
 import { parse } from 'parse5';
 import { catalog } from '../src/i18n/catalog.ts';
 import { company } from '../src/config/company.ts';
-import { pagePath, categoryPath } from '../src/i18n/routes.ts';
+import { pagePath, categoryPath, locales, localeInfo, localeFromTag } from '../src/i18n/routes.ts';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const errors = [];
@@ -54,9 +54,10 @@ for (const file of files) {
   const ids = nodes.map((node) => attr(node, 'id')).filter(Boolean);
   const title = nodes.find((node) => node.tagName === 'title');
   const pageTitle = title ? text(title).trim() : '';
-  const language = attr(nodes.find((node) => node.tagName === 'html'), 'lang');
+  const languageTag = attr(nodes.find((node) => node.tagName === 'html'), 'lang');
+  const language = localeFromTag(languageTag);
   const titleKey = `${language}:${pageTitle}`;
-  requireThat(['id', 'en'].includes(language), `${name}: document language is missing or unsupported.`);
+  requireThat(locales.some((locale) => localeInfo[locale].tag === languageTag), `${name}: document language is missing or unsupported.`);
   requireThat(Boolean(pageTitle) && !titles.has(titleKey), `${name}: page title is missing or duplicated in its language.`);
   titles.add(titleKey);
   requireThat(nodes.filter((node) => node.tagName === 'h1').length === 1, `${name}: needs exactly one h1.`);
@@ -108,28 +109,29 @@ for (const file of files) {
   pages.set(file, { name, nodes, ids: new Set(ids) });
 }
 
-requireThat(pages.size === 6, 'Generate Home, Products, and 404 in both languages.');
+requireThat(pages.size === locales.length * 3, 'Generate Home, Products, and 404 in every supported language.');
 requireThat(!files.some((file) => file.includes(`${sep}_worker.js`)), 'The company profile must remain static.');
 const robots = await readFile(resolve(root, 'robots.txt'), 'utf8');
 const indexable = !/^Disallow:\s*\/\s*$/m.test(robots);
 if (indexable) {
-  for (const name of ['index.html', 'en/index.html']) {
+  for (const name of locales.map((locale) => `${locale === 'id' ? '' : locale + '/'}index.html`)) {
     requireThat(pages.get(resolve(root, name))?.ids.has('contact'), `${name}: configure official contacts before enabling indexing.`);
   }
 }
 
 for (const [file, { name, nodes }] of pages) {
   const route = '/' + name.replace(/index\.html$/, '');
-  const language = attr(nodes.find((node) => node.tagName === 'html'), 'lang');
+  const languageTag = attr(nodes.find((node) => node.tagName === 'html'), 'lang');
+  const language = localeFromTag(languageTag);
   const errorPage = name === '404.html' || name.endsWith('/404.html');
-  const homePage = ['index.html', 'en/index.html'].includes(name);
-  const productsPage = ['products/index.html', 'en/products/index.html'].includes(name);
+  const homePage = route === pagePath(language, 'home');
+  const productsPage = route === pagePath(language, 'products');
   requireThat(attr(nodes.find((node) => node.tagName === 'html'), 'data-page') === (errorPage ? 'error' : productsPage ? 'products' : 'home'), `${name}: the page identity must match its route.`);
   const switcher = nodes.find((node) => node.tagName === 'nav' && attr(node, 'class')?.includes('language-switch'));
   const switches = switcher ? elements(switcher).filter((node) => node.tagName === 'a') : [];
-  requireThat(switches.length === 2, `${name}: both language options must be available without JavaScript.`);
-  for (const locale of ['id', 'en']) {
-    const link = switches.find((node) => attr(node, 'hreflang') === locale);
+  requireThat(switches.length === locales.length, `${name}: every language option must be available without JavaScript.`);
+  for (const locale of locales) {
+    const link = switches.find((node) => attr(node, 'hreflang') === localeInfo[locale].tag);
     requireThat(Boolean(link), `${name}: missing ${locale} language switch.`);
     if (link && !errorPage && locale === language) {
       requireThat(attr(link, 'href') === route && attr(link, 'aria-current') === 'true', `${name}: language switch lost the current page.`);
@@ -137,19 +139,25 @@ for (const [file, { name, nodes }] of pages) {
     if (link && !errorPage) {
       const target = pages.get(resolve(root, '.' + attr(link, 'href'), 'index.html'));
       const counterpart = target?.nodes.find((node) => node.tagName === 'nav' && attr(node, 'class')?.includes('language-switch'));
-      const back = counterpart && elements(counterpart).find((node) => node.tagName === 'a' && attr(node, 'hreflang') === language);
+      const back = counterpart && elements(counterpart).find((node) => node.tagName === 'a' && attr(node, 'hreflang') === localeInfo[language].tag);
       requireThat(Boolean(back && attr(back, 'href') === route), `${name}: language links must return to the equivalent page.`);
     }
   }
   const primaryNav = nodes.find((node) => node.tagName === 'nav' && attr(node, 'class') === 'primary-navigation');
   if (primaryNav) {
-    requireThat(elements(primaryNav).filter((node) => node.tagName === 'a').map((node) => text(node).trim()).join(',') === 'Home,Products,Contact', `${name}: keep the navigation labels in English.`);
-    for (const link of elements(primaryNav).filter((node) => node.tagName === 'a')) {
-      const destination = text(link).trim().toLowerCase();
-      const expected = homePage ? `#${destination}` : productsPage && destination === 'products' ? '#main' : pagePath(language, destination);
-      requireThat(attr(link, 'href') === expected, `${name}: primary navigation must preserve language and reach the correct page or section.`);
+    const pageLinks = elements(primaryNav).filter((node) => node.tagName === 'a' && attr(node, 'data-page-link') !== undefined);
+    requireThat(pageLinks.map((node) => text(node).trim()).join(',') === 'Home,Products', `${name}: primary navigation must be based on the two pages.`);
+    for (const link of pageLinks) requireThat(attr(link, 'href') === pagePath(language, attr(link, 'data-page-link')), `${name}: page navigation must preserve the chosen language.`);
+    for (const link of elements(primaryNav).filter((node) => attr(node, 'data-section-destination') !== undefined)) {
+      const section = attr(link, 'data-section-destination');
+      requireThat(attr(link, 'href') === `${homePage ? '' : pagePath(language, 'home')}#${section}`, `${name}: the Home dropdown must reach its section in the current language.`);
     }
+    for (const link of elements(primaryNav).filter((node) => attr(node, 'data-category-destination') !== undefined)) requireThat(attr(link, 'href') === categoryPath(language, { id: attr(link, 'data-category-destination') }), `${name}: the Products dropdown must reach its filter.`);
   }
+  const toggles = nodes.filter((node) => attr(node, 'data-dropdown-toggle') !== undefined);
+  requireThat(toggles.length === 3, `${name}: provide disclosure controls for Home, Products, and languages.`);
+  for (const toggle of toggles) requireThat(attr(toggle, 'aria-expanded') === 'false' && nodes.some((node) => attr(node, 'id') === attr(toggle, 'aria-controls') && attr(node, 'data-dropdown-panel') !== undefined), `${name}: dropdown controls must identify their collapsed panel.`);
+  requireThat(!nodes.some((node) => ['menu', 'menubar', 'menuitem'].includes(attr(node, 'role'))), `${name}: use native navigation links and disclosure buttons rather than application-menu roles.`);
   const phrase = 'Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring';
   if (!errorPage) {
     requireThat(text(nodes.find((node) => node.tagName === 'title')) === (productsPage ? 'Products | Aneka Logam' : 'Aneka Logam'), `${name}: use the title for the current page.`);
@@ -188,13 +196,14 @@ for (const [file, { name, nodes }] of pages) {
     for (const id of ['home', 'products', 'contact']) requireThat(pages.get(file).ids.has(id), `${name}: missing ${id} section.`);
     for (const [id, label] of [['products-heading', 'Products'], ['contact-heading', 'Contact']]) requireThat(nodes.some((node) => attr(node, 'id') === id && attr(node, 'lang') === 'en' && text(node) === label), `${name}: section titles must match their English navigation labels.`);
     requireThat(nodes.some((node) => attr(node, 'class') === 'view-all-link' && attr(node, 'href') === pagePath(language, 'products')), `${name}: View All must open the catalog start without a fragment.`);
-    const categoryLinks = nodes.filter((node) => attr(node, 'data-category-destination') !== undefined);
+    const carousel = nodes.find((node) => attr(node, 'data-category-carousel') !== undefined);
+    const categoryLinks = carousel ? elements(carousel).filter((node) => attr(node, 'data-category-destination') !== undefined) : [];
     requireThat(categoryLinks.length === company.categories.length && nodes.some((node) => attr(node, 'data-category-track') !== undefined), `${name}: the home product area must be a category carousel.`);
     for (const category of company.categories) requireThat(categoryLinks.some((node) => attr(node, 'href') === categoryPath(language, category) && elements(node).some((child) => child.tagName === 'h3' && text(child) === category.name)), `${name}: category cards must retain their names and target their catalog group.`);
     const ownerList = nodes.find((node) => attr(node, 'class') === 'owner-list');
     const owners = ownerList ? elements(ownerList).filter((node) => node.tagName === 'li') : [];
     requireThat(owners.map((node) => text(node).trim()).join(',') === 'Budiyanto,Delinah', `${name}: show each owner on a separate row.`);
-    requireThat(nodes.some((node) => node.tagName === 'h3' && text(node).trim() === (language === 'id' ? 'Pemilik' : 'Owners')), `${name}: use the confirmed owner heading.`);
+    requireThat(nodes.some((node) => node.tagName === 'h3' && text(node).trim() === catalog(language).owners), `${name}: use the confirmed owner heading.`);
   }
   requireThat(!nodes.some((node) => attr(node, 'data-i18n') === 'rangeNote'), `${name}: the removed availability note must not return.`);
   if (productsPage) {
@@ -211,7 +220,7 @@ for (const [file, { name, nodes }] of pages) {
     requireThat(Boolean(robotsMeta && attr(robotsMeta, 'content')?.includes('noindex')), `${name}: prelaunch/error pages must remain noindex.`);
   } else {
     requireThat(nodes.some((node) => attr(node, 'rel') === 'canonical' && attr(node, 'href')?.startsWith('https://')), `${name}: indexable pages need a canonical URL.`);
-    for (const locale of ['id', 'en', 'x-default']) {
+    for (const locale of [...locales.map((locale) => localeInfo[locale].tag), 'x-default']) {
       requireThat(nodes.some((node) => attr(node, 'rel') === 'alternate' && attr(node, 'hreflang') === locale && attr(node, 'href')?.startsWith('https://')), `${name}: missing ${locale} alternate-language metadata.`);
     }
   }

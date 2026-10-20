@@ -36,8 +36,8 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
   const offscreen = new Element(); offscreen.dataset.i18n = 'address'; offscreen.textContent = 'Alamat Toko'; offscreen.top = 2000;
   const image = new Element(); image.alt = 'Foto pegas'; image.src = '/photo.webp';
   const trigger = new Element(); trigger.children = { 'img[data-image-content]': image };
-  trigger.setAttribute('data-image-alt-id', 'Foto pegas'); trigger.setAttribute('data-image-alt-en', 'Spring photograph');
-  const id = new Element(); id.hreflang = 'id'; const en = new Element(); en.hreflang = 'en';
+  trigger.setAttribute('data-image-alt-zh', '弹簧照片'); trigger.setAttribute('data-image-alt-id', 'Foto pegas'); trigger.setAttribute('data-image-alt-en', 'Spring photograph');
+  const id = new Element(); id.hreflang = 'id'; const en = new Element(); en.hreflang = 'en'; const zh = new Element(); zh.hreflang = 'zh-Hans';
   const contact = new Element(); contact.documentTop = 1800;
   const springs = new Element(); springs.documentTop = 3200;
   const home = new Element(); home.documentTop = 0;
@@ -48,7 +48,7 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
   const productsLink = new Element(); productsLink.dataset.pageLink = 'products'; productsLink.href = '/products/';
   const contactLink = new Element(); contactLink.dataset.pageLink = 'contact'; contactLink.href = '/#contact';
   const categoryLink = new Element(); categoryLink.dataset.categoryDestination = 'per'; categoryLink.href = '/products/#per';
-  const selectors = { '[data-remember-details]': [detail], '[data-gallery-track]': [gallery], '[data-i18n]': [heading, fixedHeading, offscreen], '[data-image-trigger]': [trigger], '[data-language-link]': [id, en], 'a[href^="#"]': [sectionLink], '[data-page-link]': [homeLink, productsLink, contactLink], '[data-category-destination]': [categoryLink] };
+  const selectors = { '[data-remember-details]': [detail], '[data-gallery-track]': [gallery], '[data-i18n]': [heading, fixedHeading, offscreen], '[data-image-trigger]': [trigger], '[data-language-link]': [id, en, zh], 'a[href^="#"]': [sectionLink], '[data-page-link]': [homeLink, productsLink, contactLink], '[data-category-destination]': [categoryLink] };
   const document = Object.assign(new EventTarget(), { documentElement: root, querySelectorAll: (s) => selectors[s] ?? [], querySelector: (s) => s === '.site-header' ? header : null, getElementById: (s) => ({ contact, springs, home, main })[s] ?? null });
   const location = { pathname: page === 'products' ? '/products/' : '/', search: '', hash, get href() { return `https://test.invalid${this.pathname}${this.search}${this.hash}`; } };
   const updateUrl = (url) => { const value = new URL(url, 'https://test.invalid'); Object.assign(location, { pathname: value.pathname, search: value.search, hash: value.hash }); };
@@ -70,7 +70,7 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
     t.after(() => { if (previous) Object.defineProperty(globalThis, key, previous); else delete globalThis[key]; });
   }
   const click = (target, modified = false) => { const event = new Event('click', { cancelable: true }); Object.assign(event, { button: 0, ctrlKey: modified }); target.dispatchEvent(event); return event; };
-  return { root, detail, gallery, heading, fixedHeading, offscreen, image, id, en, contact, sectionLink, homeLink, productsLink, contactLink, categoryLink, location, history, window, click, updateUrl };
+  return { root, detail, gallery, heading, fixedHeading, offscreen, image, id, en, zh, contact, sectionLink, homeLink, productsLink, contactLink, categoryLink, location, history, window, click, updateUrl };
 }
 
 test('reload waits for the font, restores exact pixels and expanded content, and never scrolls to an old heading', async (t) => {
@@ -168,7 +168,10 @@ test('language wipes out old text right-to-left before replacing it and wipes ne
   const incoming = env.heading.animations[1];
   assert.equal(incoming.frames[0].clipPath, 'inset(0 100% 0 0)');
   assert.equal(incoming.frames[1].clipPath, 'inset(0 0 0 0)');
-  assert.equal(incoming.options.duration, 425);
+  assert.equal(incoming.options.duration, outgoing.options.duration);
+  assert.equal(incoming.options.easing, outgoing.options.easing);
+  assert.equal(incoming.options.easing, 'linear');
+  assert.equal(incoming.options.fill, 'both', 'Mask translated text during the pending animation phase');
   preference.matches = true;
   env.click(env.id);
   assert.equal(env.root.lang, 'id');
@@ -302,4 +305,41 @@ test('blocked session storage uses history; malformed fragments cannot leave the
   assert.ok(!env.root.classes.has('is-restoring'));
   env.window.scrollY = 999; memory.save();
   assert.equal(env.history.state.alScroll.y, 999);
+});
+
+for (const page of ['home', 'products']) test(`Mandarin switches in place on ${page}, keeps pixels/images, and supports a third-language history round trip`, async (t) => {
+  const env = environment(t, { page, saved: { ...savedVisit, url: page === 'home' ? '/' : '/products/', y: 420.5 } });
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  setupNavigation(memory, { matches: false });
+  env.click(env.zh);
+  assert.equal(env.root.lang, 'zh-Hans');
+  assert.equal(env.location.pathname, page === 'home' ? '/zh/' : '/zh/products/');
+  assert.equal(env.heading.textContent, '店主');
+  assert.equal(env.image.alt, '弹簧照片');
+  assert.equal(env.image.src, '/photo.webp');
+  assert.equal(env.window.scrollY, 420.5);
+  assert.equal(env.productsLink.href, '/zh/products/');
+  assert.equal(env.categoryLink.href, '/zh/products/#per');
+  const previous = env.history.state;
+  env.click(env.en);
+  env.updateUrl(page === 'home' ? '/zh/' : '/zh/products/'); env.history.state = previous;
+  const back = new Event('popstate'); back.state = previous; env.window.dispatchEvent(back);
+  assert.equal(env.root.lang, 'zh-Hans');
+  assert.equal(env.heading.textContent, '店主');
+  assert.equal(env.window.scrollY, 420.5);
+});
+
+test('the Products dropdown filters in place; its page link returns to All Products', async (t) => {
+  const env = environment(t, { page: 'products', saved: { ...savedVisit, url: '/products/' } });
+  let category = 'all';
+  const catalog = { current: () => category, select: (value) => { category = value; }, categoryForFragment: (id) => ['all', 'per'].includes(id) ? id : undefined };
+  const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
+  setupNavigation(memory, { matches: true });
+  assert.equal(env.click(env.categoryLink).defaultPrevented, true);
+  assert.equal(category, 'per');
+  assert.equal(env.window.scrollY, 0);
+  assert.equal(env.location.hash, '');
+  assert.equal(env.history.state.alScroll.category, 'per');
+  env.click(env.productsLink);
+  assert.equal(category, 'all');
 });

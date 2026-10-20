@@ -7,8 +7,10 @@ import { waitForBrandFont, setupImageLoading } from './loading';
 import { setupNavigation, currentLocale } from './language';
 import { copy } from '../i18n/copy';
 import { setupProductCatalog } from './product-catalog';
+import { setupHeaderDropdowns } from './header-dropdowns';
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+setupHeaderDropdowns();
 const catalog = setupProductCatalog(reducedMotion);
 const memory = setupScrollMemory(waitForBrandFont(), catalog);
 const restoration = memory.ready;

@@ -2,10 +2,10 @@ import { catalog } from '../i18n/catalog.ts';
 import { fragmentId } from '../lib/scroll-memory.ts';
 import { cancelTextTransition, transitionTranslatedText } from './text-motion.ts';
 import { scrollToSection } from '../lib/section-scroll.ts';
-import { pagePath, categoryPath, type Locale, type MainPage, type Page } from '../i18n/routes.ts';
+import { pagePath, categoryPath, locales, localeInfo, localeFromTag, localeFromPath, type Locale, type MainPage, type Page } from '../i18n/routes.ts';
 import type { setupScrollMemory } from './scroll-memory';
 
-export const currentLocale = (): Locale => document.documentElement.lang === 'en' ? 'en' : 'id';
+export const currentLocale = (): Locale => localeFromTag(document.documentElement.lang);
 
 export function applyLocale(locale: Locale) {
   const values = catalog(locale);
@@ -15,7 +15,7 @@ export function applyLocale(locale: Locale) {
     element.textContent = value;
     changed.add(element);
   }
-  document.documentElement.lang = locale;
+  document.documentElement.lang = localeInfo[locale].tag;
   for (const element of document.querySelectorAll<HTMLElement>('[data-i18n]')) {
     updateText(element, values[element.dataset.i18n ?? '']);
   }
@@ -41,7 +41,7 @@ export function applyLocale(locale: Locale) {
     trigger.setAttribute('aria-label', `${values['enlargeImage']}: ${alt}`);
   }
   for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-language-link]')) {
-    if (link.hreflang === locale) link.setAttribute('aria-current', 'true'); else link.removeAttribute('aria-current');
+    if (localeFromTag(link.hreflang) === locale) link.setAttribute('aria-current', 'true'); else link.removeAttribute('aria-current');
   }
   const page: MainPage = document.documentElement.dataset.page === 'products' ? 'products' : 'home';
   document.title = values[page === 'products' ? 'productsTitle' : 'homeTitle'] ?? document.title;
@@ -50,8 +50,10 @@ export function applyLocale(locale: Locale) {
     if (destination === 'home' || destination === 'products' || destination === 'contact') link.href = pagePath(locale, destination);
   }
   for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-category-destination]')) link.href = categoryPath(locale, { id: link.dataset.categoryDestination ?? '' });
-  document.querySelector('meta[property="og:locale"]')?.setAttribute('content', locale === 'en' ? 'en_US' : 'id_ID');
-  document.querySelector('meta[property="og:locale:alternate"]')?.setAttribute('content', locale === 'en' ? 'id_ID' : 'en_US');
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-section-destination]')) link.href = `${page === 'home' ? '' : pagePath(locale, 'home')}#${link.dataset.sectionDestination}`;
+  document.querySelector('meta[property="og:locale"]')?.setAttribute('content', localeInfo[locale].og);
+  const alternatives = locales.filter((language) => language !== locale);
+  document.querySelectorAll('meta[property="og:locale:alternate"]').forEach((meta, index) => { const language = alternatives[index]; if (language) meta.setAttribute('content', localeInfo[language].og); });
   const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
   if (canonical) {
     const url = new URL(canonical.href); url.pathname = pagePath(locale, page);
@@ -87,7 +89,7 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
     link.addEventListener('click', (event) => {
       if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       event.preventDefault();
-      const locale = link.hreflang === 'en' ? 'en' : 'id';
+      const locale = localeFromTag(link.hreflang);
       if (locale === requestedLocale) return;
       before(); requestedLocale = locale; memory.save();
       transitionTranslatedText(translationTargets(locale), reducedMotion, () => {
@@ -125,15 +127,26 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
       const target = document.getElementById(page === 'home' ? 'home' : 'main');
       if (!target) return;
       event.preventDefault(); before(); memory.save(); memory.cleanUrl();
+      if (page === 'products') memory.selectCategory('all');
       target.focus({ preventScroll: true });
       scrollToSection(target, reducedMotion.matches ? 'instant' : 'smooth');
       document.dispatchEvent(new Event('aneka:location-change'));
     });
   }
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-category-destination]')) {
+    link.addEventListener('click', (event) => {
+      if (page !== 'products' || event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      event.preventDefault(); before(); memory.save(); memory.cleanUrl();
+      if (memory.selectCategory(link.dataset.categoryDestination ?? 'all')) {
+        document.getElementById('products')?.focus({ preventScroll: true });
+        document.dispatchEvent(new Event('aneka:location-change'));
+      }
+    });
+  }
   window.addEventListener('popstate', (event) => {
     before();
     root.classList.add('is-localizing');
-    const locale = location.pathname.startsWith('/en/') ? 'en' : 'id';
+    const locale = localeFromPath(location.pathname);
     requestedLocale = locale;
     transitionTranslatedText(translationTargets(locale), reducedMotion, () => {
       if (locale !== currentLocale()) applyLocale(locale);

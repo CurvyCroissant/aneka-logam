@@ -15,7 +15,7 @@ function environment(t, hash = '') {
   const list = new Control(); list.items = cards;
   const controls = new Control(); controls.items = buttons; controls.hidden = true;
   const root = new Control(); root.children = { '[data-product-list]': list, '[data-product-filters]': controls };
-  const document = Object.assign(new EventTarget(), { querySelector: () => root });
+  const document = Object.assign(new EventTarget(), { querySelector: () => root, querySelectorAll: () => [] });
   for (const [name, value] of Object.entries({ document, location: { hash } })) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, name);
     Object.defineProperty(globalThis, name, { configurable: true, value });

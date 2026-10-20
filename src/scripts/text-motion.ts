@@ -29,9 +29,9 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
   const duration = motion.matches ? timing.duration : timing.duration / 2;
   function animate(element: HTMLElement, frames: Keyframe[], fill: FillMode = 'none') {
     try {
-      const animation = element.animate(frames, { ...timing, duration, fill });
+      const animation = element.animate(frames, { ...timing, duration, easing: motion.matches ? timing.easing : 'linear', fill });
       active.add(animation);
-      void animation.finished.then(() => { if (fill !== 'forwards') active.delete(animation); }, () => active.delete(animation));
+      void animation.finished.then(() => { if (fill !== 'forwards') { active.delete(animation); animation.cancel(); } }, () => active.delete(animation));
       return animation;
     } catch { return undefined; /* Translation stays available without animation support. */ }
   }
@@ -43,7 +43,7 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
     for (const element of targets) animate(element, motion.matches ? [{ opacity: 0.2 }, { opacity: 1 }] : [
       { clipPath: 'inset(0 100% 0 0)', translate: '-8px 0' },
       { clipPath: 'inset(0 0 0 0)', translate: '0 0' },
-    ]);
+    ], 'both');
   }
   if (!targets.length || motion.matches || !exit) { enter(); return; }
   const outgoing = targets.map((element) => animate(element, [

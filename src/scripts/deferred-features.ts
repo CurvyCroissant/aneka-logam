@@ -1,4 +1,5 @@
 import { copy } from '../i18n/copy.ts';
+import { localeFromTag } from '../i18n/routes.ts';
 
 export function createDeferredFeature(initialize: () => Promise<void>) {
   let ready = false;
@@ -68,7 +69,7 @@ export function setupDeferredFeatures(motion: MediaQueryList, initialize = initi
       if (href) window.location.assign(href);
       else {
         const status = document.querySelector('[data-copy-status]');
-        if (status) status.textContent = copy(document.documentElement.lang === 'en' ? 'en' : 'id').previewFailed;
+        if (status) status.textContent = copy(localeFromTag(document.documentElement.lang)).previewFailed;
       }
     });
   }, { capture: true });
