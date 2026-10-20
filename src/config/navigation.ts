@@ -16,5 +16,5 @@ export function navigation(locale: Locale) {
 }
 
 const address = company.address;
-export const addressLines = [address.building, address.street, `${address.city}, ${address.province}`, address.country];
+export const addressLines = [address.building, address.unit, address.street, `${address.district}, ${address.city}`, `${address.province} ${address.postalCode}`];
 export const directionsUrl = address.mapsUrl;

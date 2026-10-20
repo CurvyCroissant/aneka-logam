@@ -1,9 +1,9 @@
 import type { Locale } from './routes';
 
 const id = {
-  home: 'Beranda',
-  products: 'Produk',
-  contact: 'Kontak',
+  home: 'Home',
+  products: 'Products',
+  contact: 'Contact',
   mainNavigation: 'Navigasi utama',
   footerNavigation: 'Navigasi footer',
   languageNavigation: 'Pilih bahasa',
@@ -23,7 +23,7 @@ const id = {
   detailsHeading: 'Rincian untuk pertanyaan produk',
   rangeNote: 'Hubungi kami untuk memastikan ukuran, material, dan ketersediaan produk.',
   address: 'Alamat toko',
-  directions: 'Petunjuk arah',
+  directions: 'Buka di Google Maps',
   owners: 'Pemilik',
   contactMethods: 'Hubungi kami',
   contactLabels: { whatsapp: 'WhatsApp', telephone: 'Telepon', email: 'Email' },
@@ -59,7 +59,7 @@ const en: typeof id = {
   detailsHeading: 'Details for your enquiry',
   rangeNote: 'Contact us to confirm product sizes, materials, and availability.',
   address: 'Store address',
-  directions: 'Get directions',
+  directions: 'Open in Google Maps',
   owners: 'Owners',
   contactMethods: 'Get in touch',
   contactLabels: { whatsapp: 'WhatsApp', telephone: 'Telephone', email: 'Email' },

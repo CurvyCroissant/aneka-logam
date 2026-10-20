@@ -14,18 +14,19 @@ const isHome = Astro.url.pathname === pagePath(locale, 'home');
   <div class="container header-inner" data-reveal>
     <div class="wordmark">
       <ZoomImage src={logo} alt={`Logo ${company.name}`} locale={locale} width={64} height={64} widths={[64, 128]} sizes="48px" loading="eager" class="logo-mark" />
-      <a class="brand-name" data-font-text href={isHome ? '#home' : pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>{company.displayName}</a>
+      <a class="skip-link" tabindex="0" href="#main" data-i18n="skip">{t.skip}</a>
+      <a tabindex="0" class="brand-name" data-font-text href={isHome ? '#home' : pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>{company.displayName}</a>
     </div>
     <nav class="primary-navigation" aria-label={t.mainNavigation} data-i18n-aria-label="mainNavigation">
       <ul class="nav-links">
         {navigation(locale).map(({ id, label, href }) => (
-          <li><a lang="en" href={isHome ? `#${id}` : href} data-section-link={id} aria-current={isHome && id === 'home' ? 'location' : undefined}><span>{label}</span></a></li>
+          <li><a tabindex="0" lang="en" href={isHome ? `#${id}` : href} data-section-link={id} aria-current={isHome && id === 'home' ? 'location' : undefined}><span>{label}</span></a></li>
         ))}
       </ul>
     </nav>
     <nav class="language-switch" aria-label={t.languageNavigation} data-i18n-aria-label="languageNavigation">
       {(['id', 'en'] as const).map((language) => (
-        <a href={paths[language]} hreflang={language} lang={language} data-language-link aria-label={language === 'id' ? 'Bahasa Indonesia' : 'English'} aria-current={locale === language ? 'true' : undefined}>{language.toUpperCase()}</a>
+        <a tabindex="0" href={paths[language]} hreflang={language} lang={language} data-language-link aria-label={language === 'id' ? 'Bahasa Indonesia' : 'English'} aria-current={locale === language ? 'true' : undefined}><span>{language.toUpperCase()}</span></a>
       ))}
     </nav>
   </div>

@@ -61,6 +61,15 @@ for (const file of files) {
   requireThat(nodes.filter((node) => node.tagName === 'main').length === 1, `${name}: needs exactly one main landmark.`);
   requireThat(new Set(ids).size === ids.length, `${name}: duplicate element IDs.`);
   requireThat(ids.includes('main'), `${name}: skip-link destination is missing.`);
+  const controls = nodes.filter((node) => ['a', 'button', 'summary'].includes(node.tagName));
+  requireThat(attr(controls[0], 'class')?.includes('logo-mark'), `${name}: the header logo must be the first interactive control.`);
+  requireThat(attr(controls[1], 'class') === 'skip-link', `${name}: keep a skip-to-content control immediately after the logo.`);
+  for (const control of controls) {
+    requireThat(attr(control, 'tabindex') === '0', `${name}: every native control must remain in document-order keyboard navigation.`);
+    requireThat(Boolean(attr(control, 'aria-label')?.trim() || text(control).trim()), `${name}: every control needs an accessible name.`);
+    requireThat(!elements(control).slice(1).some((child) => ['a', 'button', 'summary'].includes(child.tagName)), `${name}: interactive controls must not be nested.`);
+  }
+  requireThat(!nodes.some((node) => Number(attr(node, 'tabindex')) > 0 || attr(node, 'autofocus') !== undefined), `${name}: do not reorder tab stops or steal focus on load.`);
   const viewport = nodes.find((node) => attr(node, 'name') === 'viewport');
   const viewportContent = viewport ? attr(viewport, 'content') ?? '' : '';
   requireThat(viewportContent.includes('width=device-width') && !/maximum-scale|user-scalable\s*=\s*no/.test(viewportContent), `${name}: viewport must support resizing and zoom.`);
@@ -143,7 +152,11 @@ for (const [file, { name, nodes }] of pages) {
     requireThat(nodes.filter((node) => node.tagName === 'p' && attr(node, 'lang') === 'en' && text(node).trim() === phrase).length === 1, `${name}: show the exact English phrase once.`);
     for (const id of ['home', 'products', 'contact']) requireThat(pages.get(file).ids.has(id), `${name}: missing ${id} section.`);
     const bodyText = text(nodes.find((node) => node.tagName === 'body'));
-    requireThat((bodyText.match(/Metro Glodok/g) ?? []).length === 1 && (bodyText.match(/Jakarta Pusat/g) ?? []).length === 1, `${name}: keep location details in the address only.`);
+    requireThat((bodyText.match(/Pertokoan Glodok Metro/g) ?? []).length === 1 && (bodyText.match(/Kota Jakarta Barat/g) ?? []).length === 1 && !bodyText.includes('Jakarta Pusat'), `${name}: keep the updated location in the address only.`);
+    const address = nodes.find((node) => attr(node, 'class') === 'address-lines');
+    requireThat(address && (address.childNodes ?? []).filter((node) => node.tagName === 'span').map(text).join('|') === 'Pertokoan Glodok Metro|Lantai Dasar No. 71|Jl. Blustru, RT.01/RW.06|Kec. Taman Sari, Kota Jakarta Barat|DKI Jakarta 11180', `${name}: preserve all five supplied address lines.`);
+    requireThat(nodes.some((node) => attr(node, 'class') === 'address-action' && attr(node, 'href') === 'https://maps.app.goo.gl/E5ESBkS3XxmUQYEx9'), `${name}: the address itself must open the confirmed map.`);
+    for (const [id, label] of [['products-heading', 'Products'], ['contact-heading', 'Contact']]) requireThat(nodes.some((node) => attr(node, 'id') === id && attr(node, 'lang') === 'en' && text(node) === label), `${name}: section titles must match their English navigation labels.`);
     requireThat(!bodyText.includes('SUKU CADANG MESIN INDUSTRI') && !bodyText.includes('Seluler') && !bodyText.includes('Telepon toko'), `${name}: obsolete labels must not return.`);
     const copies = nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-copy'));
     requireThat(copies.length === 4, `${name}: phone and email copy actions must work in the contact section and footer.`);

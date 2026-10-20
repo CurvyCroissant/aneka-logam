@@ -57,7 +57,6 @@ const shareImage = await getImage({ src: shareLogo, width: 1200, height: 1200, f
     {canonical && <meta property="og:url" content={canonical} />}
   </head>
   <body>
-    <a class="skip-link" href="#main" data-i18n="skip">{t.skip}</a>
     <SiteHeader locale={locale} paths={paths} />
     <main id="main" tabindex="-1"><slot /></main>
     <SiteFooter locale={locale} />

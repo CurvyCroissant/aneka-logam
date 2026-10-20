@@ -5,28 +5,33 @@ import { setupNavigation } from '../src/scripts/language.ts';
 
 const savedVisit = { version: 1, url: '/#contact', x: 0, y: 1267, details: ['spring'], galleries: { photos: 1 } };
 
-function environment(t, { saved = savedVisit, hash = '', blocked = false } = {}) {
+function environment(t, { saved = savedVisit, hash = '', blocked = false, motion = false } = {}) {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   class Element extends EventTarget {
-    dataset = {}; attrs = new Map(); classes = new Set(); textContent = ''; open = false;
+    dataset = {}; attrs = new Map(); classes = new Set(); textContent = ''; open = false; animations = []; opacity = 1; top = 100;
     classList = { add: (...names) => names.forEach((n) => this.classes.add(n)), remove: (...names) => names.forEach((n) => this.classes.delete(n)) };
     setAttribute(key, value) { this.attrs.set(key, value); }
     getAttribute(key) { return this.attrs.get(key) ?? null; }
     removeAttribute(key) { this.attrs.delete(key); }
     querySelector(selector) { return this.children?.[selector] ?? null; }
-    focus() {}
+    closest() { return null; }
+    getBoundingClientRect() { return { width: 200, height: 24, top: this.top, bottom: this.top + 24 }; }
+    focus(options) { this.focusOptions = options; }
     scrollIntoView() { this.anchorScrolls = (this.anchorScrolls ?? 0) + 1; }
   }
+  if (motion) Element.prototype.animate = function (frames, options) { const animation = { frames, options, cancelled: false, cancel() { this.cancelled = true; }, finished: Promise.resolve() }; this.animations.push(animation); return animation; };
   const root = new Element(); Object.assign(root, { lang: 'id', scrollWidth: 1000, scrollHeight: 5000, dataset: { page: 'home' } });
   const detail = new Element(); detail.id = 'spring';
   const gallery = new Element(); Object.assign(gallery, { id: 'photos', clientWidth: 320, scrollLeft: 0 });
   const heading = new Element(); heading.dataset.i18n = 'owners'; heading.textContent = 'Pemilik';
+  const fixedHeading = new Element(); fixedHeading.dataset.i18n = 'contact'; fixedHeading.textContent = 'Contact';
+  const offscreen = new Element(); offscreen.dataset.i18n = 'address'; offscreen.textContent = 'Alamat toko'; offscreen.top = 2000;
   const image = new Element(); image.alt = 'Foto pegas'; image.src = '/photo.webp';
   const trigger = new Element(); trigger.children = { 'img[data-image-content]': image };
   trigger.setAttribute('data-image-alt-id', 'Foto pegas'); trigger.setAttribute('data-image-alt-en', 'Spring photograph');
   const id = new Element(); id.hreflang = 'id'; const en = new Element(); en.hreflang = 'en';
   const contact = new Element(); const sectionLink = new Element(); sectionLink.hash = '#contact';
-  const selectors = { '[data-remember-details]': [detail], '[data-gallery-track]': [gallery], '[data-i18n]': [heading], '[data-image-trigger]': [trigger], '[data-language-link]': [id, en], 'a[href^="#"]': [sectionLink] };
+  const selectors = { '[data-remember-details]': [detail], '[data-gallery-track]': [gallery], '[data-i18n]': [heading, fixedHeading, offscreen], '[data-image-trigger]': [trigger], '[data-language-link]': [id, en], 'a[href^="#"]': [sectionLink] };
   const document = Object.assign(new EventTarget(), { documentElement: root, querySelectorAll: (s) => selectors[s] ?? [], querySelector: () => null, getElementById: (s) => s === 'contact' ? contact : null });
   const location = { pathname: '/', search: '', hash };
   const updateUrl = (url) => { const value = new URL(url, 'https://test.invalid'); Object.assign(location, { pathname: value.pathname, search: value.search, hash: value.hash }); };
@@ -36,6 +41,7 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false } = {})
   const window = Object.assign(new EventTarget(), { scrollX: 0, scrollY: 0, scrollTo({ left, top }) { this.scrollX = left; this.scrollY = top; }, __anekaBoot: { snapshot: saved, finish: () => root.classList.remove('is-restoring') } });
   Object.defineProperty(window, 'sessionStorage', { get() { if (blocked) throw new Error('Storage blocked'); return storage; } });
   const globals = { document, window, location, history, innerWidth: 1000, innerHeight: 700, performance: { getEntriesByType: () => [{ type: 'reload' }] }, requestAnimationFrame: (fn) => queueMicrotask(fn) };
+  if (motion) globals.getComputedStyle = (element) => ({ opacity: String(element.opacity), getPropertyValue: (name) => ({ '--state-duration': '420ms', '--reduced-duration': '180ms', '--ease': 'cubic-bezier(0.22, 1, 0.36, 1)' })[name] ?? '' });
   for (const [key, value] of Object.entries(globals)) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, key);
     Object.defineProperty(globalThis, key, { configurable: true, value });
@@ -47,7 +53,7 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false } = {})
     t.after(() => { if (previous) Object.defineProperty(globalThis, key, previous); else delete globalThis[key]; });
   }
   const click = (target, modified = false) => { const event = new Event('click', { cancelable: true }); Object.assign(event, { button: 0, ctrlKey: modified }); target.dispatchEvent(event); return event; };
-  return { root, detail, gallery, heading, image, id, en, contact, sectionLink, location, history, window, click, updateUrl };
+  return { root, detail, gallery, heading, fixedHeading, offscreen, image, id, en, contact, sectionLink, location, history, window, click, updateUrl };
 }
 
 test('reload waits for the font, restores exact pixels and expanded content, and never scrolls to an old heading', async (t) => {
@@ -102,9 +108,36 @@ test('fresh deep links and section navigation still scroll to the requested head
   const env = environment(t, { saved: null, hash: '#contact' });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
   assert.equal(env.contact.anchorScrolls, 1);
+  assert.equal(env.location.hash, '', 'Consume incoming deep links without retaining a fragment');
   setupNavigation(memory, { matches: false });
   assert.equal(env.click(env.sectionLink).defaultPrevented, true);
   assert.equal(env.contact.anchorScrolls, 2);
+  assert.equal(env.location.hash, '', 'Section clicks must leave the URL clean');
+  assert.equal(env.history.pushes.length, 0, 'Scrolling must not add browser-history entries');
+  assert.deepEqual(env.contact.focusOptions, { preventScroll: true }, 'Keyboard focus follows the section without competing scrolls');
+  env.window.scrollY = 1456.5;
+  env.window.dispatchEvent(new Event('pagehide'));
+  assert.equal(env.history.state.alScroll.y, 1456.5);
+  assert.equal(env.history.state.alScroll.url, '/');
+});
+
+test('language motion fades only changed visible text, tolerates rapid toggles, and respects reduced motion', async (t) => {
+  const env = environment(t, { motion: true });
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  const preference = { matches: false };
+  setupNavigation(memory, preference);
+  env.click(env.en);
+  assert.equal(env.heading.animations.length, 1);
+  assert.equal(env.heading.animations[0].options.duration, 420);
+  assert.equal(env.fixedHeading.animations.length, 0, 'Matching English titles must stay still');
+  assert.equal(env.offscreen.animations.length, 0, 'Do not animate invisible text');
+  assert.equal(env.image.animations.length, 0, 'Do not animate or replace images during translation');
+  preference.matches = true;
+  env.click(env.id);
+  assert.equal(env.heading.animations[0].cancelled, true, 'Rapid toggles replace the prior text fade');
+  assert.equal(env.heading.animations[1].options.duration, 180);
+  assert.equal(env.window.scrollY, 1267);
+  assert.equal(env.root.lang, 'id');
 });
 
 test('scroll input during startup takes priority over the saved position', async (t) => {

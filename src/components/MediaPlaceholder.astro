@@ -2,7 +2,7 @@
 interface Props { kind: 'shimPlate' | 'spring' | 'store'; label: string; enlargeLabel: string }
 const { kind, label, enlargeLabel } = Astro.props;
 ---
-<button type="button" class={`image-trigger media-placeholder media-placeholder-${kind}`} data-image-trigger data-image-label-key={kind === 'store' ? 'storePhotoPending' : 'productPhotoPending'} data-image-width="1600" data-image-height="1200" aria-label={`${enlargeLabel}: ${label}`} aria-haspopup="dialog" aria-controls="image-viewer">
+<button tabindex="0" type="button" class={`image-trigger media-placeholder media-placeholder-${kind}`} data-image-trigger data-image-label-key={kind === 'store' ? 'storePhotoPending' : 'productPhotoPending'} data-image-width="1600" data-image-height="1200" aria-label={`${enlargeLabel}: ${label}`} aria-haspopup="dialog" aria-controls="image-viewer">
   <svg class="media-sketch" data-image-content viewBox="0 0 320 240" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     {kind === 'shimPlate' ? (
       <>

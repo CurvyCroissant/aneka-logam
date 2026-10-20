@@ -30,7 +30,7 @@ const t = copy(locale);
   </section>
   <section id="products" class="section section-products" aria-labelledby="products-heading" tabindex="-1" data-section>
     <div class="container">
-      <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">01</span><h2 id="products-heading" data-i18n="products">{t.products}</h2><span class="section-rule" aria-hidden="true"></span></div>
+      <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">01</span><h2 id="products-heading" lang="en" data-i18n="products">{t.products}</h2><span class="section-rule" aria-hidden="true"></span></div>
       <ProductList locale={locale} />
       <p class="product-note" data-reveal data-i18n="rangeNote">{t.rangeNote}</p>
     </div>
@@ -38,7 +38,7 @@ const t = copy(locale);
   {hasContactDetails && (
     <section id="contact" class="section section-contact" aria-labelledby="contact-heading" tabindex="-1" data-section>
       <div class="container">
-        <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">02</span><h2 id="contact-heading" data-i18n="contact">{t.contact}</h2><span class="section-rule" aria-hidden="true"></span></div>
+        <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">02</span><h2 id="contact-heading" lang="en" data-i18n="contact">{t.contact}</h2><span class="section-rule" aria-hidden="true"></span></div>
         <div class="contact-grid"><AddressBlock locale={locale} /><ContactLinks locale={locale} /></div>
       </div>
     </section>

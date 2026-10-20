@@ -39,6 +39,11 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
   }
   function restore(snapshot: ScrollSnapshot) { setDetails(snapshot); position(snapshot.x, snapshot.y); }
   function push(url: string, snapshot = capture()) { history.pushState({ alScroll: { ...snapshot, url } }, '', url); }
+  function cleanUrl() {
+    if (!location.hash) return;
+    const url = `${location.pathname}${location.search}`;
+    try { history.replaceState({ ...history.state, alScroll: { ...capture(), url } }, '', url); } catch { /* Native fallback remains usable. */ }
+  }
   function fromHistory(value: unknown): ScrollSnapshot | undefined {
     const snapshot = parseScrollSnapshot(value) ?? readScrollSnapshot(storage, key());
     return snapshot?.url === currentUrl() ? snapshot : undefined;
@@ -63,6 +68,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
       if (saved) restore(saved);
       else if (location.hash) document.getElementById(fragmentId(location.hash))?.scrollIntoView({ behavior: 'instant' });
     }
+    cleanUrl();
     root.classList.remove('is-restoring');
     window.__anekaBoot?.finish();
     window.removeEventListener('wheel', interrupt);
@@ -73,5 +79,5 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
     save();
     return Boolean(saved && !interrupted);
   });
-  return { ready: initialized, capture, save, restore, position, push, fromHistory };
+  return { ready: initialized, capture, save, restore, position, push, cleanUrl, fromHistory };
 }

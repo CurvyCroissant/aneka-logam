@@ -13,7 +13,7 @@ const isHome = Astro.url.pathname === pagePath(locale, 'home');
   <div class="container footer-inner" data-reveal>
     <nav class="footer-navigation" aria-label={t.footerNavigation} data-i18n-aria-label="footerNavigation">
       <ul class="nav-links">
-        {navigation(locale).map(({ id, label, href }) => <li><a lang="en" href={isHome ? `#${id}` : href} data-section-link={id}><span>{label}</span></a></li>)}
+        {navigation(locale).map(({ id, label, href }) => <li><a tabindex="0" lang="en" href={isHome ? `#${id}` : href} data-section-link={id}><span>{label}</span></a></li>)}
       </ul>
     </nav>
     <ul class="footer-contacts" aria-label={t.contactMethods} data-i18n-aria-label="contactMethods">
