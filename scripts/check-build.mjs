@@ -60,10 +60,11 @@ for (const file of files) {
   requireThat(nodes.filter((node) => node.tagName === 'h1').length === 1, `${name}: needs exactly one h1.`);
   requireThat(nodes.filter((node) => node.tagName === 'main').length === 1, `${name}: needs exactly one main landmark.`);
   requireThat(new Set(ids).size === ids.length, `${name}: duplicate element IDs.`);
-  requireThat(ids.includes('main'), `${name}: skip-link destination is missing.`);
+  requireThat(ids.includes('main'), `${name}: main content landmark is missing.`);
   const controls = nodes.filter((node) => ['a', 'button', 'summary'].includes(node.tagName));
   requireThat(attr(controls[0], 'class')?.includes('logo-mark'), `${name}: the header logo must be the first interactive control.`);
-  requireThat(attr(controls[1], 'class') === 'skip-link', `${name}: keep a skip-to-content control immediately after the logo.`);
+  requireThat(attr(controls[1], 'class') === 'brand-name', `${name}: the brand follows the logo in keyboard order.`);
+  requireThat(!nodes.some((node) => attr(node, 'class') === 'skip-link'), `${name}: the owner removed the skip-link popup.`);
   for (const control of controls) {
     requireThat(attr(control, 'tabindex') === '0', `${name}: every native control must remain in document-order keyboard navigation.`);
     requireThat(Boolean(attr(control, 'aria-label')?.trim() || text(control).trim()), `${name}: every control needs an accessible name.`);
@@ -139,6 +140,7 @@ for (const [file, { name, nodes }] of pages) {
   }
   const phrase = 'Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring';
   if (!errorPage) {
+    requireThat(text(nodes.find((node) => node.tagName === 'title')) === 'Aneka Logam', `${name}: the home tab title must be just Aneka Logam.`);
     const dictionary = catalog(language);
     for (const node of nodes) {
       for (const [binding, attribute] of [['data-i18n', null], ['data-i18n-aria-label', 'aria-label'], ['data-i18n-content', 'content']]) {

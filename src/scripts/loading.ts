@@ -12,9 +12,12 @@ export async function waitForBrandFont(): Promise<void> {
 }
 
 export function setupImageLoading() {
-  const observer = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
-    for (const entry of entries) entry.target.classList.toggle('image-in-view', entry.isIntersecting);
-  }, { rootMargin: '100px' }) : undefined;
+  let observer: IntersectionObserver | undefined;
+  try {
+    if ('IntersectionObserver' in window) observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) entry.target.classList.toggle('image-in-view', entry.isIntersecting);
+    }, { rootMargin: '100px' });
+  } catch { /* Native lazy images and load/error handling remain available. */ }
   for (const trigger of document.querySelectorAll<HTMLElement>('[data-image-loader]')) {
     const image = trigger.querySelector<HTMLImageElement>('img');
     if (!image) continue;

@@ -1,4 +1,5 @@
 import { fitImage, imageContentRect, type ImageRect } from '../lib/image-geometry';
+import { motionTiming } from '../lib/motion';
 
 export function setupImageViewer(reducedMotion: MediaQueryList) {
   const dialog = document.querySelector<HTMLDialogElement>('#image-viewer');
@@ -53,9 +54,9 @@ export function setupImageViewer(reducedMotion: MediaQueryList) {
     Object.assign(stage!.style, position(reducedMotion.matches ? from : to));
     scrim!.style.opacity = '0';
     if (supportsAnimation) {
-      const duration = reducedMotion.matches ? 180 : 460;
-      imageAnimation = stage!.animate(reducedMotion.matches ? [{ opacity: imageOpacity }, { opacity: 0 }] : [position(from), position(to)], { duration, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'both' });
-      scrimAnimation = scrim!.animate([{ opacity }, { opacity: 0 }], { duration, fill: 'both' });
+      const timing = motionTiming('state', reducedMotion);
+      imageAnimation = stage!.animate(reducedMotion.matches ? [{ opacity: imageOpacity }, { opacity: 0 }] : [position(from), position(to)], { ...timing, fill: 'both' });
+      scrimAnimation = scrim!.animate([{ opacity }, { opacity: 0 }], { ...timing, fill: 'both' });
       await imageAnimation.finished.catch(() => {});
     }
     if (dialog!.open) { source?.classList.add('focus-returned'); dialog!.close(); }
@@ -102,9 +103,9 @@ export function setupImageViewer(reducedMotion: MediaQueryList) {
       original.classList.add('image-source-hidden');
       stage.focus({ preventScroll: true });
       if (supportsAnimation) {
-        const duration = reducedMotion.matches ? 180 : 560;
-        imageAnimation = stage.animate(reducedMotion.matches ? [{ opacity: 0 }, { opacity: 1 }] : [position(from), position(to)], { duration, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
-        scrimAnimation = scrim.animate([{ opacity: 0 }, { opacity: 1 }], { duration });
+        const timing = motionTiming('move', reducedMotion);
+        imageAnimation = stage.animate(reducedMotion.matches ? [{ opacity: 0 }, { opacity: 1 }] : [position(from), position(to)], timing);
+        scrimAnimation = scrim.animate([{ opacity: 0 }, { opacity: 1 }], timing);
       }
     });
   }

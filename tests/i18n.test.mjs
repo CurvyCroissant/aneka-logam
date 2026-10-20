@@ -15,7 +15,7 @@ test('default URLs remain Indonesian and English has its own static URLs', () =>
 });
 
 test('English UI copy is complete; only established shared terms remain unchanged', () => {
-  const shared = new Set(['home', 'products', 'contact', 'contactLabels.whatsapp', 'contactLabels.email']);
+  const shared = new Set(['home', 'products', 'contact', 'homeTitle', 'contactLabels.whatsapp', 'contactLabels.email']);
   function check(id, en, prefix = '') {
     assert.deepEqual(Object.keys(id), Object.keys(en));
     for (const key of Object.keys(id)) {

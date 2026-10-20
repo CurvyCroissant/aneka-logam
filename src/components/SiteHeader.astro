@@ -14,7 +14,6 @@ const isHome = Astro.url.pathname === pagePath(locale, 'home');
   <div class="container header-inner" data-reveal>
     <div class="wordmark">
       <ZoomImage src={logo} alt={`Logo ${company.name}`} locale={locale} width={64} height={64} widths={[64, 128]} sizes="48px" loading="eager" class="logo-mark" />
-      <a class="skip-link" tabindex="0" href="#main" data-i18n="skip">{t.skip}</a>
       <a tabindex="0" class="brand-name" data-font-text href={isHome ? '#home' : pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>{company.displayName}</a>
     </div>
     <nav class="primary-navigation" aria-label={t.mainNavigation} data-i18n-aria-label="mainNavigation">

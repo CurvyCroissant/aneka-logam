@@ -1,6 +1,7 @@
 import { catalog } from '../i18n/catalog.ts';
 import { fragmentId } from '../lib/scroll-memory.ts';
 import { animateTranslatedText } from './text-motion.ts';
+import { scrollToSection } from '../lib/section-scroll.ts';
 import type { Locale } from '../i18n/routes';
 import type { setupScrollMemory } from './scroll-memory';
 
@@ -90,7 +91,7 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
       before(); memory.save();
       memory.cleanUrl();
       target.focus({ preventScroll: true });
-      target.scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'start' });
+      scrollToSection(target, reducedMotion.matches ? 'instant' : 'smooth');
       document.dispatchEvent(new Event('aneka:location-change'));
     });
   }
@@ -101,7 +102,7 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
     const changed = locale !== currentLocale() ? applyLocale(locale) : [];
     const saved = memory.fromHistory(event.state?.alScroll);
     if (saved) memory.restore(saved);
-    else if (location.hash) document.getElementById(fragmentId(location.hash))?.scrollIntoView({ behavior: 'instant' });
+    else if (location.hash) { const target = document.getElementById(fragmentId(location.hash)); if (target) scrollToSection(target); }
     else memory.position(0, 0);
     memory.cleanUrl();
     animateTranslatedText(changed, reducedMotion);

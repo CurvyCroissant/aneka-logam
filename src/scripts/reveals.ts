@@ -12,9 +12,10 @@ export function setupReveals(ready: Promise<unknown>) {
     element.classList.remove('reveal-pending');
     element.classList.add('is-revealing');
     // Never retain animation transforms over the component's own hover state.
-    const finish = () => { element.classList.remove('is-revealing'); element.classList.remove('reveal-still'); };
-    element.addEventListener('animationend', (event) => { if (event.target === element) finish(); }, { once: true });
-    setTimeout(finish, 1400);
+    const finish = () => { element.classList.remove('is-revealing'); element.classList.remove('reveal-still'); element.removeEventListener('animationend', onEnd); };
+    const onEnd = (event: AnimationEvent) => { if (event.target === element) finish(); };
+    element.addEventListener('animationend', onEnd);
+    setTimeout(finish, 2200);
   }
   function release() {
     observer?.disconnect();
@@ -27,13 +28,14 @@ export function setupReveals(ready: Promise<unknown>) {
     clearTimeout(timeout);
     try {
       for (const element of pending) element.classList.add('reveal-pending');
+      const inset = Math.min(180, Math.round(innerHeight * 0.18));
       observer = new IntersectionObserver((entries) => {
         for (const entry of entries) if (entry.isIntersecting) reveal(entry.target as HTMLElement);
-      }, { threshold: 0.05, rootMargin: '0px 0px -12px 0px' });
+      }, { threshold: 0, rootMargin: `0px 0px -${inset}px 0px` });
       for (const element of pending) {
         const bounds = element.getBoundingClientRect();
         // Reloads animate at the restored position too; no content is skipped.
-        if (bounds.top < innerHeight - 12 && bounds.bottom > 0) {
+        if (bounds.top < innerHeight - inset && bounds.bottom > 0) {
           if (restored === true) element.classList.add('reveal-still');
           reveal(element);
         }

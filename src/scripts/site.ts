@@ -1,9 +1,8 @@
 import { copyText } from '../lib/clipboard';
 import { setupScrollMemory } from './scroll-memory';
-import { setupGalleries } from './galleries';
 import { setupReveals } from './reveals';
-import { setupImageViewer } from './image-viewer';
-import { setupDetails } from './details';
+import { setupDeferredFeatures } from './deferred-features';
+import { setupKeyboard } from './keyboard';
 import { waitForBrandFont, setupImageLoading } from './loading';
 import { setupNavigation, currentLocale } from './language';
 import { copy } from '../i18n/copy';
@@ -14,9 +13,8 @@ const restoration = memory.ready;
 setupImageLoading();
 setupNavigation(memory, reducedMotion);
 setupReveals(restoration);
-setupGalleries(reducedMotion);
-setupImageViewer(reducedMotion);
-setupDetails(reducedMotion);
+setupKeyboard();
+setupDeferredFeatures(reducedMotion);
 
 const liveStatus = document.querySelector<HTMLElement>('[data-copy-status]');
 for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-copy]')) {

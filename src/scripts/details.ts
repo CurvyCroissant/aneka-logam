@@ -1,3 +1,5 @@
+import { motionTiming } from '../lib/motion';
+
 export function setupDetails(reducedMotion: MediaQueryList) {
   for (const details of document.querySelectorAll<HTMLDetailsElement>('.product-details')) {
     const summary = details.querySelector('summary');
@@ -25,7 +27,7 @@ export function setupDetails(reducedMotion: MediaQueryList) {
       const border = parseFloat(getComputedStyle(details).borderTopWidth) || 0;
       const to = expanded ? details.getBoundingClientRect().height : summary.getBoundingClientRect().height + border;
       details.classList.add('details-animating');
-      animation = details.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: 420, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+      animation = details.animate([{ height: `${from}px` }, { height: `${to}px` }], motionTiming('state', reducedMotion));
       animation.onfinish = finish;
     });
     details.addEventListener('toggle', () => { if (!animation) expanded = details.open; });

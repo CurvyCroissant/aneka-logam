@@ -1,4 +1,5 @@
 import { clampScroll, fragmentId, parseScrollSnapshot, readScrollSnapshot, saveScrollSnapshot, shouldRestoreScroll, type ScrollSnapshot } from '../lib/scroll-memory.ts';
+import { scrollToSection } from '../lib/section-scroll.ts';
 
 export function setupScrollMemory(fontsReady: Promise<unknown>) {
   const root = document.documentElement;
@@ -57,16 +58,17 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
   if (saved) { root.classList.add('is-restoring'); setDetails(saved); }
   let interrupted = false;
   const interrupt = () => { interrupted = true; };
-  const interruptKey = (event: KeyboardEvent) => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) interrupt(); };
+  const interruptKey = (event: KeyboardEvent) => { if (!event.defaultPrevented && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(event.key)) interrupt(); };
   window.addEventListener('wheel', interrupt, { passive: true });
   window.addEventListener('touchstart', interrupt, { passive: true });
   window.addEventListener('pointerdown', interrupt, { passive: true });
   window.addEventListener('keydown', interruptKey);
+  document.addEventListener('aneka:before-navigation', interrupt);
   const initialized = fontsReady.catch(() => {}).then(async () => {
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     if (!interrupted) {
       if (saved) restore(saved);
-      else if (location.hash) document.getElementById(fragmentId(location.hash))?.scrollIntoView({ behavior: 'instant' });
+      else if (location.hash) { const target = document.getElementById(fragmentId(location.hash)); if (target) scrollToSection(target); }
     }
     cleanUrl();
     root.classList.remove('is-restoring');
@@ -75,6 +77,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
     window.removeEventListener('touchstart', interrupt);
     window.removeEventListener('pointerdown', interrupt);
     window.removeEventListener('keydown', interruptKey);
+    document.removeEventListener('aneka:before-navigation', interrupt);
     ready = true;
     save();
     return Boolean(saved && !interrupted);

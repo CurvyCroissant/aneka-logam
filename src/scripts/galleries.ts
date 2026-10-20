@@ -29,7 +29,8 @@ export function setupGalleries(reducedMotion: MediaQueryList) {
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); step(event.key === 'ArrowLeft' ? -1 : 1); }
     });
     track.addEventListener('scroll', () => { if (!pending) { pending = true; requestAnimationFrame(update); } }, { passive: true });
-    if ('ResizeObserver' in window) new ResizeObserver(update).observe(track);
+    try { if ('ResizeObserver' in window) new ResizeObserver(update).observe(track); } catch { /* Native scrolling still works. */ }
+    window.addEventListener('resize', update, { passive: true });
     controls.hidden = false;
     update();
   }
