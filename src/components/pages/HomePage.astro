@@ -31,9 +31,11 @@ const t = copy(locale);
   </section>
   <section id="products" class="section section-products" aria-labelledby="products-heading" tabindex="-1" data-section>
     <div class="container">
-      <div class="section-heading section-heading-products" data-reveal><span class="section-number" aria-hidden="true">01</span><h2 id="products-heading" lang="en" data-i18n="products">{t.products}</h2><span class="section-rule" aria-hidden="true"></span><a class="view-all-link" tabindex="0" href={pagePath(locale, 'products')} data-page-link="products"><span data-i18n="viewAllProducts">{t.viewAllProducts}</span><Arrow /></a></div>
+      <div class="products-introduction" data-reveal>
+        <div class="section-heading"><span class="section-number" aria-hidden="true">01</span><h2 id="products-heading" lang="en" data-i18n="products">{t.products}</h2><span class="section-rule" aria-hidden="true"></span></div>
+        <a class="view-all-link" tabindex="0" href={pagePath(locale, 'products')} data-page-link="products"><span data-i18n="viewAllProducts">{t.viewAllProducts}</span><Arrow /></a>
+      </div>
       <CategoryCarousel locale={locale} />
-      <p class="product-note" data-reveal data-i18n="rangeNote">{t.rangeNote}</p>
     </div>
   </section>
   {hasContactDetails && (

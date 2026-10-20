@@ -8,30 +8,18 @@ export const company = {
     en: 'Aneka Logam supplies industrial machinery spare parts, including shim plates and springs.',
   },
   categories: [
-    {
-      key: 'plates', id: 'plates-strips', name: 'Plat & Strip', imageKind: 'shimPlate',
-      summary: {
-        id: 'Pelat dan strip logam untuk kebutuhan komponen mesin.',
-        en: 'Metal plates and strips for machine components.',
-      },
-    },
-    {
-      key: 'springs', id: 'springs', name: 'Spring / Pegas', imageKind: 'spring',
-      summary: {
-        id: 'Pegas dan pegas kawat untuk kebutuhan mekanis mesin.',
-        en: 'Springs and wire springs for mechanical machine applications.',
-      },
-    },
+    { key: 'shimPlate', id: 'shim-plate', name: 'Shim Plate', imageKind: 'shimPlate', summary: { id: 'Pelat shim untuk penyesuaian komponen mesin.', en: 'Shim plates for adjusting machine components.' } },
+    { key: 'spring', id: 'per', name: 'Per', imageKind: 'spring', summary: { id: 'Pegas untuk kebutuhan mekanis mesin.', en: 'Springs for mechanical machine applications.' } },
+    { key: 'wire', id: 'kawat', name: 'Kawat', imageKind: 'wire', summary: { id: 'Kawat untuk kebutuhan komponen mesin.', en: 'Wire for machine components.' } },
+    { key: 'shaft', id: 'as', name: 'As', imageKind: 'shaft', summary: { id: 'As atau poros untuk komponen mesin.', en: 'Shafts for machine components.' } },
   ],
-  // Only product types supplied in the owner's phrase; sizes and stock are unconfirmed.
-  // Display names stay fixed. Descriptions provide the direct language clarification.
+  // Confirmed product types only; add variants when the owner supplies their details.
+  // Display names stay fixed; descriptions supply the direct translations.
   products: [
-    { key: 'shimPlate', id: 'shim-plate', category: 'plates-strips', name: 'Shim Plate', summary: { id: 'Pelat shim untuk penyesuaian.', en: 'Shim plate for adjustment.' } },
-    { key: 'steel', id: 'steel', category: 'plates-strips', name: 'Steel', summary: { id: 'Baja.', en: 'Steel.' } },
-    { key: 'carbonSteelStrip', id: 'carbon-steel-strip', category: 'plates-strips', name: 'Carbon Steel Strip', summary: { id: 'Strip baja karbon.', en: 'Carbon steel strip.' } },
-    { key: 'sus', id: 'sus', category: 'plates-strips', name: 'SUS', summary: { id: 'Baja tahan karat (SUS).', en: 'Stainless steel (SUS).' } },
-    { key: 'spring', id: 'spring', category: 'springs', name: 'Spring', summary: { id: 'Pegas.', en: 'Spring.' } },
-    { key: 'wireSpring', id: 'wire-spring', category: 'springs', name: 'Wire Spring', summary: { id: 'Pegas kawat.', en: 'Wire spring.' } },
+    { key: 'shimPlate', id: 'shim-plate', category: 'shim-plate', name: 'Shim Plate', summary: { id: 'Pelat shim.', en: 'Shim plate.' } },
+    { key: 'spring', id: 'per', category: 'per', name: 'Per', summary: { id: 'Pegas.', en: 'Spring.' } },
+    { key: 'wire', id: 'kawat', category: 'kawat', name: 'Kawat', summary: { id: 'Kawat.', en: 'Wire.' } },
+    { key: 'shaft', id: 'as', category: 'as', name: 'As', summary: { id: 'As / poros.', en: 'Shaft.' } },
   ],
   contact: {
     whatsapp: '+62 813 8630 3535',

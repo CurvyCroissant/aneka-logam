@@ -1,6 +1,6 @@
 # Aneka Logam
 
-A lightweight company profile with Home and categorized Products pages in Bahasa Indonesia and English. Includes a category carousel, section navigation, the store address, WhatsApp, and phone/email copy actions. Product names and the supplied English shop phrase stay unchanged across languages.
+A lightweight company profile with Home and filterable Products pages in Bahasa Indonesia and English. Includes a category carousel, section navigation, the store address, WhatsApp, and phone/email copy actions. Product names and the supplied English shop phrase stay unchanged across languages.
 
 ## Tech stack
 

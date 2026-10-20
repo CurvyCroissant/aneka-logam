@@ -12,10 +12,8 @@ type ProductKey = (typeof company.products)[number]['key'];
 // Each product supports one or more photos; empty arrays use an illustrated placeholder.
 export const productPhotos: Record<ProductKey, SitePhoto[]> = {
   shimPlate: [],
-  steel: [],
-  carbonSteelStrip: [],
-  sus: [],
   spring: [],
-  wireSpring: [],
+  wire: [],
+  shaft: [],
 };
 export const storefrontPhotos: SitePhoto[] = [];

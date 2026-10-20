@@ -84,6 +84,7 @@ for (const file of files) {
   requireThat(Boolean(startup && attr(startup, 'src')?.startsWith('/') && !attr(startup, 'type') && attr(startup, 'defer') === undefined && attr(startup, 'async') === undefined), `${name}: scroll ownership and font masking must start in an external blocking head script.`);
   requireThat(nodes.some((node) => attr(node, 'rel') === 'preload' && attr(node, 'as') === 'font' && attr(node, 'crossorigin') !== undefined), `${name}: preload the self-hosted brand font.`);
   for (const image of nodes.filter((node) => node.tagName === 'img')) {
+    requireThat(attr(image, 'draggable') === 'false', `${name}: image dragging must not interfere with viewer activation.`);
     requireThat(attr(image, 'alt') !== undefined && Boolean(attr(image, 'width')) && Boolean(attr(image, 'height')), `${name}: images need alt text and explicit dimensions.`);
     let ancestor = image.parentNode, loader, action;
     while (ancestor) {
@@ -97,6 +98,7 @@ for (const file of files) {
     requireThat(attr(image, 'loading') === (brandImage ? 'eager' : 'lazy'), `${name}: only the small header logo should load eagerly.`);
     if (brandImage) requireThat(attr(image, 'alt') === '', `${name}: the brand link already names the decorative header logo.`);
   }
+  for (const error of nodes.filter((node) => attr(node, 'class') === 'image-error')) requireThat(attr(error, 'hidden') !== undefined, `${name}: image errors must stay hidden until a confirmed loading failure.`);
   const viewer = nodes.find((node) => node.tagName === 'dialog' && attr(node, 'id') === 'image-viewer');
   requireThat(Boolean(viewer && attr(viewer, 'aria-label') && attr(viewer, 'aria-describedby')), `${name}: image viewer needs an accessible name and dismissal instructions.`);
   requireThat(Boolean(viewer) && !elements(viewer).some((node) => ['button', 'a', 'nav'].includes(node.tagName)), `${name}: keep the image viewer free of visible controls.`);
@@ -174,6 +176,7 @@ for (const [file, { name, nodes }] of pages) {
   requireThat(nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-copy')).length === (homePage ? 4 : 2), `${name}: each contact group needs phone/email copy actions.`);
   requireThat(nodes.filter((node) => attr(node, 'href') === 'https://wa.me/6281386303535').length === (homePage ? 2 : 1), `${name}: each contact group needs the confirmed WhatsApp number.`);
   const footer = nodes.find((node) => node.tagName === 'footer');
+  requireThat(!elements(footer).some((node) => ['h1', 'h2', 'h3'].includes(node.tagName)), `${name}: footer groups must have no visible column titles.`);
   const footerInner = footer && elements(footer).find((node) => attr(node, 'class') === 'container footer-inner');
   const columns = footerInner?.childNodes.filter((node) => ['nav', 'section'].includes(node.tagName)) ?? [];
   requireThat(columns.map((node) => attr(node, 'class')).join(',') === 'footer-navigation,footer-contact,footer-address', `${name}: footer columns must be Pages, Contact, and Store Address in that order.`);
@@ -193,10 +196,14 @@ for (const [file, { name, nodes }] of pages) {
     requireThat(owners.map((node) => text(node).trim()).join(',') === 'Budiyanto,Delinah', `${name}: show each owner on a separate row.`);
     requireThat(nodes.some((node) => node.tagName === 'h3' && text(node).trim() === (language === 'id' ? 'Pemilik' : 'Owners')), `${name}: use the confirmed owner heading.`);
   }
-  if (productsPage) for (const category of company.categories) {
-    const group = nodes.find((node) => node.tagName === 'section' && attr(node, 'id') === category.id);
-    requireThat(Boolean(group && attr(group, 'data-category-section') !== undefined), `${name}: missing catalog category ${category.id}.`);
-    for (const product of company.products.filter((product) => product.category === category.id)) requireThat(group && elements(group).some((node) => node.tagName === 'li' && attr(node, 'id') === product.id && elements(node).some((child) => child.tagName === 'h3' && text(child) === product.name)), `${name}: ${product.name} must retain its name inside ${category.name}.`);
+  requireThat(!nodes.some((node) => attr(node, 'data-i18n') === 'rangeNote'), `${name}: the removed availability note must not return.`);
+  if (productsPage) {
+    const main = nodes.find((node) => node.tagName === 'main');
+    requireThat(elements(main).filter((node) => node.tagName === 'section').length === 1, `${name}: Products must contain one catalog section without an introductory hero.`);
+    const filters = nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-product-filter') !== undefined);
+    requireThat(filters.length === company.categories.length + 1 && attr(filters[0], 'data-product-filter') === 'all' && attr(filters[0], 'aria-pressed') === 'true', `${name}: All Products must be the first, default category filter.`);
+    for (const category of company.categories) requireThat(filters.some((node) => attr(node, 'data-product-filter') === category.id && attr(node, 'aria-pressed') === 'false'), `${name}: missing ${category.name} filter button.`);
+    for (const product of company.products) requireThat(nodes.some((node) => node.tagName === 'li' && attr(node, 'id') === product.id && attr(node, 'data-product-category') === product.category && elements(node).some((child) => child.tagName === 'h3' && text(child) === product.name)), `${name}: ${product.name} must retain its category and untranslated name.`);
   }
   requireThat(nodes.filter((node) => attr(node, 'data-gallery') !== undefined).length === (homePage ? 1 : productsPage ? company.products.length : 0), `${name}: reserve a gallery for each catalog product and the home storefront.`);
   const robotsMeta = nodes.find((node) => attr(node, 'name') === 'robots');

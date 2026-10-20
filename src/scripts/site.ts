@@ -6,9 +6,11 @@ import { setupKeyboard } from './keyboard';
 import { waitForBrandFont, setupImageLoading } from './loading';
 import { setupNavigation, currentLocale } from './language';
 import { copy } from '../i18n/copy';
+import { setupProductCatalog } from './product-catalog';
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-const memory = setupScrollMemory(waitForBrandFont());
+const catalog = setupProductCatalog(reducedMotion);
+const memory = setupScrollMemory(waitForBrandFont(), catalog);
 const restoration = memory.ready;
 setupImageLoading();
 setupNavigation(memory, reducedMotion);
@@ -46,8 +48,8 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-c
   });
 }
 
-const sections = [...document.querySelectorAll<HTMLElement>('[data-section], [data-category-section]')];
-const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-section-link], [data-category-link]')];
+const sections = [...document.querySelectorAll<HTMLElement>('[data-section]')];
+const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-section-link]')];
 const header = document.querySelector<HTMLElement>('.site-header');
 let headerHeight = header?.offsetHeight ?? 0;
 let framePending = false;
@@ -69,7 +71,7 @@ function updateNavigation() {
   if (active.id === currentSection) return;
   currentSection = active.id;
   for (const link of links) {
-    if ((link.dataset.sectionLink ?? link.dataset.categoryLink) === active.id) link.setAttribute('aria-current', 'location');
+    if (link.dataset.sectionLink === active.id) link.setAttribute('aria-current', 'location');
     else link.removeAttribute('aria-current');
   }
 }
@@ -87,7 +89,7 @@ function updateHeader() {
   scheduleNavigation();
 }
 
-if (sections.length) {
+if (header || sections.length) {
   updateHeader();
   if ('ResizeObserver' in window && header) new ResizeObserver(updateHeader).observe(header);
   window.addEventListener('scroll', scheduleNavigation, { passive: true });

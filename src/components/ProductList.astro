@@ -3,16 +3,15 @@ import { company } from '../config/company';
 import { productPhotos } from '../config/media';
 import type { Locale } from '../i18n/routes';
 import MediaGallery from './MediaGallery.astro';
-interface Props { locale: Locale; category: (typeof company.categories)[number] }
-const { locale, category } = Astro.props;
-const products = company.products.filter((product) => product.category === category.id);
+interface Props { locale: Locale }
+const { locale } = Astro.props;
 ---
-<ul class="product-grid">
-  {products.map((product, index) => (
-    <li id={product.id} class="product-card catalog-card" data-reveal data-reveal-order={index % 2}>
-      <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={category.imageKind} locale={locale} />
+<ul id="product-list" class="product-grid" data-product-list>
+  {company.products.map((product, index) => (
+    <li id={product.id} class="product-card catalog-card" data-product-category={product.category} data-reveal data-reveal-order={index % 2}>
+      <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={company.categories.find((category) => category.id === product.category)!.imageKind} locale={locale} />
       <div class="product-copy">
-        <div class="product-title"><h3 lang="en">{product.name}</h3><span class="product-index" aria-hidden="true">0{index + 1}</span></div>
+        <div class="product-title"><h3>{product.name}</h3><span class="product-index" aria-hidden="true">0{index + 1}</span></div>
         <p data-i18n={`product.${product.key}.summary`}>{product.summary[locale]}</p>
       </div>
     </li>

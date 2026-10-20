@@ -12,17 +12,14 @@ const t = copy(locale);
 <footer class="site-footer">
   <div class="container footer-inner" data-reveal>
     <nav class="footer-navigation" aria-label={t.pageNavigation} data-i18n-aria-label="pageNavigation">
-      <h2 class="footer-heading" data-i18n="pageNavigation">{t.pageNavigation}</h2>
       <ul class="nav-links">
         {(['home', 'products'] as const).map((page) => <li><a tabindex="0" lang="en" href={pagePath(locale, page)} data-page-link={page} aria-current={Astro.url.pathname === pagePath(locale, page) ? 'page' : undefined}><span>{t[page]}</span></a></li>)}
       </ul>
     </nav>
-    <section class="footer-contact" aria-labelledby="footer-contact-heading">
-      <h2 id="footer-contact-heading" class="footer-heading" lang="en">Contact</h2>
+    <section class="footer-contact" aria-label={t.contact}>
       <ul class="footer-contacts">{contactMethods.map((method) => <li><ContactAction method={method} locale={locale} /></li>)}</ul>
     </section>
-    <section class="footer-address" aria-labelledby="footer-address-heading">
-      <h2 id="footer-address-heading" class="footer-heading" data-i18n="address">{t.address}</h2>
+    <section class="footer-address" aria-label={t.address} data-i18n-aria-label="address">
       <AddressLink locale={locale} />
     </section>
     <small class="copyright">&copy; {new Date().getFullYear()} {company.name}</small>

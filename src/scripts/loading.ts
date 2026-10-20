@@ -21,20 +21,21 @@ export function setupImageLoading() {
   for (const trigger of document.querySelectorAll<HTMLElement>('[data-image-loader]')) {
     const image = trigger.querySelector<HTMLImageElement>('img');
     if (!image) continue;
-    let settled = false;
+    const error = trigger.querySelector<HTMLElement>('.image-error');
+    let request = 0;
     const finish = (success: boolean) => {
-      if (settled) return;
-      settled = true;
       trigger.dataset.imageState = success ? 'ready' : 'error';
+      if (error) error.hidden = success;
       trigger.setAttribute('aria-busy', 'false');
       observer?.unobserve(trigger);
     };
     const loaded = async () => {
+      const ticket = ++request;
       try { await image.decode(); } catch { /* Fall back to the loaded image. */ }
-      finish(image.naturalWidth > 0);
+      if (ticket === request) finish(image.naturalWidth > 0);
     };
-    image.addEventListener('load', () => { void loaded(); }, { once: true });
-    image.addEventListener('error', () => finish(false), { once: true });
+    image.addEventListener('load', () => { void loaded(); });
+    image.addEventListener('error', () => { request++; finish(image.naturalWidth > 0); });
     if (image.complete) { if (image.naturalWidth > 0) void loaded(); else finish(false); }
     else { trigger.setAttribute('aria-busy', 'true'); observer?.observe(trigger); }
   }

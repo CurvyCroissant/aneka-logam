@@ -1,35 +1,56 @@
 import { motionTiming } from '../lib/motion.ts';
 
-const active = new WeakMap<HTMLElement, Animation>();
+let revision = 0;
+const active = new Set<Animation>();
 
-// Animate only changed, visible text. Images, focus, and page layout stay in place.
-export function animateTranslatedText(elements: Iterable<HTMLElement>, reducedMotion: MediaQueryList) {
-  const targets = [...elements].filter((element) => typeof element.animate === 'function' && !element.closest('.contact-hint, .sr-only, [aria-hidden="true"]'));
-  if (!targets.length) return;
-  const timing = motionTiming('move', reducedMotion);
-  for (const element of targets) {
+export function cancelTextTransition() {
+  revision++;
+  for (const animation of active) animation.cancel();
+  active.clear();
+}
+
+// Keep the old text until its right edge has swept left. Only then replace it.
+export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion: MediaQueryList, commit: () => void, exit = true) {
+  const targets = [...elements].filter((element) => {
+    if (typeof element.animate !== 'function' || element.closest('.image-error, .contact-hint, .sr-only, [aria-hidden="true"]')) return false;
     const bounds = element.getBoundingClientRect();
-    if (!bounds.width || !bounds.height || bounds.bottom <= 0 || bounds.top >= innerHeight) continue;
-    const previous = active.get(element);
-    const current = getComputedStyle(element);
-    const currentOpacity = Number(current.opacity);
-    const currentTranslate = current.translate || 'none';
-    const currentScale = current.scale || '1';
-    previous?.cancel();
-    const target = getComputedStyle(element);
-    const targetOpacity = Number(target.opacity);
-    if (targetOpacity === 0) continue;
+    return bounds.width > 0 && bounds.height > 0 && bounds.bottom > 0 && bounds.top < innerHeight && Number(getComputedStyle(element).opacity) > 0;
+  });
+  const starts = new Map(targets.map((element) => {
+    const style = getComputedStyle(element);
+    return [element, {
+      clipPath: style.clipPath && style.clipPath !== 'none' ? style.clipPath : 'inset(0 0 0 0)',
+      translate: style.translate && style.translate !== 'none' ? style.translate : '0 0',
+    }];
+  }));
+  cancelTextTransition();
+  const ticket = revision;
+  const timing = motionTiming('move', motion);
+  const duration = motion.matches ? timing.duration : timing.duration / 2;
+  function animate(element: HTMLElement, frames: Keyframe[], fill: FillMode = 'none') {
     try {
-      const start: Keyframe = { opacity: previous ? currentOpacity : Math.min(0.18, targetOpacity) };
-      const end: Keyframe = { opacity: targetOpacity };
-      if (!reducedMotion.matches) {
-        Object.assign(start, { translate: previous ? currentTranslate : '0 14px', scale: previous ? currentScale : '0.985' });
-        Object.assign(end, { translate: target.translate || 'none', scale: target.scale || '1' });
-      }
-      const animation = element.animate([start, end], timing);
-      active.set(element, animation);
-      const release = () => { if (active.get(element) === animation) active.delete(element); };
-      void animation.finished.then(release, release);
-    } catch { /* Text remains readable if animation is unavailable. */ }
+      const animation = element.animate(frames, { ...timing, duration, fill });
+      active.add(animation);
+      void animation.finished.then(() => { if (fill !== 'forwards') active.delete(animation); }, () => active.delete(animation));
+      return animation;
+    } catch { return undefined; /* Translation stays available without animation support. */ }
   }
+  function enter() {
+    if (ticket !== revision) return;
+    for (const animation of active) animation.cancel();
+    active.clear();
+    commit();
+    for (const element of targets) animate(element, motion.matches ? [{ opacity: 0.2 }, { opacity: 1 }] : [
+      { clipPath: 'inset(0 100% 0 0)', translate: '-8px 0' },
+      { clipPath: 'inset(0 0 0 0)', translate: '0 0' },
+    ]);
+  }
+  if (!targets.length || motion.matches || !exit) { enter(); return; }
+  const outgoing = targets.map((element) => animate(element, [
+    starts.get(element)!, { clipPath: 'inset(0 100% 0 0)', translate: '-8px 0' },
+  ], 'forwards')).filter((animation): animation is Animation => Boolean(animation));
+  if (!outgoing.length) { enter(); return; }
+  let timer: ReturnType<typeof setTimeout>;
+  const bounded = new Promise<void>((resolve) => { timer = setTimeout(resolve, duration + 250); });
+  void Promise.race([Promise.all(outgoing.map((animation) => animation.finished.catch(() => {}))), bounded]).then(() => { clearTimeout(timer); enter(); });
 }

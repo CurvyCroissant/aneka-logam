@@ -1,6 +1,6 @@
 ---
 import ProductSketch from './ProductSketch.astro';
-interface Props { kind: 'shimPlate' | 'spring' | 'store'; label: string; enlargeLabel: string }
+interface Props { kind: 'shimPlate' | 'spring' | 'wire' | 'shaft' | 'store'; label: string; enlargeLabel: string }
 const { kind, label, enlargeLabel } = Astro.props;
 ---
 <button tabindex="0" type="button" class={`image-trigger media-placeholder media-placeholder-${kind}`} data-image-trigger data-image-label-key={kind === 'store' ? 'storePhotoPending' : 'productPhotoPending'} data-image-width="1600" data-image-height="1200" aria-label={`${enlargeLabel}: ${label}`} aria-haspopup="dialog" aria-controls="image-viewer">

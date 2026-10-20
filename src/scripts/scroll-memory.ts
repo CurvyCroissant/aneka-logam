@@ -1,8 +1,9 @@
 import { clampScroll, fragmentId, parseScrollSnapshot, readScrollSnapshot, saveScrollSnapshot, shouldRestoreScroll, type ScrollSnapshot } from '../lib/scroll-memory.ts';
 import { scrollToSection } from '../lib/section-scroll.ts';
 import { carouselIndex, carouselPositions } from '../lib/carousel-position.ts';
+import type { ProductCatalog } from './product-catalog.ts';
 
-export function setupScrollMemory(fontsReady: Promise<unknown>) {
+export function setupScrollMemory(fontsReady: Promise<unknown>, catalog?: ProductCatalog) {
   const root = document.documentElement;
   const currentUrl = () => `${location.pathname}${location.search}${location.hash}`;
   const key = () => `aneka-logam:scroll:${location.pathname}${location.search}`;
@@ -22,6 +23,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
       version: 1, url: currentUrl(), x: Math.max(0, scrollX), y: Math.max(0, scrollY),
       details: details.filter((element) => element.dataset.expanded === 'true' || (element.dataset.expanded !== 'false' && element.open)).map((element) => element.id),
       galleries: Object.fromEntries(galleries.map((track) => [track.id, track.dataset.categoryTrack !== undefined ? carouselIndex(track) : Math.max(0, Math.round(track.scrollLeft / Math.max(1, track.clientWidth)))])),
+      ...(catalog ? { category: catalog.current() } : {}),
     };
   }
   function save() {
@@ -33,6 +35,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
   }
   function scheduleSave() { if (ready && saveTimer === undefined) saveTimer = setTimeout(save, 400); }
   function setDetails(snapshot: ScrollSnapshot) {
+    catalog?.select(snapshot.category ?? 'all');
     details.forEach((element) => { element.open = snapshot.details.includes(element.id); });
     for (const track of galleries) {
       const index = snapshot.galleries[track.id] ?? 0;
@@ -43,6 +46,12 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
     window.scrollTo({ left: clampScroll(x, root.scrollWidth - innerWidth), top: clampScroll(y, root.scrollHeight - innerHeight), behavior: 'instant' });
   }
   function restore(snapshot: ScrollSnapshot) { setDetails(snapshot); position(snapshot.x, snapshot.y); }
+  function navigateFragment() {
+    const id = fragmentId(location.hash);
+    const category = catalog?.categoryForFragment(id);
+    if (category) { catalog!.select(category); position(0, 0); }
+    else { const target = document.getElementById(id); if (target) scrollToSection(target); }
+  }
   function push(url: string, snapshot = capture()) { history.pushState({ alScroll: { ...snapshot, url } }, '', url); }
   function cleanUrl() {
     if (!location.hash) return;
@@ -57,6 +66,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
   window.addEventListener('scrollend', save);
   window.addEventListener('pagehide', save);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
+  document.addEventListener('aneka:catalog-change', save);
   details.forEach((element) => element.addEventListener('toggle', scheduleSave));
   galleries.forEach((track) => track.addEventListener('scroll', scheduleSave, { passive: true }));
   if (saved) { root.classList.add('is-restoring'); setDetails(saved); }
@@ -72,7 +82,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     if (!interrupted) {
       if (saved) restore(saved);
-      else if (location.hash) { const target = document.getElementById(fragmentId(location.hash)); if (target) scrollToSection(target); }
+      else if (location.hash) navigateFragment();
       else position(0, 0);
     }
     cleanUrl();
@@ -87,5 +97,5 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
     save();
     return Boolean(saved && !interrupted);
   });
-  return { ready: initialized, capture, save, restore, position, push, cleanUrl, fromHistory };
+  return { ready: initialized, capture, save, restore, position, push, cleanUrl, fromHistory, navigateFragment };
 }

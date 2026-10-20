@@ -9,24 +9,14 @@ const { locale } = Astro.props;
 const t = copy(locale);
 ---
 <BaseLayout locale={locale} page="products" title={t.productsTitle} description={t.catalogDescription} paths={pagePaths('products')}>
-  <section class="catalog-intro section">
-    <div class="container" data-reveal>
-      <span class="hero-rule" aria-hidden="true"></span>
-      <h1 lang="en" data-font-text>Products</h1>
-      <p class="lead" data-i18n="catalogIntro">{t.catalogIntro}</p>
-      <p class="product-note" data-i18n="rangeNote">{t.rangeNote}</p>
-      <nav class="catalog-navigation" aria-label={t.productCategories} data-i18n-aria-label="productCategories">
-        {company.categories.map((category, index) => <a tabindex="0" href={`#${category.id}`} data-category-link={category.id} aria-current={index === 0 ? 'location' : undefined}><span>{category.name}</span><span class="category-count" aria-hidden="true">{company.products.filter((product) => product.category === category.id).length}</span></a>)}
-      </nav>
+  <section id="products" class="section catalog-products" data-product-catalog aria-labelledby="catalog-heading" tabindex="-1">
+    <div class="container">
+      <div class="section-heading" data-reveal><h1 id="catalog-heading" lang="en" data-font-text>Products</h1><span class="section-rule" aria-hidden="true"></span></div>
+      <div class="catalog-navigation" role="group" aria-label={t.productCategories} data-i18n-aria-label="productCategories" data-product-filters hidden>
+        <button type="button" tabindex="0" data-product-filter="all" aria-pressed="true" aria-controls="product-list"><span data-i18n="allProducts">{t.allProducts}</span><span class="category-count" aria-hidden="true">{company.products.length}</span></button>
+        {company.categories.map((category) => <button type="button" tabindex="0" data-product-filter={category.id} aria-pressed="false" aria-controls="product-list"><span>{category.name}</span><span class="category-count" aria-hidden="true">{company.products.filter((product) => product.category === category.id).length}</span></button>)}
+      </div>
+      <ProductList locale={locale} />
     </div>
   </section>
-  {company.categories.map((category, index) => (
-    <section id={category.id} class="section catalog-category" data-category-section aria-labelledby={`${category.id}-heading`} tabindex="-1">
-      <div class="container">
-        <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">0{index + 1}</span><h2 id={`${category.id}-heading`}>{category.name}</h2><span class="section-rule" aria-hidden="true"></span></div>
-        <p class="category-description" data-reveal data-i18n={`category.${category.key}.summary`}>{category.summary[locale]}</p>
-        <ProductList locale={locale} category={category} />
-      </div>
-    </section>
-  ))}
 </BaseLayout>

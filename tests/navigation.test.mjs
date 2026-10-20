@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setupScrollMemory } from '../src/scripts/scroll-memory.ts';
 import { setupNavigation } from '../src/scripts/language.ts';
+import { cancelTextTransition } from '../src/scripts/text-motion.ts';
+const flush = async () => { for (let i = 0; i < 15; i++) await Promise.resolve(); };
 
 const savedVisit = { version: 1, url: '/#contact', x: 0, y: 1267, details: ['spring'], galleries: { photos: 1 } };
 
@@ -19,7 +21,8 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
     focus(options) { this.focusOptions = options; }
     scrollIntoView() { this.anchorScrolls = (this.anchorScrolls ?? 0) + 1; }
   }
-  if (motion) Element.prototype.animate = function (frames, options) { const animation = { frames, options, cancelled: false, cancel() { this.cancelled = true; }, finished: Promise.resolve() }; this.animations.push(animation); return animation; };
+  t.after(cancelTextTransition);
+  if (motion) Element.prototype.animate = function (frames, options) { let finish; const finished = motion === 'manual' ? new Promise((resolve) => { finish = resolve; }) : Promise.resolve(); const animation = { frames, options, cancelled: false, cancel() { this.cancelled = true; finish?.(); }, finish: () => finish?.(), finished }; this.animations.push(animation); return animation; };
   const root = new Element(); Object.assign(root, { lang: 'id', scrollWidth: 1000, scrollHeight: 5000, dataset: { page } });
   const detail = new Element(); detail.id = 'spring';
   const gallery = new Element(); Object.assign(gallery, { id: 'photos', clientWidth: 320, scrollLeft: 0 });
@@ -44,7 +47,7 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
   const homeLink = new Element(); homeLink.dataset.pageLink = 'home'; homeLink.href = '/';
   const productsLink = new Element(); productsLink.dataset.pageLink = 'products'; productsLink.href = '/products/';
   const contactLink = new Element(); contactLink.dataset.pageLink = 'contact'; contactLink.href = '/#contact';
-  const categoryLink = new Element(); categoryLink.dataset.categoryDestination = 'springs'; categoryLink.href = '/products/#springs';
+  const categoryLink = new Element(); categoryLink.dataset.categoryDestination = 'per'; categoryLink.href = '/products/#per';
   const selectors = { '[data-remember-details]': [detail], '[data-gallery-track]': [gallery], '[data-i18n]': [heading, fixedHeading, offscreen], '[data-image-trigger]': [trigger], '[data-language-link]': [id, en], 'a[href^="#"]': [sectionLink], '[data-page-link]': [homeLink, productsLink, contactLink], '[data-category-destination]': [categoryLink] };
   const document = Object.assign(new EventTarget(), { documentElement: root, querySelectorAll: (s) => selectors[s] ?? [], querySelector: (s) => s === '.site-header' ? header : null, getElementById: (s) => ({ contact, springs, home, main })[s] ?? null });
   const location = { pathname: page === 'products' ? '/products/' : '/', search: '', hash, get href() { return `https://test.invalid${this.pathname}${this.search}${this.hash}`; } };
@@ -55,7 +58,7 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
   const window = Object.assign(new EventTarget(), { scrollX: 0, scrollY: 0, scrollCalls: [], scrollTo(options) { this.scrollCalls.push(options); this.scrollX = options.left; this.scrollY = options.top; }, __anekaBoot: { snapshot: navigation === 'navigate' ? undefined : saved, finish: () => root.classList.remove('is-restoring') } });
   Object.defineProperty(window, 'sessionStorage', { get() { if (blocked) throw new Error('Storage blocked'); return storage; } });
   const globals = { document, window, location, history, innerWidth: 1000, innerHeight: 700, performance: { getEntriesByType: () => [{ type: navigation }] }, requestAnimationFrame: (fn) => queueMicrotask(fn) };
-  globals.getComputedStyle = (element) => ({ position: element === header && sticky ? 'sticky' : 'relative', opacity: String(element.opacity), translate: 'none', scale: '1', getPropertyValue: (name) => ({ '--state-duration': '650ms', '--move-duration': '850ms', '--reduced-duration': '180ms', '--ease': 'cubic-bezier(0.22, 0.61, 0.36, 1)' })[name] ?? '' });
+  globals.getComputedStyle = (element) => ({ position: element === header && sticky ? 'sticky' : 'relative', opacity: String(element.opacity), translate: 'none', clipPath: 'none', scale: '1', getPropertyValue: (name) => ({ '--state-duration': '650ms', '--move-duration': '850ms', '--reduced-duration': '180ms', '--ease': 'cubic-bezier(0.22, 0.61, 0.36, 1)' })[name] ?? '' });
   for (const [key, value] of Object.entries(globals)) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, key);
     Object.defineProperty(globalThis, key, { configurable: true, value });
@@ -102,7 +105,7 @@ test('language changes preserve pixels, image identity, open details, and galler
   assert.equal(env.homeLink.href, '/en/');
   assert.equal(env.productsLink.href, '/en/products/');
   assert.equal(env.contactLink.href, '/en/#contact');
-  assert.equal(env.categoryLink.href, '/en/products/#springs');
+  assert.equal(env.categoryLink.href, '/en/products/#per');
   assert.equal(env.heading.textContent, 'Owners');
   assert.equal(document.title, 'Aneka Logam');
   assert.equal(env.image.alt, 'Spring photograph');
@@ -141,26 +144,47 @@ test('fresh deep links and section navigation still scroll to the requested head
   assert.equal(env.history.state.alScroll.url, '/');
 });
 
-test('language motion moves changed visible text, tolerates rapid toggles, and respects reduced motion', async (t) => {
-  const env = environment(t, { motion: true });
+test('language wipes out old text right-to-left before replacing it and wipes new text in left-to-right', async (t) => {
+  const env = environment(t, { motion: 'manual' });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
   const preference = { matches: false };
   setupNavigation(memory, preference);
   env.click(env.en);
-  assert.equal(env.heading.animations.length, 1);
-  assert.equal(env.heading.animations[0].options.duration, 850);
-  assert.equal(env.heading.animations[0].frames[0].translate, '0 14px');
-  assert.equal(env.heading.animations[0].frames[0].scale, '0.985');
-  assert.equal(env.fixedHeading.animations.length, 0, 'Matching English titles must stay still');
-  assert.equal(env.offscreen.animations.length, 0, 'Do not animate invisible text');
-  assert.equal(env.image.animations.length, 0, 'Do not animate or replace images during translation');
+  const outgoing = env.heading.animations[0];
+  assert.equal(env.heading.textContent, 'Pemilik', 'Keep the old text until its wipe completes');
+  assert.equal(env.root.lang, 'id');
+  assert.equal(outgoing.options.duration, 425);
+  assert.equal(outgoing.frames[0].clipPath, 'inset(0 0 0 0)', 'Interpolate matching inset shapes instead of a discrete none value');
+  assert.equal(outgoing.frames[1].clipPath, 'inset(0 100% 0 0)');
+  assert.equal(env.fixedHeading.animations.length, 0);
+  assert.equal(env.offscreen.animations.length, 0);
+  assert.equal(env.image.animations.length, 0);
+  env.window.scrollY = 1432.25;
+  outgoing.finish(); await flush();
+  assert.equal(env.heading.textContent, 'Owners');
+  assert.equal(env.root.lang, 'en');
+  assert.equal(env.window.scrollY, 1432.25, 'A scroll during the wipe must not be undone');
+  assert.equal(outgoing.cancelled, true, 'Remove the completed outgoing mask so the new text stays visible');
+  const incoming = env.heading.animations[1];
+  assert.equal(incoming.frames[0].clipPath, 'inset(0 100% 0 0)');
+  assert.equal(incoming.frames[1].clipPath, 'inset(0 0 0 0)');
+  assert.equal(incoming.options.duration, 425);
   preference.matches = true;
   env.click(env.id);
-  assert.equal(env.heading.animations[0].cancelled, true, 'Rapid toggles replace the prior text movement');
-  assert.equal(env.heading.animations[1].options.duration, 180);
-  assert.ok(env.heading.animations[1].frames.every((frame) => frame.translate === undefined && frame.scale === undefined), 'Reduced motion removes spatial movement');
-  assert.equal(env.window.scrollY, 1267);
   assert.equal(env.root.lang, 'id');
+  assert.equal(env.heading.animations[2].options.duration, 180);
+  assert.ok(env.heading.animations[2].frames.every((frame) => frame.clipPath === undefined && frame.translate === undefined));
+});
+
+test('a rapid language reversal cancels stale replacement without adding a history entry', async (t) => {
+  const env = environment(t, { motion: 'manual' });
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  setupNavigation(memory, { matches: false });
+  env.click(env.en); env.click(env.id); await flush();
+  assert.equal(env.heading.animations[0].cancelled, true);
+  assert.equal(env.heading.textContent, 'Pemilik');
+  assert.equal(env.location.pathname, '/');
+  assert.equal(env.history.pushes.length, 0);
 });
 
 test('catalog language changes stay on the catalog and retain exact scroll pixels', async (t) => {
@@ -186,10 +210,35 @@ test('View All starts at the catalog top even with an older saved catalog visit'
   assert.equal(env.window.scrollY, 0);
 });
 
+test('catalog selection survives refresh, language changes and Back together with exact pixels', async (t) => {
+  const saved = { ...savedVisit, url: '/products/', category: 'as', y: 420.5 };
+  const env = environment(t, { page: 'products', saved });
+  let selection = 'all';
+  const catalog = { current: () => selection, select: (value) => { selection = value; }, categoryForFragment: () => undefined };
+  const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
+  setupNavigation(memory, { matches: false });
+  assert.equal(selection, 'as');
+  assert.equal(env.window.scrollY, 420.5);
+  const previous = env.history.state;
+  env.click(env.en);
+  assert.equal(env.location.pathname, '/en/products/');
+  assert.equal(env.history.state.alScroll.category, 'as');
+  assert.equal(env.window.scrollY, 420.5);
+  catalog.select('all'); env.window.scrollY = 900; memory.save();
+  env.updateUrl('/products/'); env.history.state = previous;
+  const event = new Event('popstate'); event.state = previous; env.window.dispatchEvent(event);
+  assert.equal(selection, 'as');
+  assert.equal(env.window.scrollY, 420.5);
+  assert.equal(env.root.lang, 'id');
+});
+
 test('category entry takes priority over an older saved catalog visit and consumes its fragment', async (t) => {
-  const env = environment(t, { page: 'products', navigation: 'navigate', hash: '#springs', saved: { ...savedVisit, url: '/products/', y: 600 } });
-  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  assert.equal(env.window.scrollY, 3112, 'Category begins immediately below the sticky header');
+  const env = environment(t, { page: 'products', navigation: 'navigate', hash: '#per', saved: { ...savedVisit, url: '/products/', y: 600 } });
+  let selection = 'all';
+  const catalog = { current: () => selection, select: (value) => { selection = value; }, categoryForFragment: (id) => id === 'per' ? 'per' : undefined };
+  const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
+  assert.equal(selection, 'per');
+  assert.equal(env.window.scrollY, 0, 'Category entries start with the filter controls in view');
   assert.equal(env.location.pathname, '/products/');
   assert.equal(env.location.hash, '');
 });

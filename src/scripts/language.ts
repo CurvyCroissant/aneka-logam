@@ -1,6 +1,6 @@
 import { catalog } from '../i18n/catalog.ts';
 import { fragmentId } from '../lib/scroll-memory.ts';
-import { animateTranslatedText } from './text-motion.ts';
+import { cancelTextTransition, transitionTranslatedText } from './text-motion.ts';
 import { scrollToSection } from '../lib/section-scroll.ts';
 import { pagePath, categoryPath, type Locale, type MainPage, type Page } from '../i18n/routes.ts';
 import type { setupScrollMemory } from './scroll-memory';
@@ -63,10 +63,20 @@ export function applyLocale(locale: Locale) {
   return changed;
 }
 
+function translationTargets(locale: Locale) {
+  const values = catalog(locale);
+  return [...document.querySelectorAll<HTMLElement>('[data-i18n]')].filter((element) => {
+    const value = values[element.dataset.i18n ?? ''];
+    return value !== undefined && element.textContent !== value;
+  });
+}
+
 export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, reducedMotion: MediaQueryList) {
   if (!['home', 'products'].includes(document.documentElement.dataset.page ?? '')) return;
   const root = document.documentElement;
   const page: MainPage = root.dataset.page === 'products' ? 'products' : 'home';
+  let requestedLocale = currentLocale();
+  document.addEventListener('aneka:before-navigation', () => { cancelTextTransition(); requestedLocale = currentLocale(); });
   function before() { document.dispatchEvent(new Event('aneka:before-navigation')); }
   function finish() {
     memory.save();
@@ -78,15 +88,19 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
       if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       event.preventDefault();
       const locale = link.hreflang === 'en' ? 'en' : 'id';
-      if (locale === currentLocale()) return;
-      before(); memory.save();
-      const previous = memory.capture();
-      root.classList.add('is-localizing');
-      const changed = applyLocale(locale);
-      memory.push(`${pagePath(locale, page)}${location.search}`, previous);
-      memory.position(previous.x, previous.y);
-      animateTranslatedText(changed, reducedMotion);
-      finish();
+      if (locale === requestedLocale) return;
+      before(); requestedLocale = locale; memory.save();
+      transitionTranslatedText(translationTargets(locale), reducedMotion, () => {
+        // Capture at replacement time so a scroll during the outgoing wipe is respected.
+        const previous = memory.capture();
+        root.classList.add('is-localizing');
+        if (locale !== currentLocale()) {
+          applyLocale(locale);
+          memory.push(`${pagePath(locale, page)}${location.search}`, previous);
+        }
+        memory.position(previous.x, previous.y);
+        finish();
+      });
     });
   }
   for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
@@ -120,13 +134,15 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
     before();
     root.classList.add('is-localizing');
     const locale = location.pathname.startsWith('/en/') ? 'en' : 'id';
-    const changed = locale !== currentLocale() ? applyLocale(locale) : [];
-    const saved = memory.fromHistory(event.state?.alScroll);
-    if (saved) memory.restore(saved);
-    else if (location.hash) { const target = document.getElementById(fragmentId(location.hash)); if (target) scrollToSection(target); }
-    else memory.position(0, 0);
-    memory.cleanUrl();
-    animateTranslatedText(changed, reducedMotion);
-    finish();
+    requestedLocale = locale;
+    transitionTranslatedText(translationTargets(locale), reducedMotion, () => {
+      if (locale !== currentLocale()) applyLocale(locale);
+      const saved = memory.fromHistory(event.state?.alScroll);
+      if (saved) memory.restore(saved);
+      else if (location.hash) memory.navigateFragment();
+      else memory.position(0, 0);
+      memory.cleanUrl();
+      finish();
+    }, false);
   });
 }

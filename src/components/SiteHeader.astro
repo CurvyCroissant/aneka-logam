@@ -16,7 +16,7 @@ const isProducts = Astro.url.pathname === pagePath(locale, 'products');
     <a class="wordmark" tabindex="0" data-brand-link data-page-link={isHome ? undefined : 'home'} href={isHome ? '#home' : pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>
       <span class="logo-mark" data-image-loader data-image-state="loading" aria-hidden="true">
         <span class="image-skeleton"></span>
-        <Image src={logo} alt="" width={64} height={64} widths={[64, 128]} sizes="48px" layout="none" format="webp" loading="eager" decoding="async" />
+        <Image draggable="false" src={logo} alt="" width={64} height={64} widths={[64, 128]} sizes="48px" layout="none" format="webp" loading="eager" decoding="async" />
       </span>
       <span class="brand-name" data-font-text>{company.displayName}</span>
     </a>
