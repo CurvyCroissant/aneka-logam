@@ -13,9 +13,9 @@ export function catalog(locale: Locale): Record<string, string> {
   }
   flatten(copy(locale));
   result['description'] = company.description[locale];
+  for (const category of company.categories) result[`category.${category.key}.summary`] = category.summary[locale];
   for (const product of company.products) {
     result[`product.${product.key}.summary`] = product.summary[locale];
-    product.enquiryDetails[locale].forEach((line, index) => { result[`product.${product.key}.detail.${index}`] = line; });
   }
   return result;
 }

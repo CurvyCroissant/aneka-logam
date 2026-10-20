@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { parse } from 'parse5';
 import { catalog } from '../src/i18n/catalog.ts';
+import { company } from '../src/config/company.ts';
+import { pagePath, categoryPath } from '../src/i18n/routes.ts';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const errors = [];
@@ -62,8 +64,8 @@ for (const file of files) {
   requireThat(new Set(ids).size === ids.length, `${name}: duplicate element IDs.`);
   requireThat(ids.includes('main'), `${name}: main content landmark is missing.`);
   const controls = nodes.filter((node) => ['a', 'button', 'summary'].includes(node.tagName));
-  requireThat(attr(controls[0], 'class')?.includes('logo-mark'), `${name}: the header logo must be the first interactive control.`);
-  requireThat(attr(controls[1], 'class') === 'brand-name', `${name}: the brand follows the logo in keyboard order.`);
+  const brand = controls[0];
+  requireThat(brand?.tagName === 'a' && attr(brand, 'data-brand-link') !== undefined && elements(brand).some((node) => node.tagName === 'img') && elements(brand).some((node) => attr(node, 'class') === 'brand-name' && text(node) === company.displayName), `${name}: the logo and company name must form the first, single Home control.`);
   requireThat(!nodes.some((node) => attr(node, 'class') === 'skip-link'), `${name}: the owner removed the skip-link popup.`);
   for (const control of controls) {
     requireThat(attr(control, 'tabindex') === '0', `${name}: every native control must remain in document-order keyboard navigation.`);
@@ -83,11 +85,17 @@ for (const file of files) {
   requireThat(nodes.some((node) => attr(node, 'rel') === 'preload' && attr(node, 'as') === 'font' && attr(node, 'crossorigin') !== undefined), `${name}: preload the self-hosted brand font.`);
   for (const image of nodes.filter((node) => node.tagName === 'img')) {
     requireThat(attr(image, 'alt') !== undefined && Boolean(attr(image, 'width')) && Boolean(attr(image, 'height')), `${name}: images need alt text and explicit dimensions.`);
-    let trigger = image.parentNode;
-    while (trigger && attr(trigger, 'data-image-trigger') === undefined) trigger = trigger.parentNode;
-    requireThat(Boolean(trigger), `${name}: every content image must open in the image viewer.`);
-    requireThat(Boolean(trigger && attr(trigger, 'data-image-loader') !== undefined && elements(trigger).some((node) => attr(node, 'class') === 'image-skeleton')), `${name}: image loaders need a reserved skeleton.`);
-    requireThat(attr(image, 'loading') === (attr(trigger, 'class')?.includes('logo-mark') ? 'eager' : 'lazy'), `${name}: only the small header logo should load eagerly.`);
+    let ancestor = image.parentNode, loader, action;
+    while (ancestor) {
+      if (attr(ancestor, 'data-image-loader') !== undefined) loader = ancestor;
+      if (attr(ancestor, 'data-image-trigger') !== undefined || attr(ancestor, 'data-brand-link') !== undefined) action = ancestor;
+      ancestor = ancestor.parentNode;
+    }
+    const brandImage = action && attr(action, 'data-brand-link') !== undefined;
+    requireThat(Boolean(action), `${name}: content images need a viewer trigger; the header logo belongs to the unified Home link.`);
+    requireThat(Boolean(loader && elements(loader).some((node) => attr(node, 'class') === 'image-skeleton')), `${name}: image loaders need a reserved skeleton.`);
+    requireThat(attr(image, 'loading') === (brandImage ? 'eager' : 'lazy'), `${name}: only the small header logo should load eagerly.`);
+    if (brandImage) requireThat(attr(image, 'alt') === '', `${name}: the brand link already names the decorative header logo.`);
   }
   const viewer = nodes.find((node) => node.tagName === 'dialog' && attr(node, 'id') === 'image-viewer');
   requireThat(Boolean(viewer && attr(viewer, 'aria-label') && attr(viewer, 'aria-describedby')), `${name}: image viewer needs an accessible name and dismissal instructions.`);
@@ -98,7 +106,7 @@ for (const file of files) {
   pages.set(file, { name, nodes, ids: new Set(ids) });
 }
 
-requireThat(pages.size === 4, 'Generate only the two main language pages and their localized 404 pages.');
+requireThat(pages.size === 6, 'Generate Home, Products, and 404 in both languages.');
 requireThat(!files.some((file) => file.includes(`${sep}_worker.js`)), 'The company profile must remain static.');
 const robots = await readFile(resolve(root, 'robots.txt'), 'utf8');
 const indexable = !/^Disallow:\s*\/\s*$/m.test(robots);
@@ -112,6 +120,9 @@ for (const [file, { name, nodes }] of pages) {
   const route = '/' + name.replace(/index\.html$/, '');
   const language = attr(nodes.find((node) => node.tagName === 'html'), 'lang');
   const errorPage = name === '404.html' || name.endsWith('/404.html');
+  const homePage = ['index.html', 'en/index.html'].includes(name);
+  const productsPage = ['products/index.html', 'en/products/index.html'].includes(name);
+  requireThat(attr(nodes.find((node) => node.tagName === 'html'), 'data-page') === (errorPage ? 'error' : productsPage ? 'products' : 'home'), `${name}: the page identity must match its route.`);
   const switcher = nodes.find((node) => node.tagName === 'nav' && attr(node, 'class')?.includes('language-switch'));
   const switches = switcher ? elements(switcher).filter((node) => node.tagName === 'a') : [];
   requireThat(switches.length === 2, `${name}: both language options must be available without JavaScript.`);
@@ -132,15 +143,14 @@ for (const [file, { name, nodes }] of pages) {
   if (primaryNav) {
     requireThat(elements(primaryNav).filter((node) => node.tagName === 'a').map((node) => text(node).trim()).join(',') === 'Home,Products,Contact', `${name}: keep the navigation labels in English.`);
     for (const link of elements(primaryNav).filter((node) => node.tagName === 'a')) {
-      const target = new URL(attr(link, 'href'), `https://build.invalid${route}`);
-      const englishLink = target.pathname.startsWith('/en/');
-      requireThat(language === 'en' ? englishLink : !englishLink, `${name}: primary navigation changed the selected language.`);
-      requireThat(['#home', '#products', '#contact'].includes(target.hash), `${name}: navigation must point to a main-page section.`);
+      const destination = text(link).trim().toLowerCase();
+      const expected = homePage ? `#${destination}` : productsPage && destination === 'products' ? '#main' : pagePath(language, destination);
+      requireThat(attr(link, 'href') === expected, `${name}: primary navigation must preserve language and reach the correct page or section.`);
     }
   }
   const phrase = 'Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring';
   if (!errorPage) {
-    requireThat(text(nodes.find((node) => node.tagName === 'title')) === 'Aneka Logam', `${name}: the home tab title must be just Aneka Logam.`);
+    requireThat(text(nodes.find((node) => node.tagName === 'title')) === (productsPage ? 'Products | Aneka Logam' : 'Aneka Logam'), `${name}: use the title for the current page.`);
     const dictionary = catalog(language);
     for (const node of nodes) {
       for (const [binding, attribute] of [['data-i18n', null], ['data-i18n-aria-label', 'aria-label'], ['data-i18n-content', 'content']]) {
@@ -151,31 +161,44 @@ for (const [file, { name, nodes }] of pages) {
         if (!attribute) requireThat(!(node.childNodes ?? []).some((child) => child.tagName), `${name}: replacing ${key} must not remove icons or other elements.`);
       }
     }
-    requireThat(nodes.filter((node) => node.tagName === 'p' && attr(node, 'lang') === 'en' && text(node).trim() === phrase).length === 1, `${name}: show the exact English phrase once.`);
-    for (const id of ['home', 'products', 'contact']) requireThat(pages.get(file).ids.has(id), `${name}: missing ${id} section.`);
-    const bodyText = text(nodes.find((node) => node.tagName === 'body'));
-    requireThat((bodyText.match(/Pertokoan Glodok Metro/g) ?? []).length === 1 && (bodyText.match(/Kota Jakarta Barat/g) ?? []).length === 1 && !bodyText.includes('Jakarta Pusat'), `${name}: keep the updated location in the address only.`);
-    const address = nodes.find((node) => attr(node, 'class') === 'address-lines');
-    requireThat(address && (address.childNodes ?? []).filter((node) => node.tagName === 'span').map(text).join('|') === 'Pertokoan Glodok Metro|Lantai Dasar No. 71|Jl. Blustru, RT.01/RW.06|Kec. Taman Sari, Kota Jakarta Barat|DKI Jakarta 11180', `${name}: preserve all five supplied address lines.`);
-    requireThat(nodes.some((node) => attr(node, 'class') === 'address-action' && attr(node, 'href') === 'https://maps.app.goo.gl/E5ESBkS3XxmUQYEx9'), `${name}: the address itself must open the confirmed map.`);
-    for (const [id, label] of [['products-heading', 'Products'], ['contact-heading', 'Contact']]) requireThat(nodes.some((node) => attr(node, 'id') === id && attr(node, 'lang') === 'en' && text(node) === label), `${name}: section titles must match their English navigation labels.`);
-    requireThat(!bodyText.includes('SUKU CADANG MESIN INDUSTRI') && !bodyText.includes('Seluler') && !bodyText.includes('Telepon toko'), `${name}: obsolete labels must not return.`);
-    const copies = nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-copy'));
-    requireThat(copies.length === 4, `${name}: phone and email copy actions must work in the contact section and footer.`);
-    requireThat(nodes.filter((node) => attr(node, 'href') === 'https://wa.me/6281386303535').length === 2, `${name}: use the confirmed WhatsApp number in the contact section and footer.`);
+    requireThat(nodes.filter((node) => node.tagName === 'p' && attr(node, 'lang') === 'en' && text(node).trim() === phrase).length === (homePage ? 1 : 0), `${name}: show the exact English phrase once in the home hero.`);
+    requireThat(!nodes.some((node) => node.tagName === 'details'), `${name}: the obsolete product enquiry disclosure must not return.`);
   }
+  const bodyText = text(nodes.find((node) => node.tagName === 'body'));
+  const addresses = nodes.filter((node) => attr(node, 'class') === 'address-lines');
+  requireThat(addresses.length === (homePage ? 2 : 1), `${name}: show the address in the footer and the home contact section.`);
+  for (const address of addresses) requireThat((address.childNodes ?? []).filter((node) => node.tagName === 'span').map(text).join('|') === 'Pertokoan Glodok Metro|Lantai Dasar No. 71|Jl. Blustru, RT.01/RW.06|Kec. Taman Sari, Kota Jakarta Barat|DKI Jakarta 11180', `${name}: preserve all five supplied address lines.`);
+  requireThat((bodyText.match(/Pertokoan Glodok Metro/g) ?? []).length === addresses.length && !bodyText.includes('Jakarta Pusat'), `${name}: location details belong in the address blocks only.`);
+  requireThat(nodes.filter((node) => attr(node, 'class') === 'address-action' && attr(node, 'href') === company.address.mapsUrl).length === addresses.length, `${name}: each address must open the confirmed map.`);
+  requireThat(!bodyText.includes('SUKU CADANG MESIN INDUSTRI') && !bodyText.includes('Seluler') && !bodyText.includes('Telepon toko'), `${name}: obsolete labels must not return.`);
+  requireThat(nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-copy')).length === (homePage ? 4 : 2), `${name}: each contact group needs phone/email copy actions.`);
+  requireThat(nodes.filter((node) => attr(node, 'href') === 'https://wa.me/6281386303535').length === (homePage ? 2 : 1), `${name}: each contact group needs the confirmed WhatsApp number.`);
   const footer = nodes.find((node) => node.tagName === 'footer');
-  requireThat(Boolean(footer) && !elements(footer).some((node) => ['address', 'h1', 'h2', 'h3'].includes(node.tagName)), `${name}: do not repeat the address or brand pitch in the footer.`);
+  const footerInner = footer && elements(footer).find((node) => attr(node, 'class') === 'container footer-inner');
+  const columns = footerInner?.childNodes.filter((node) => ['nav', 'section'].includes(node.tagName)) ?? [];
+  requireThat(columns.map((node) => attr(node, 'class')).join(',') === 'footer-navigation,footer-contact,footer-address', `${name}: footer columns must be Pages, Contact, and Store Address in that order.`);
   const footerNav = footer && elements(footer).find((node) => node.tagName === 'nav');
-  requireThat(Boolean(footerNav) && elements(footerNav).filter((node) => node.tagName === 'a').length === 3, `${name}: footer needs the three section links.`);
-  if (!errorPage) {
+  const footerLinks = footerNav ? elements(footerNav).filter((node) => node.tagName === 'a') : [];
+  requireThat(footerLinks.map((node) => text(node).trim()).join(',') === 'Home,Products' && footerLinks.every((node) => attr(node, 'href') === pagePath(language, text(node).trim().toLowerCase())), `${name}: footer needs Home and Products page links only.`);
+  requireThat(!elements(footer).some((node) => attr(node, 'data-section-link') !== undefined), `${name}: footer must not repeat in-page navigation.`);
+  if (homePage) {
+    for (const id of ['home', 'products', 'contact']) requireThat(pages.get(file).ids.has(id), `${name}: missing ${id} section.`);
+    for (const [id, label] of [['products-heading', 'Products'], ['contact-heading', 'Contact']]) requireThat(nodes.some((node) => attr(node, 'id') === id && attr(node, 'lang') === 'en' && text(node) === label), `${name}: section titles must match their English navigation labels.`);
+    requireThat(nodes.some((node) => attr(node, 'class') === 'view-all-link' && attr(node, 'href') === pagePath(language, 'products')), `${name}: View All must open the catalog start without a fragment.`);
+    const categoryLinks = nodes.filter((node) => attr(node, 'data-category-destination') !== undefined);
+    requireThat(categoryLinks.length === company.categories.length && nodes.some((node) => attr(node, 'data-category-track') !== undefined), `${name}: the home product area must be a category carousel.`);
+    for (const category of company.categories) requireThat(categoryLinks.some((node) => attr(node, 'href') === categoryPath(language, category) && elements(node).some((child) => child.tagName === 'h3' && text(child) === category.name)), `${name}: category cards must retain their names and target their catalog group.`);
     const ownerList = nodes.find((node) => attr(node, 'class') === 'owner-list');
     const owners = ownerList ? elements(ownerList).filter((node) => node.tagName === 'li') : [];
     requireThat(owners.map((node) => text(node).trim()).join(',') === 'Budiyanto,Delinah', `${name}: show each owner on a separate row.`);
     requireThat(nodes.some((node) => node.tagName === 'h3' && text(node).trim() === (language === 'id' ? 'Pemilik' : 'Owners')), `${name}: use the confirmed owner heading.`);
-    requireThat(nodes.filter((node) => attr(node, 'data-gallery') !== undefined).length === 3, `${name}: keep media areas for both products and the storefront.`);
-    requireThat(nodes.some((node) => attr(node, 'href') === 'https://maps.app.goo.gl/E5ESBkS3XxmUQYEx9'), `${name}: use the owner's exact map location.`);
   }
+  if (productsPage) for (const category of company.categories) {
+    const group = nodes.find((node) => node.tagName === 'section' && attr(node, 'id') === category.id);
+    requireThat(Boolean(group && attr(group, 'data-category-section') !== undefined), `${name}: missing catalog category ${category.id}.`);
+    for (const product of company.products.filter((product) => product.category === category.id)) requireThat(group && elements(group).some((node) => node.tagName === 'li' && attr(node, 'id') === product.id && elements(node).some((child) => child.tagName === 'h3' && text(child) === product.name)), `${name}: ${product.name} must retain its name inside ${category.name}.`);
+  }
+  requireThat(nodes.filter((node) => attr(node, 'data-gallery') !== undefined).length === (homePage ? 1 : productsPage ? company.products.length : 0), `${name}: reserve a gallery for each catalog product and the home storefront.`);
   const robotsMeta = nodes.find((node) => attr(node, 'name') === 'robots');
   if (!indexable || name === '404.html' || name.endsWith('/404.html')) {
     requireThat(Boolean(robotsMeta && attr(robotsMeta, 'content')?.includes('noindex')), `${name}: prelaunch/error pages must remain noindex.`);
@@ -216,7 +239,7 @@ for (const [file, { name, nodes }] of pages) {
   }
 }
 
-// Older deep links must reach the corresponding section after consolidation.
+// Legacy URLs reach a published page or a real category/product section.
 const redirects = (await readFile(resolve(root, '_redirects'), 'utf8')).trim().split('\n');
 const sources = new Set();
 for (const line of redirects) {
@@ -225,7 +248,8 @@ for (const line of redirects) {
   sources.add(source);
   const target = new URL(destination, 'https://build.invalid');
   const page = pages.get(resolve(root, '.' + target.pathname, 'index.html'));
-  requireThat(Boolean(page?.ids.has(target.hash.slice(1))), `Redirect must target an existing section: ${line}`);
+  requireThat(Boolean(page && (!target.hash || page.ids.has(target.hash.slice(1)))), `Redirect must target an existing page or section: ${line}`);
+  requireThat(source !== destination && ![...pages.values()].some(({ name }) => '/' + name.replace(/index\.html$/, '') === source), `Redirect must not shadow a published page or loop: ${line}`);
 }
 
 // Conservative compressed-size ceilings. These are budgets, not load-time claims.

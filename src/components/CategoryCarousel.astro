@@ -1,0 +1,31 @@
+---
+import { company } from '../config/company';
+import { copy } from '../i18n/copy';
+import { categoryPath, type Locale } from '../i18n/routes';
+import ProductSketch from './ProductSketch.astro';
+import Arrow from './Arrow.astro';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const t = copy(locale);
+---
+<div class="category-carousel" data-category-carousel data-reveal>
+  <ul id="category-carousel-track" class="category-track" data-category-track data-gallery-track aria-label={t.productCategories} data-i18n-aria-label="productCategories">
+    {company.categories.map((category, index) => (
+      <li class="category-card" data-category-card>
+        <a class="category-card-link" tabindex="0" href={categoryPath(locale, category)} data-category-destination={category.id}>
+          <div class="category-visual" aria-hidden="true"><ProductSketch kind={category.imageKind} /><span class="category-index">0{index + 1}</span></div>
+          <div class="category-copy">
+            <h3>{category.name}</h3>
+            <p data-i18n={`category.${category.key}.summary`}>{category.summary[locale]}</p>
+            <span class="category-prompt"><span data-i18n="viewCategory">{t.viewCategory}</span><Arrow /></span>
+          </div>
+        </a>
+      </li>
+    ))}
+  </ul>
+  <div class="carousel-controls gallery-controls" data-category-controls hidden>
+    <button tabindex="0" type="button" class="gallery-previous" data-category-step="-1" aria-controls="category-carousel-track" aria-label={t.previousCategory} data-i18n-aria-label="previousCategory" disabled><Arrow /></button>
+    <output class="gallery-counter" data-category-counter aria-live="polite">1 / {company.categories.length}</output>
+    <button tabindex="0" type="button" data-category-step="1" aria-controls="category-carousel-track" aria-label={t.nextCategory} data-i18n-aria-label="nextCategory"><Arrow /></button>
+  </div>
+</div>

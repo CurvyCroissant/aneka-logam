@@ -1,6 +1,6 @@
 # Aneka Logam
 
-A lightweight company profile for an industrial machinery spare-parts supplier. One page per language: Bahasa Indonesia at `/` and English at `/en/`. Includes product information, section navigation, the store address, WhatsApp, and phone/email copy actions. The supplied English shop phrase stays unchanged in both languages.
+A lightweight company profile with Home and categorized Products pages in Bahasa Indonesia and English. Includes a category carousel, section navigation, the store address, WhatsApp, and phone/email copy actions. Product names and the supplied English shop phrase stay unchanged across languages.
 
 ## Tech stack
 

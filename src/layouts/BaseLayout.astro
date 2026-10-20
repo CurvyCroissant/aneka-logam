@@ -19,8 +19,11 @@ interface Props {
   description: string;
   paths: LocalizedPaths;
   noindex?: boolean;
+  page?: 'home' | 'products';
 }
-const { locale, title, description, paths, noindex = false } = Astro.props;
+const { locale, title, description, paths, noindex = false, page = 'home' } = Astro.props;
+const titleKey = page === 'products' ? 'productsTitle' : 'homeTitle';
+const descriptionKey = page === 'products' ? 'catalogDescription' : 'description';
 const t = copy(locale);
 const shouldIndex = indexingEnabled && Boolean(Astro.site) && !noindex;
 const canonical = Astro.site && !noindex ? new URL(paths[locale], Astro.site) : undefined;
@@ -28,12 +31,12 @@ const favicon = await getImage({ src: logo, width: 48, height: 48, format: 'png'
 const shareImage = await getImage({ src: shareLogo, width: 1200, height: 1200, format: 'jpg', quality: 80 });
 ---
 <!doctype html>
-<html lang={locale} data-page={noindex ? 'error' : 'home'}>
+<html lang={locale} data-page={noindex ? 'error' : page}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script is:inline src={bootUrl}></script>
-    <meta name="description" content={description} data-i18n-content="description" />
+    <meta name="description" content={description} data-i18n-content={descriptionKey} />
     <meta name="robots" content={shouldIndex ? 'index, follow' : 'noindex, nofollow'} />
     <title>{title}</title>
     <link rel="icon" type="image/png" href={favicon.src} />
@@ -50,8 +53,8 @@ const shareImage = await getImage({ src: shareLogo, width: 1200, height: 1200, f
     <meta property="og:locale" content={locale === 'id' ? 'id_ID' : 'en_US'} />
     <meta property="og:locale:alternate" content={locale === 'id' ? 'en_US' : 'id_ID'} />
     <meta property="og:site_name" content={company.name} />
-    <meta property="og:title" content={title} data-i18n-content="homeTitle" />
-    <meta property="og:description" content={description} data-i18n-content="description" />
+    <meta property="og:title" content={title} data-i18n-content={titleKey} />
+    <meta property="og:description" content={description} data-i18n-content={descriptionKey} />
     {Astro.site && <meta property="og:image" content={new URL(shareImage.src, Astro.site)} />}
     {Astro.site && <meta property="og:image:alt" content={`${company.name} logo`} />}
     {canonical && <meta property="og:url" content={canonical} />}

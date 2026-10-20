@@ -15,18 +15,18 @@ export function createDeferredFeature(initialize: () => Promise<void>) {
 
 const initializers = {
   viewer: async (motion: MediaQueryList) => { (await import('./image-viewer')).setupImageViewer(motion); },
-  details: async (motion: MediaQueryList) => { (await import('./details')).setupDetails(motion); },
+  carousel: async (motion: MediaQueryList) => { (await import('./category-carousel')).setupCategoryCarousels(motion); },
   galleries: async (motion: MediaQueryList) => { (await import('./galleries')).setupGalleries(motion); },
 };
 
 export function setupDeferredFeatures(motion: MediaQueryList, initialize = initializers) {
   const viewer = createDeferredFeature(() => initialize.viewer(motion));
-  const details = createDeferredFeature(() => initialize.details(motion));
+  const carousel = createDeferredFeature(() => initialize.carousel(motion));
   const galleries = createDeferredFeature(() => initialize.galleries(motion));
   let activation = 0;
   const warm = (feature: ReturnType<typeof createDeferredFeature>) => { void feature.load().catch(() => {}); };
   const watched = new Map<Element, ReturnType<typeof createDeferredFeature>>();
-  document.querySelectorAll('.product-details').forEach((element) => watched.set(element, details));
+  document.querySelectorAll('[data-category-carousel]').forEach((element) => watched.set(element, carousel));
   document.querySelectorAll('[data-gallery]').forEach((element) => { if (element.querySelector('[data-gallery-controls]')) watched.set(element, galleries); });
   try {
     if (!('IntersectionObserver' in window)) throw new Error('No observer');
@@ -44,7 +44,7 @@ export function setupDeferredFeatures(motion: MediaQueryList, initialize = initi
   function intent(event: Event) {
     if (!(event.target instanceof Element)) return;
     if (event.target.closest('[data-image-trigger]')) warm(viewer);
-    if (event.target.closest('.product-details')) warm(details);
+    if (event.target.closest('[data-category-carousel]')) warm(carousel);
     if (event.target.closest('[data-gallery-controls], [data-gallery-track]')) warm(galleries);
   }
   document.addEventListener('pointerover', intent, { passive: true });

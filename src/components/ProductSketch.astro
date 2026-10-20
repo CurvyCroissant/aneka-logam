@@ -1,0 +1,27 @@
+---
+interface Props { kind: 'shimPlate' | 'spring' | 'store'; zoomable?: boolean }
+const { kind, zoomable = false } = Astro.props;
+---
+<svg class="media-sketch" data-image-content={zoomable ? true : undefined} viewBox="0 0 320 240" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    {kind === 'shimPlate' ? (
+      <>
+        <path class="sketch-fill" d="m48 126 142-65 82 65-142 65Z" /><path d="m48 126 1 11 81 65 142-65v-11M130 191v11" />
+        <path class="sketch-fill" d="m48 104 142-65 82 65-142 65Z" /><path d="m48 104 1 11 81 65 142-65v-11M130 169v11" />
+        <path class="sketch-fill" d="m48 82 142-65 82 65-142 65Z" /><path d="m48 82 1 11 81 65 142-65V82M130 147v11" />
+        <path class="sketch-accent" d="m48 82 82 65 142-65" />
+      </>
+    ) : kind === 'spring' ? (
+      <>
+        {[0, 1, 2, 3, 4, 5].map((index) => <ellipse cx="160" cy={64 + index * 22} rx="54" ry="17" />)}
+        <path d="M106 64v110M214 64v110M111 191c20 13 78 13 98 0" />
+        <path class="sketch-accent" d="M106 64c0-23 108-23 108 0" />
+        <path class="sketch-guide" d="M160 24v192M84 64H64M84 174H64M72 64v110" />
+      </>
+    ) : (
+      <>
+        <path class="sketch-fill" d="M66 90h188v104H66Z" /><path d="M56 72h208l10 18H46ZM58 72V49h204v23M92 120h48v74H92ZM163 117h66v43h-66Z" />
+        <path d="M196 117v43M58 90v15c0 14 23 14 23 0 0 14 23 14 23 0 0 14 23 14 23 0 0 14 23 14 23 0 0 14 23 14 23 0 0 14 23 14 23 0 0 14 23 14 23 0 0 14 23 14 23 0V90M42 195h236" />
+        <path class="sketch-accent" d="M58 49h204v23H58Z" /><path d="M129 151v12" />
+      </>
+    )}
+  </svg>

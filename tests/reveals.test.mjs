@@ -34,7 +34,7 @@ test('a refreshed/restored viewport reveals immediately; later components reveal
   ready(true); // This is the restored-page case previously skipped entirely.
   await Promise.resolve();
   assert.ok(visible.classes.has('is-revealing'));
-  assert.ok(visible.classes.has('reveal-still'), 'Restored content fades without moving vertically');
+  assert.ok(visible.classes.has('reveal-still'), 'Restored content uses the gentler entrance variant');
   assert.ok(!visible.classes.has('reveal-pending'));
   assert.ok(observer().observed.has(below));
   assert.ok(edge.classes.has('reveal-pending'), 'A component at the viewport edge must wait until it is further into view');

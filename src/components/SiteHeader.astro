@@ -1,5 +1,5 @@
 ---
-import ZoomImage from './ZoomImage.astro';
+import { Image } from 'astro:assets';
 import logo from '../assets/logo-no-bg.png';
 import { company } from '../config/company';
 import { navigation } from '../config/navigation';
@@ -9,17 +9,21 @@ interface Props { locale: Locale; paths: LocalizedPaths }
 const { locale, paths } = Astro.props;
 const t = copy(locale);
 const isHome = Astro.url.pathname === pagePath(locale, 'home');
+const isProducts = Astro.url.pathname === pagePath(locale, 'products');
 ---
 <header class="site-header">
   <div class="container header-inner" data-reveal>
-    <div class="wordmark">
-      <ZoomImage src={logo} alt={`Logo ${company.name}`} locale={locale} width={64} height={64} widths={[64, 128]} sizes="48px" loading="eager" class="logo-mark" />
-      <a tabindex="0" class="brand-name" data-font-text href={isHome ? '#home' : pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>{company.displayName}</a>
-    </div>
+    <a class="wordmark" tabindex="0" data-brand-link data-page-link={isHome ? undefined : 'home'} href={isHome ? '#home' : pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>
+      <span class="logo-mark" data-image-loader data-image-state="loading" aria-hidden="true">
+        <span class="image-skeleton"></span>
+        <Image src={logo} alt="" width={64} height={64} widths={[64, 128]} sizes="48px" layout="none" format="webp" loading="eager" decoding="async" />
+      </span>
+      <span class="brand-name" data-font-text>{company.displayName}</span>
+    </a>
     <nav class="primary-navigation" aria-label={t.mainNavigation} data-i18n-aria-label="mainNavigation">
       <ul class="nav-links">
         {navigation(locale).map(({ id, label, href }) => (
-          <li><a tabindex="0" lang="en" href={isHome ? `#${id}` : href} data-section-link={id} aria-current={isHome && id === 'home' ? 'location' : undefined}><span>{label}</span></a></li>
+          <li><a tabindex="0" lang="en" href={isHome ? `#${id}` : isProducts && id === 'products' ? '#main' : href} data-section-link={isHome ? id : undefined} data-page-link={!isHome && !(isProducts && id === 'products') ? id : undefined} aria-current={isHome && id === 'home' ? 'location' : isProducts && id === 'products' ? 'page' : undefined}><span>{label}</span></a></li>
         ))}
       </ul>
     </nav>

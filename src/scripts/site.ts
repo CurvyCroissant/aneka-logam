@@ -46,8 +46,8 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-c
   });
 }
 
-const sections = [...document.querySelectorAll<HTMLElement>('[data-section]')];
-const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-section-link]')];
+const sections = [...document.querySelectorAll<HTMLElement>('[data-section], [data-category-section]')];
+const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-section-link], [data-category-link]')];
 const header = document.querySelector<HTMLElement>('.site-header');
 let headerHeight = header?.offsetHeight ?? 0;
 let framePending = false;
@@ -69,7 +69,7 @@ function updateNavigation() {
   if (active.id === currentSection) return;
   currentSection = active.id;
   for (const link of links) {
-    if (link.dataset.sectionLink === active.id) link.setAttribute('aria-current', 'location');
+    if ((link.dataset.sectionLink ?? link.dataset.categoryLink) === active.id) link.setAttribute('aria-current', 'location');
     else link.removeAttribute('aria-current');
   }
 }

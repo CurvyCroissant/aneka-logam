@@ -5,8 +5,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { company } from '../../config/company';
 import { hasContactDetails } from '../../config/navigation';
 import { copy } from '../../i18n/copy';
-import { pagePaths, type Locale } from '../../i18n/routes';
-import ProductList from '../ProductList.astro';
+import { pagePath, pagePaths, type Locale } from '../../i18n/routes';
+import CategoryCarousel from '../CategoryCarousel.astro';
+import Arrow from '../Arrow.astro';
 import ContactLinks from '../ContactLinks.astro';
 import AddressBlock from '../AddressBlock.astro';
 interface Props { locale: Locale }
@@ -30,8 +31,8 @@ const t = copy(locale);
   </section>
   <section id="products" class="section section-products" aria-labelledby="products-heading" tabindex="-1" data-section>
     <div class="container">
-      <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">01</span><h2 id="products-heading" lang="en" data-i18n="products">{t.products}</h2><span class="section-rule" aria-hidden="true"></span></div>
-      <ProductList locale={locale} />
+      <div class="section-heading section-heading-products" data-reveal><span class="section-number" aria-hidden="true">01</span><h2 id="products-heading" lang="en" data-i18n="products">{t.products}</h2><span class="section-rule" aria-hidden="true"></span><a class="view-all-link" tabindex="0" href={pagePath(locale, 'products')} data-page-link="products"><span data-i18n="viewAllProducts">{t.viewAllProducts}</span><Arrow /></a></div>
+      <CategoryCarousel locale={locale} />
       <p class="product-note" data-reveal data-i18n="rangeNote">{t.rangeNote}</p>
     </div>
   </section>

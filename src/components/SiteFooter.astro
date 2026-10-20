@@ -1,24 +1,30 @@
 ---
 import { company } from '../config/company';
-import { contactMethods, navigation } from '../config/navigation';
+import { contactMethods } from '../config/navigation';
 import { copy } from '../i18n/copy';
 import { pagePath, type Locale } from '../i18n/routes';
 import ContactAction from './ContactAction.astro';
+import AddressLink from './AddressLink.astro';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
-const isHome = Astro.url.pathname === pagePath(locale, 'home');
 ---
 <footer class="site-footer">
   <div class="container footer-inner" data-reveal>
-    <nav class="footer-navigation" aria-label={t.footerNavigation} data-i18n-aria-label="footerNavigation">
+    <nav class="footer-navigation" aria-label={t.pageNavigation} data-i18n-aria-label="pageNavigation">
+      <h2 class="footer-heading" data-i18n="pageNavigation">{t.pageNavigation}</h2>
       <ul class="nav-links">
-        {navigation(locale).map(({ id, label, href }) => <li><a tabindex="0" lang="en" href={isHome ? `#${id}` : href} data-section-link={id}><span>{label}</span></a></li>)}
+        {(['home', 'products'] as const).map((page) => <li><a tabindex="0" lang="en" href={pagePath(locale, page)} data-page-link={page} aria-current={Astro.url.pathname === pagePath(locale, page) ? 'page' : undefined}><span>{t[page]}</span></a></li>)}
       </ul>
     </nav>
-    <ul class="footer-contacts" aria-label={t.contactMethods} data-i18n-aria-label="contactMethods">
-      {contactMethods.map((method) => <li><ContactAction method={method} locale={locale} /></li>)}
-    </ul>
+    <section class="footer-contact" aria-labelledby="footer-contact-heading">
+      <h2 id="footer-contact-heading" class="footer-heading" lang="en">Contact</h2>
+      <ul class="footer-contacts">{contactMethods.map((method) => <li><ContactAction method={method} locale={locale} /></li>)}</ul>
+    </section>
+    <section class="footer-address" aria-labelledby="footer-address-heading">
+      <h2 id="footer-address-heading" class="footer-heading" data-i18n="address">{t.address}</h2>
+      <AddressLink locale={locale} />
+    </section>
     <small class="copyright">&copy; {new Date().getFullYear()} {company.name}</small>
   </div>
 </footer>

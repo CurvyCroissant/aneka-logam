@@ -1,5 +1,6 @@
 import { clampScroll, fragmentId, parseScrollSnapshot, readScrollSnapshot, saveScrollSnapshot, shouldRestoreScroll, type ScrollSnapshot } from '../lib/scroll-memory.ts';
 import { scrollToSection } from '../lib/section-scroll.ts';
+import { carouselIndex, carouselPositions } from '../lib/carousel-position.ts';
 
 export function setupScrollMemory(fontsReady: Promise<unknown>) {
   const root = document.documentElement;
@@ -20,7 +21,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
     return {
       version: 1, url: currentUrl(), x: Math.max(0, scrollX), y: Math.max(0, scrollY),
       details: details.filter((element) => element.dataset.expanded === 'true' || (element.dataset.expanded !== 'false' && element.open)).map((element) => element.id),
-      galleries: Object.fromEntries(galleries.map((track) => [track.id, Math.max(0, Math.round(track.scrollLeft / Math.max(1, track.clientWidth)))])),
+      galleries: Object.fromEntries(galleries.map((track) => [track.id, track.dataset.categoryTrack !== undefined ? carouselIndex(track) : Math.max(0, Math.round(track.scrollLeft / Math.max(1, track.clientWidth)))])),
     };
   }
   function save() {
@@ -33,7 +34,10 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
   function scheduleSave() { if (ready && saveTimer === undefined) saveTimer = setTimeout(save, 400); }
   function setDetails(snapshot: ScrollSnapshot) {
     details.forEach((element) => { element.open = snapshot.details.includes(element.id); });
-    for (const track of galleries) track.scrollLeft = (snapshot.galleries[track.id] ?? 0) * track.clientWidth;
+    for (const track of galleries) {
+      const index = snapshot.galleries[track.id] ?? 0;
+      track.scrollLeft = track.dataset.categoryTrack !== undefined ? carouselPositions(track)[index] ?? 0 : index * track.clientWidth;
+    }
   }
   function position(x: number, y: number) {
     window.scrollTo({ left: clampScroll(x, root.scrollWidth - innerWidth), top: clampScroll(y, root.scrollHeight - innerHeight), behavior: 'instant' });
@@ -69,6 +73,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>) {
     if (!interrupted) {
       if (saved) restore(saved);
       else if (location.hash) { const target = document.getElementById(fragmentId(location.hash)); if (target) scrollToSection(target); }
+      else position(0, 0);
     }
     cleanUrl();
     root.classList.remove('is-restoring');

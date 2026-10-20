@@ -7,49 +7,31 @@ export const company = {
     id: 'Aneka Logam menyediakan suku cadang mesin industri, termasuk Shim Plate dan Spring.',
     en: 'Aneka Logam supplies industrial machinery spare parts, including shim plates and springs.',
   },
+  categories: [
+    {
+      key: 'plates', id: 'plates-strips', name: 'Plat & Strip', imageKind: 'shimPlate',
+      summary: {
+        id: 'Pelat dan strip logam untuk kebutuhan komponen mesin.',
+        en: 'Metal plates and strips for machine components.',
+      },
+    },
+    {
+      key: 'springs', id: 'springs', name: 'Spring / Pegas', imageKind: 'spring',
+      summary: {
+        id: 'Pegas dan pegas kawat untuk kebutuhan mekanis mesin.',
+        en: 'Springs and wire springs for mechanical machine applications.',
+      },
+    },
+  ],
+  // Only product types supplied in the owner's phrase; sizes and stock are unconfirmed.
+  // Display names stay fixed. Descriptions provide the direct language clarification.
   products: [
-    {
-      key: 'shimPlate',
-      id: 'shim-plate',
-      name: 'Shim Plate',
-      summary: {
-        id: 'Pelat tipis untuk penyesuaian celah atau posisi antar komponen mesin.',
-        en: 'Thin plates used to adjust gaps or the position of machine components.',
-      },
-      enquiryDetails: {
-        id: [
-          'Ketebalan, panjang, dan lebar yang dibutuhkan.',
-          'Material atau nomor referensi, jika diketahui.',
-          'Jumlah kebutuhan serta foto atau gambar komponen, jika ada.',
-        ],
-        en: [
-          'Required thickness, length, and width.',
-          'Material or reference number, if known.',
-          'Required quantity and a component photo or drawing, if available.',
-        ],
-      },
-    },
-    {
-      key: 'spring',
-      id: 'spring',
-      name: 'Spring',
-      summary: {
-        id: 'Komponen pegas untuk kebutuhan mekanis pada mesin industri.',
-        en: 'Spring components for mechanical applications in industrial machinery.',
-      },
-      enquiryDetails: {
-        id: [
-          'Jenis, bentuk, dan ukuran pegas yang dibutuhkan.',
-          'Nomor referensi atau foto komponen yang digunakan, jika ada.',
-          'Jumlah kebutuhan dan informasi mesin atau penggunaannya.',
-        ],
-        en: [
-          'Required spring type, shape, and dimensions.',
-          'Reference number or a photo of the existing component, if available.',
-          'Required quantity and details of the machine or application.',
-        ],
-      },
-    },
+    { key: 'shimPlate', id: 'shim-plate', category: 'plates-strips', name: 'Shim Plate', summary: { id: 'Pelat shim untuk penyesuaian.', en: 'Shim plate for adjustment.' } },
+    { key: 'steel', id: 'steel', category: 'plates-strips', name: 'Steel', summary: { id: 'Baja.', en: 'Steel.' } },
+    { key: 'carbonSteelStrip', id: 'carbon-steel-strip', category: 'plates-strips', name: 'Carbon Steel Strip', summary: { id: 'Strip baja karbon.', en: 'Carbon steel strip.' } },
+    { key: 'sus', id: 'sus', category: 'plates-strips', name: 'SUS', summary: { id: 'Baja tahan karat (SUS).', en: 'Stainless steel (SUS).' } },
+    { key: 'spring', id: 'spring', category: 'springs', name: 'Spring', summary: { id: 'Pegas.', en: 'Spring.' } },
+    { key: 'wireSpring', id: 'wire-spring', category: 'springs', name: 'Wire Spring', summary: { id: 'Pegas kawat.', en: 'Wire spring.' } },
   ],
   contact: {
     whatsapp: '+62 813 8630 3535',

@@ -1,21 +1,25 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { pagePaths, productPath } from '../src/i18n/routes.ts';
+import { pagePaths, productPath, categoryPath } from '../src/i18n/routes.ts';
 import { copy } from '../src/i18n/copy.ts';
 import { company } from '../src/config/company.ts';
 import { getContactMethods } from '../src/lib/contact.ts';
 
 test('default URLs remain Indonesian and English has its own static URLs', () => {
   assert.deepEqual(pagePaths('home'), { id: '/', en: '/en/' });
-  assert.deepEqual(pagePaths('products'), { id: '/#products', en: '/en/#products' });
+  assert.deepEqual(pagePaths('products'), { id: '/products/', en: '/en/products/' });
   assert.deepEqual(pagePaths('contact'), { id: '/#contact', en: '/en/#contact' });
   const spring = company.products.find(({key}) => key === 'spring');
-  assert.equal(productPath('id', spring), '/#spring');
-  assert.equal(productPath('en', spring), '/en/#spring');
+  assert.equal(productPath('id', spring), '/products/#spring');
+  assert.equal(productPath('en', spring), '/en/products/#spring');
+  for (const category of company.categories) {
+    assert.equal(categoryPath('id', category), `/products/#${category.id}`);
+    assert.equal(categoryPath('en', category), `/en/products/#${category.id}`);
+  }
 });
 
 test('English UI copy is complete; only established shared terms remain unchanged', () => {
-  const shared = new Set(['home', 'products', 'contact', 'homeTitle', 'contactLabels.whatsapp', 'contactLabels.email']);
+  const shared = new Set(['home', 'products', 'contact', 'homeTitle', 'productsTitle', 'contactLabels.whatsapp', 'contactLabels.email']);
   function check(id, en, prefix = '') {
     assert.deepEqual(Object.keys(id), Object.keys(en));
     for (const key of Object.keys(id)) {
@@ -40,12 +44,20 @@ test('the exact shop phrase and proper company details are language invariant', 
   assert.equal(decodeURIComponent(methods.find(({kind}) => kind === 'email').href), 'mailto:anekalogaminfo@gmail.com');
 });
 
-test('product information has complete translations without fabricated specifications', () => {
+test('all supplied product names stay fixed and belong to a translated general category', () => {
+  assert.deepEqual(new Set(company.products.map(({ name }) => name)), new Set(company.phrase.split(', ')));
+  assert.equal(new Set(company.categories.map(({ id }) => id)).size, company.categories.length);
+  for (const category of company.categories) {
+    assert.ok(category.name && category.summary.id && category.summary.en);
+    assert.notEqual(category.summary.id, category.summary.en);
+    assert.ok(company.products.some((product) => product.category === category.id));
+  }
   for (const product of company.products) {
+    assert.equal(typeof product.name, 'string', 'Names must not be locale-dependent');
+    assert.ok(company.categories.some((category) => category.id === product.category));
     assert.ok(product.summary.id && product.summary.en);
     assert.notEqual(product.summary.id, product.summary.en);
-    assert.equal(product.enquiryDetails.id.length, product.enquiryDetails.en.length);
-    assert.ok(product.enquiryDetails.en.every((line) => line.trim()));
+    assert.equal(product.enquiryDetails, undefined, 'The enquiry disclosure was removed');
   }
 });
 

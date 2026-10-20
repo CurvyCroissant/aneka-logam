@@ -1,24 +1,19 @@
 ---
 import { company } from '../config/company';
 import { productPhotos } from '../config/media';
-import { copy } from '../i18n/copy';
 import type { Locale } from '../i18n/routes';
 import MediaGallery from './MediaGallery.astro';
-interface Props { locale: Locale }
-const { locale } = Astro.props;
-const t = copy(locale);
+interface Props { locale: Locale; category: (typeof company.categories)[number] }
+const { locale, category } = Astro.props;
+const products = company.products.filter((product) => product.category === category.id);
 ---
 <ul class="product-grid">
-  {company.products.map((product, index) => (
-    <li id={product.id} class="product-card" data-reveal data-reveal-order={index}>
-      <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={product.key} locale={locale} />
+  {products.map((product, index) => (
+    <li id={product.id} class="product-card catalog-card" data-reveal data-reveal-order={index % 2}>
+      <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={category.imageKind} locale={locale} />
       <div class="product-copy">
         <div class="product-title"><h3 lang="en">{product.name}</h3><span class="product-index" aria-hidden="true">0{index + 1}</span></div>
         <p data-i18n={`product.${product.key}.summary`}>{product.summary[locale]}</p>
-        <details id={`details-${product.id}`} class="product-details" data-remember-details>
-          <summary tabindex="0"><span data-i18n="detailsHeading">{t.detailsHeading}</span><span class="details-mark" aria-hidden="true">+</span></summary>
-          <ul class="enquiry-list">{product.enquiryDetails[locale].map((line, index) => <li data-i18n={`product.${product.key}.detail.${index}`}>{line}</li>)}</ul>
-        </details>
       </div>
     </li>
   ))}

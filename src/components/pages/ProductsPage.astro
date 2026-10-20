@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { company } from '../../config/company';
+import { copy } from '../../i18n/copy';
+import { pagePaths, type Locale } from '../../i18n/routes';
+import ProductList from '../ProductList.astro';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const t = copy(locale);
+---
+<BaseLayout locale={locale} page="products" title={t.productsTitle} description={t.catalogDescription} paths={pagePaths('products')}>
+  <section class="catalog-intro section">
+    <div class="container" data-reveal>
+      <span class="hero-rule" aria-hidden="true"></span>
+      <h1 lang="en" data-font-text>Products</h1>
+      <p class="lead" data-i18n="catalogIntro">{t.catalogIntro}</p>
+      <p class="product-note" data-i18n="rangeNote">{t.rangeNote}</p>
+      <nav class="catalog-navigation" aria-label={t.productCategories} data-i18n-aria-label="productCategories">
+        {company.categories.map((category, index) => <a tabindex="0" href={`#${category.id}`} data-category-link={category.id} aria-current={index === 0 ? 'location' : undefined}><span>{category.name}</span><span class="category-count" aria-hidden="true">{company.products.filter((product) => product.category === category.id).length}</span></a>)}
+      </nav>
+    </div>
+  </section>
+  {company.categories.map((category, index) => (
+    <section id={category.id} class="section catalog-category" data-category-section aria-labelledby={`${category.id}-heading`} tabindex="-1">
+      <div class="container">
+        <div class="section-heading" data-reveal><span class="section-number" aria-hidden="true">0{index + 1}</span><h2 id={`${category.id}-heading`}>{category.name}</h2><span class="section-rule" aria-hidden="true"></span></div>
+        <p class="category-description" data-reveal data-i18n={`category.${category.key}.summary`}>{category.summary[locale]}</p>
+        <ProductList locale={locale} category={category} />
+      </div>
+    </section>
+  ))}
+</BaseLayout>

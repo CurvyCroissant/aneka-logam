@@ -1,0 +1,15 @@
+---
+import { addressLines, directionsUrl } from '../config/navigation';
+import { copy } from '../i18n/copy';
+import type { Locale } from '../i18n/routes';
+import Arrow from './Arrow.astro';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const t = copy(locale);
+---
+<address>
+  <a class="address-action" tabindex="0" href={directionsUrl} target="_blank" rel="noopener noreferrer" aria-describedby="new-tab-note">
+    <span class="address-lines" lang="id">{addressLines.map((line) => <span>{line}</span>)}</span>
+    <span class="contact-hint-window address-hint-window"><span class="contact-hint address-hint"><span data-i18n="directions">{t.directions}</span><Arrow /></span></span>
+  </a>
+</address>

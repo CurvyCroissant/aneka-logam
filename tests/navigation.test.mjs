@@ -5,7 +5,7 @@ import { setupNavigation } from '../src/scripts/language.ts';
 
 const savedVisit = { version: 1, url: '/#contact', x: 0, y: 1267, details: ['spring'], galleries: { photos: 1 } };
 
-function environment(t, { saved = savedVisit, hash = '', blocked = false, motion = false, sticky = true } = {}) {
+function environment(t, { saved = savedVisit, hash = '', blocked = false, motion = false, sticky = true, page = 'home', navigation = 'reload', categoryMemory = false } = {}) {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   class Element extends EventTarget {
     dataset = {}; attrs = new Map(); classes = new Set(); textContent = ''; open = false; animations = []; opacity = 1; top = 100;
@@ -20,9 +20,14 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
     scrollIntoView() { this.anchorScrolls = (this.anchorScrolls ?? 0) + 1; }
   }
   if (motion) Element.prototype.animate = function (frames, options) { const animation = { frames, options, cancelled: false, cancel() { this.cancelled = true; }, finished: Promise.resolve() }; this.animations.push(animation); return animation; };
-  const root = new Element(); Object.assign(root, { lang: 'id', scrollWidth: 1000, scrollHeight: 5000, dataset: { page: 'home' } });
+  const root = new Element(); Object.assign(root, { lang: 'id', scrollWidth: 1000, scrollHeight: 5000, dataset: { page } });
   const detail = new Element(); detail.id = 'spring';
   const gallery = new Element(); Object.assign(gallery, { id: 'photos', clientWidth: 320, scrollLeft: 0 });
+  if (categoryMemory) {
+    gallery.dataset.categoryTrack = '';
+    gallery.scrollWidth = 1320;
+    gallery.querySelectorAll = () => [0, 500, 1000].map((offsetLeft) => ({ offsetLeft }));
+  }
   const heading = new Element(); heading.dataset.i18n = 'owners'; heading.textContent = 'Pemilik';
   const fixedHeading = new Element(); fixedHeading.dataset.i18n = 'contact'; fixedHeading.textContent = 'Contact';
   const offscreen = new Element(); offscreen.dataset.i18n = 'address'; offscreen.textContent = 'Alamat Toko'; offscreen.top = 2000;
@@ -31,19 +36,26 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
   trigger.setAttribute('data-image-alt-id', 'Foto pegas'); trigger.setAttribute('data-image-alt-en', 'Spring photograph');
   const id = new Element(); id.hreflang = 'id'; const en = new Element(); en.hreflang = 'en';
   const contact = new Element(); contact.documentTop = 1800;
+  const springs = new Element(); springs.documentTop = 3200;
+  const home = new Element(); home.documentTop = 0;
+  const main = new Element(); main.documentTop = 0;
   const header = new Element(); header.height = 88;
   const sectionLink = new Element(); sectionLink.hash = '#contact';
-  const selectors = { '[data-remember-details]': [detail], '[data-gallery-track]': [gallery], '[data-i18n]': [heading, fixedHeading, offscreen], '[data-image-trigger]': [trigger], '[data-language-link]': [id, en], 'a[href^="#"]': [sectionLink] };
-  const document = Object.assign(new EventTarget(), { documentElement: root, querySelectorAll: (s) => selectors[s] ?? [], querySelector: (s) => s === '.site-header' ? header : null, getElementById: (s) => s === 'contact' ? contact : null });
-  const location = { pathname: '/', search: '', hash };
+  const homeLink = new Element(); homeLink.dataset.pageLink = 'home'; homeLink.href = '/';
+  const productsLink = new Element(); productsLink.dataset.pageLink = 'products'; productsLink.href = '/products/';
+  const contactLink = new Element(); contactLink.dataset.pageLink = 'contact'; contactLink.href = '/#contact';
+  const categoryLink = new Element(); categoryLink.dataset.categoryDestination = 'springs'; categoryLink.href = '/products/#springs';
+  const selectors = { '[data-remember-details]': [detail], '[data-gallery-track]': [gallery], '[data-i18n]': [heading, fixedHeading, offscreen], '[data-image-trigger]': [trigger], '[data-language-link]': [id, en], 'a[href^="#"]': [sectionLink], '[data-page-link]': [homeLink, productsLink, contactLink], '[data-category-destination]': [categoryLink] };
+  const document = Object.assign(new EventTarget(), { documentElement: root, querySelectorAll: (s) => selectors[s] ?? [], querySelector: (s) => s === '.site-header' ? header : null, getElementById: (s) => ({ contact, springs, home, main })[s] ?? null });
+  const location = { pathname: page === 'products' ? '/products/' : '/', search: '', hash, get href() { return `https://test.invalid${this.pathname}${this.search}${this.hash}`; } };
   const updateUrl = (url) => { const value = new URL(url, 'https://test.invalid'); Object.assign(location, { pathname: value.pathname, search: value.search, hash: value.hash }); };
   const history = { state: saved ? { alScroll: saved } : null, scrollRestoration: 'manual', pushes: [], replaceState(state, unused, url) { this.state = state; updateUrl(url); }, pushState(state, unused, url) { this.pushes.push({ state, url }); this.replaceState(state, unused, url); } };
   const data = new Map();
   const storage = { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) };
-  const window = Object.assign(new EventTarget(), { scrollX: 0, scrollY: 0, scrollCalls: [], scrollTo(options) { this.scrollCalls.push(options); this.scrollX = options.left; this.scrollY = options.top; }, __anekaBoot: { snapshot: saved, finish: () => root.classList.remove('is-restoring') } });
+  const window = Object.assign(new EventTarget(), { scrollX: 0, scrollY: 0, scrollCalls: [], scrollTo(options) { this.scrollCalls.push(options); this.scrollX = options.left; this.scrollY = options.top; }, __anekaBoot: { snapshot: navigation === 'navigate' ? undefined : saved, finish: () => root.classList.remove('is-restoring') } });
   Object.defineProperty(window, 'sessionStorage', { get() { if (blocked) throw new Error('Storage blocked'); return storage; } });
-  const globals = { document, window, location, history, innerWidth: 1000, innerHeight: 700, performance: { getEntriesByType: () => [{ type: 'reload' }] }, requestAnimationFrame: (fn) => queueMicrotask(fn) };
-  globals.getComputedStyle = (element) => ({ position: element === header && sticky ? 'sticky' : 'relative', opacity: String(element.opacity), getPropertyValue: (name) => ({ '--state-duration': '650ms', '--reduced-duration': '180ms', '--ease': 'cubic-bezier(0.22, 0.61, 0.36, 1)' })[name] ?? '' });
+  const globals = { document, window, location, history, innerWidth: 1000, innerHeight: 700, performance: { getEntriesByType: () => [{ type: navigation }] }, requestAnimationFrame: (fn) => queueMicrotask(fn) };
+  globals.getComputedStyle = (element) => ({ position: element === header && sticky ? 'sticky' : 'relative', opacity: String(element.opacity), translate: 'none', scale: '1', getPropertyValue: (name) => ({ '--state-duration': '650ms', '--move-duration': '850ms', '--reduced-duration': '180ms', '--ease': 'cubic-bezier(0.22, 0.61, 0.36, 1)' })[name] ?? '' });
   for (const [key, value] of Object.entries(globals)) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, key);
     Object.defineProperty(globalThis, key, { configurable: true, value });
@@ -55,7 +67,7 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
     t.after(() => { if (previous) Object.defineProperty(globalThis, key, previous); else delete globalThis[key]; });
   }
   const click = (target, modified = false) => { const event = new Event('click', { cancelable: true }); Object.assign(event, { button: 0, ctrlKey: modified }); target.dispatchEvent(event); return event; };
-  return { root, detail, gallery, heading, fixedHeading, offscreen, image, id, en, contact, sectionLink, location, history, window, click, updateUrl };
+  return { root, detail, gallery, heading, fixedHeading, offscreen, image, id, en, contact, sectionLink, homeLink, productsLink, contactLink, categoryLink, location, history, window, click, updateUrl };
 }
 
 test('reload waits for the font, restores exact pixels and expanded content, and never scrolls to an old heading', async (t) => {
@@ -87,6 +99,10 @@ test('language changes preserve pixels, image identity, open details, and galler
   assert.equal(env.location.pathname, '/en/');
   assert.equal(env.location.hash, '');
   assert.equal(env.root.lang, 'en');
+  assert.equal(env.homeLink.href, '/en/');
+  assert.equal(env.productsLink.href, '/en/products/');
+  assert.equal(env.contactLink.href, '/en/#contact');
+  assert.equal(env.categoryLink.href, '/en/products/#springs');
   assert.equal(env.heading.textContent, 'Owners');
   assert.equal(document.title, 'Aneka Logam');
   assert.equal(env.image.alt, 'Spring photograph');
@@ -125,23 +141,67 @@ test('fresh deep links and section navigation still scroll to the requested head
   assert.equal(env.history.state.alScroll.url, '/');
 });
 
-test('language motion fades only changed visible text, tolerates rapid toggles, and respects reduced motion', async (t) => {
+test('language motion moves changed visible text, tolerates rapid toggles, and respects reduced motion', async (t) => {
   const env = environment(t, { motion: true });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
   const preference = { matches: false };
   setupNavigation(memory, preference);
   env.click(env.en);
   assert.equal(env.heading.animations.length, 1);
-  assert.equal(env.heading.animations[0].options.duration, 650);
+  assert.equal(env.heading.animations[0].options.duration, 850);
+  assert.equal(env.heading.animations[0].frames[0].translate, '0 14px');
+  assert.equal(env.heading.animations[0].frames[0].scale, '0.985');
   assert.equal(env.fixedHeading.animations.length, 0, 'Matching English titles must stay still');
   assert.equal(env.offscreen.animations.length, 0, 'Do not animate invisible text');
   assert.equal(env.image.animations.length, 0, 'Do not animate or replace images during translation');
   preference.matches = true;
   env.click(env.id);
-  assert.equal(env.heading.animations[0].cancelled, true, 'Rapid toggles replace the prior text fade');
+  assert.equal(env.heading.animations[0].cancelled, true, 'Rapid toggles replace the prior text movement');
   assert.equal(env.heading.animations[1].options.duration, 180);
+  assert.ok(env.heading.animations[1].frames.every((frame) => frame.translate === undefined && frame.scale === undefined), 'Reduced motion removes spatial movement');
   assert.equal(env.window.scrollY, 1267);
   assert.equal(env.root.lang, 'id');
+});
+
+test('catalog language changes stay on the catalog and retain exact scroll pixels', async (t) => {
+  const saved = { ...savedVisit, url: '/products/', y: 2867.5 };
+  const env = environment(t, { page: 'products', saved });
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  setupNavigation(memory, { matches: false });
+  env.click(env.en);
+  assert.equal(env.location.pathname, '/en/products/');
+  assert.equal(env.window.scrollY, 2867.5);
+  assert.equal(document.title, 'Products | Aneka Logam');
+  assert.equal(env.productsLink.href, '/en/products/');
+  assert.equal(env.click(env.productsLink).defaultPrevented, true);
+  assert.equal(env.window.scrollY, 0, 'The current-page Products link returns to the start');
+  assert.equal(env.click(env.homeLink).defaultPrevented, false, 'Cross-page links retain native current-tab navigation');
+});
+
+test('View All starts at the catalog top even with an older saved catalog visit', async (t) => {
+  const env = environment(t, { page: 'products', navigation: 'navigate', saved: { ...savedVisit, url: '/products/', y: 2867.5 } });
+  env.window.scrollY = 1000;
+  const memory = setupScrollMemory(Promise.resolve());
+  assert.equal(await memory.ready, false);
+  assert.equal(env.window.scrollY, 0);
+});
+
+test('category entry takes priority over an older saved catalog visit and consumes its fragment', async (t) => {
+  const env = environment(t, { page: 'products', navigation: 'navigate', hash: '#springs', saved: { ...savedVisit, url: '/products/', y: 600 } });
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  assert.equal(env.window.scrollY, 3112, 'Category begins immediately below the sticky header');
+  assert.equal(env.location.pathname, '/products/');
+  assert.equal(env.location.hash, '');
+});
+
+test('refresh retains the selected category using card snap positions rather than viewport width', async (t) => {
+  const env = environment(t, { saved: { ...savedVisit, url: '/', galleries: { photos: 1 } }, categoryMemory: true });
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  assert.equal(env.gallery.scrollLeft, 500);
+  assert.equal(memory.capture().galleries.photos, 1);
+  env.gallery.scrollLeft = 1000;
+  memory.save();
+  assert.equal(env.history.state.alScroll.galleries.photos, 2);
 });
 
 test('section scrolling on short landscape screens has no offset for a non-sticky header', async (t) => {

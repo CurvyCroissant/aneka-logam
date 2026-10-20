@@ -2,7 +2,7 @@ import { catalog } from '../i18n/catalog.ts';
 import { fragmentId } from '../lib/scroll-memory.ts';
 import { animateTranslatedText } from './text-motion.ts';
 import { scrollToSection } from '../lib/section-scroll.ts';
-import type { Locale } from '../i18n/routes';
+import { pagePath, categoryPath, type Locale, type MainPage, type Page } from '../i18n/routes.ts';
 import type { setupScrollMemory } from './scroll-memory';
 
 export const currentLocale = (): Locale => document.documentElement.lang === 'en' ? 'en' : 'id';
@@ -43,12 +43,18 @@ export function applyLocale(locale: Locale) {
   for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-language-link]')) {
     if (link.hreflang === locale) link.setAttribute('aria-current', 'true'); else link.removeAttribute('aria-current');
   }
-  document.title = values['homeTitle'] ?? document.title;
+  const page: MainPage = document.documentElement.dataset.page === 'products' ? 'products' : 'home';
+  document.title = values[page === 'products' ? 'productsTitle' : 'homeTitle'] ?? document.title;
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-page-link]')) {
+    const destination = link.dataset.pageLink;
+    if (destination === 'home' || destination === 'products' || destination === 'contact') link.href = pagePath(locale, destination);
+  }
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-category-destination]')) link.href = categoryPath(locale, { id: link.dataset.categoryDestination ?? '' });
   document.querySelector('meta[property="og:locale"]')?.setAttribute('content', locale === 'en' ? 'en_US' : 'id_ID');
   document.querySelector('meta[property="og:locale:alternate"]')?.setAttribute('content', locale === 'en' ? 'id_ID' : 'en_US');
   const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
   if (canonical) {
-    const url = new URL(canonical.href); url.pathname = locale === 'en' ? '/en/' : '/';
+    const url = new URL(canonical.href); url.pathname = pagePath(locale, page);
     canonical.href = url.href;
     document.querySelector('meta[property="og:url"]')?.setAttribute('content', url.href);
   }
@@ -58,8 +64,9 @@ export function applyLocale(locale: Locale) {
 }
 
 export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, reducedMotion: MediaQueryList) {
-  if (document.documentElement.dataset.page !== 'home') return;
+  if (!['home', 'products'].includes(document.documentElement.dataset.page ?? '')) return;
   const root = document.documentElement;
+  const page: MainPage = root.dataset.page === 'products' ? 'products' : 'home';
   function before() { document.dispatchEvent(new Event('aneka:before-navigation')); }
   function finish() {
     memory.save();
@@ -76,7 +83,7 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
       const previous = memory.capture();
       root.classList.add('is-localizing');
       const changed = applyLocale(locale);
-      memory.push(`${locale === 'en' ? '/en/' : '/'}${location.search}`, previous);
+      memory.push(`${pagePath(locale, page)}${location.search}`, previous);
       memory.position(previous.x, previous.y);
       animateTranslatedText(changed, reducedMotion);
       finish();
@@ -95,10 +102,24 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
       document.dispatchEvent(new Event('aneka:location-change'));
     });
   }
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-page-link]')) {
+    link.addEventListener('click', (event) => {
+      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      const destination = link.dataset.pageLink as Page;
+      const url = new URL(pagePath(currentLocale(), destination), location.href);
+      if (url.pathname !== location.pathname || url.hash) return;
+      const target = document.getElementById(page === 'home' ? 'home' : 'main');
+      if (!target) return;
+      event.preventDefault(); before(); memory.save(); memory.cleanUrl();
+      target.focus({ preventScroll: true });
+      scrollToSection(target, reducedMotion.matches ? 'instant' : 'smooth');
+      document.dispatchEvent(new Event('aneka:location-change'));
+    });
+  }
   window.addEventListener('popstate', (event) => {
     before();
     root.classList.add('is-localizing');
-    const locale = location.pathname === '/en/' ? 'en' : 'id';
+    const locale = location.pathname.startsWith('/en/') ? 'en' : 'id';
     const changed = locale !== currentLocale() ? applyLocale(locale) : [];
     const saved = memory.fromHistory(event.state?.alScroll);
     if (saved) memory.restore(saved);
