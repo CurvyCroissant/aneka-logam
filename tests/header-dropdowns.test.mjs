@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setupHeaderDropdowns } from '../src/scripts/header-dropdowns.ts';
 
-function environment(t, { hover = true, height = 700 } = {}) {
+function environment(t, { hover = true, height = 700, contentWidth = 320 } = {}) {
   class Control extends EventTarget {
     dataset = {}; attrs = new Map(); style = {}; inert = false;
     querySelector(selector) { return this.children?.[selector] ?? null; }
@@ -11,17 +11,18 @@ function environment(t, { hover = true, height = 700 } = {}) {
     getBoundingClientRect() { return this.bounds ?? { top: 60, bottom: 100, left: 20, right: 180 }; }
     contains(target) { for (let node = target; node; node = node.parent) if (node === this) return true; return false; }
     focus() { document.activeElement = this; }
+    matches(selector) { return selector === 'a[href]' ? this.kind === 'link' : selector === ':focus-visible' && Boolean(this.keyboardFocus); }
     closest(selector) { return selector === 'a[href]' && this.kind === 'link' ? this : selector === '[data-language-link]' && this.language ? this : null; }
   }
-  const entries = [0, 1, 2].map(() => {
+  const entries = ['link', 'button'].map((kind) => {
     const root = new Control(), toggle = new Control(), panel = new Control();
-    toggle.parent = root; panel.parent = root;
+    toggle.kind = kind; toggle.parent = root; panel.parent = root;
     root.children = { '[data-dropdown-toggle]': toggle, '[data-dropdown-panel]': panel };
-    panel.links = [0, 1, 2].map(() => { const link = new Control(); link.kind = 'link'; link.parent = panel; return link; });
+    panel.links = [0, 1, 2].map(() => { const link = new Control(); link.kind = 'link'; link.parent = panel; link.language = kind === 'button'; return link; });
     return { root, toggle, panel };
   });
   const outside = new Control();
-  const document = Object.assign(new EventTarget(), { activeElement: outside, querySelectorAll: () => entries.map(({ root }) => root) });
+  const document = Object.assign(new EventTarget(), { activeElement: outside, hidden: false, documentElement: { clientWidth: contentWidth }, querySelectorAll: () => entries.map(({ root }) => root) });
   const window = Object.assign(new EventTarget(), { matchMedia: () => ({ matches: hover }) });
   for (const [name, value] of Object.entries({ document, window, Element: Control, innerHeight: height, innerWidth: 320 })) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, name);
@@ -33,63 +34,130 @@ function environment(t, { hover = true, height = 700 } = {}) {
   return { entries, outside, document, window, fire };
 }
 
-test('hover and touch disclosure share accurate expanded/inert state and only open one panel', (t) => {
-  const { entries, fire } = environment(t);
-  const [home, products] = entries;
+test('Home is one native page link: hover discloses sections, activation navigates without pinning', (t) => {
+  const { entries: [home], fire } = environment(t);
   assert.equal(home.panel.inert, true);
   fire(home.root, 'pointerenter', { pointerType: 'mouse' });
   assert.equal(home.toggle.attrs.get('aria-expanded'), 'true');
   assert.equal(home.panel.inert, false);
-  fire(products.toggle, 'click');
-  assert.equal(home.toggle.attrs.get('aria-expanded'), 'false');
+  const click = fire(home.toggle, 'click', { detail: 1 });
+  assert.equal(click.defaultPrevented, false, 'Do not consume native page navigation');
   assert.equal(home.panel.inert, true);
-  assert.equal(products.toggle.attrs.get('aria-expanded'), 'true');
-  fire(products.toggle, 'click');
-  assert.equal(products.panel.inert, true);
+  fire(home.root, 'pointerenter', { pointerType: 'mouse' });
+  home.toggle.focus();
+  fire(home.root, 'pointerleave', { pointerType: 'mouse' });
+  assert.equal(home.panel.inert, true, 'A focused trigger must not hold a departed mouse dropdown open');
 });
 
-test('touch does not depend on hover; a tap opens the control and outside input closes it', (t) => {
-  const { entries: [entry], fire, document, outside } = environment(t, { hover: false });
-  fire(entry.root, 'pointerenter', { pointerType: 'touch' });
-  assert.equal(entry.toggle.attrs.get('aria-expanded'), 'false');
-  fire(entry.toggle, 'click');
-  assert.equal(entry.panel.inert, false);
-  fire(document, 'pointerdown', { target: outside });
-  assert.equal(entry.panel.inert, true);
+test('hovering then clicking the language icon leaves its choices open for a single selection', (t) => {
+  const { entries: [home, language], fire, document } = environment(t);
+  fire(home.root, 'pointerenter', { pointerType: 'mouse' });
+  fire(language.root, 'pointerenter', { pointerType: 'mouse' });
+  assert.equal(home.panel.inert, true, 'Only one panel may be open');
+  fire(language.toggle, 'click', { detail: 1 });
+  assert.equal(language.panel.inert, false, 'The first click must not undo the preceding hover');
+  fire(language.panel, 'click', { target: language.panel.links[1] });
+  assert.equal(language.toggle.attrs.get('aria-expanded'), 'false');
+  assert.equal(language.panel.inert, true);
+  assert.equal(document.activeElement, language.toggle);
 });
 
-test('arrow-key entry and Escape preserve native tab order and restore focus to the disclosure', async (t) => {
-  const { entries: [entry], fire, document, outside } = environment(t);
-  const key = fire(entry.root, 'keydown', { key: 'ArrowDown', target: entry.toggle });
+test('mouse departure closes the panel even when a dropdown item retains focus', (t) => {
+  const { entries: [home], fire, document } = environment(t);
+  fire(home.root, 'pointerenter', { pointerType: 'mouse' });
+  home.panel.links[0].focus();
+  fire(home.root, 'pointerleave', { pointerType: 'mouse' });
+  assert.equal(home.panel.inert, true);
+  assert.equal(document.activeElement, home.toggle, 'Do not leave focus inside an inert panel');
+});
+
+test('touch language selection survives finger lift, then closes on another tap or outside input', (t) => {
+  const { entries: [home, language], fire, document, outside } = environment(t, { hover: false });
+  fire(home.root, 'pointerenter', { pointerType: 'touch' });
+  assert.equal(home.panel.inert, true);
+  fire(home.toggle, 'click', { detail: 1 });
+  assert.equal(home.panel.inert, true, 'Home taps navigate directly rather than becoming a disclosure toggle');
+  fire(document, 'pointerdown', { target: language.toggle, pointerType: 'touch' });
+  fire(language.toggle, 'click', { detail: 1 });
+  fire(language.root, 'pointerleave', { pointerType: 'touch' });
+  fire(document, 'pointerout', { pointerType: 'touch', relatedTarget: null });
+  assert.equal(language.panel.inert, false);
+  fire(language.toggle, 'click', { detail: 1 });
+  assert.equal(language.panel.inert, true);
+  fire(language.toggle, 'click', { detail: 1 });
+  fire(document, 'pointerdown', { target: outside, pointerType: 'touch' });
+  assert.equal(language.panel.inert, true);
+});
+
+test('keyboard focus and arrows expose Home sections; Escape and Tab departure dismiss without a trap', async (t) => {
+  const { entries: [home], fire, document, outside } = environment(t);
+  home.toggle.keyboardFocus = true;
+  home.toggle.focus(); fire(home.root, 'focusin', { target: home.toggle });
+  assert.equal(home.panel.inert, false);
+  const key = fire(home.root, 'keydown', { key: 'ArrowDown', target: home.toggle });
   assert.equal(key.defaultPrevented, true);
-  assert.equal(document.activeElement, entry.panel.links[0]);
-  fire(entry.root, 'pointerleave');
-  assert.equal(entry.panel.inert, false, 'Keep the panel open while a link has keyboard focus');
+  assert.equal(document.activeElement, home.panel.links[0]);
   fire(document, 'keydown', { key: 'Escape' });
-  assert.equal(document.activeElement, entry.toggle);
-  assert.equal(entry.panel.inert, true);
-  fire(entry.toggle, 'click');
-  outside.focus(); fire(entry.root, 'focusout'); await Promise.resolve();
-  assert.equal(entry.panel.inert, true, 'Tabbing out closes the disclosure without trapping focus');
+  assert.equal(document.activeElement, home.toggle);
+  assert.equal(home.panel.inert, true);
+  fire(home.root, 'keydown', { key: 'ArrowUp', target: home.toggle });
+  assert.equal(document.activeElement, home.panel.links.at(-1));
+  outside.focus(); fire(home.root, 'focusout', { relatedTarget: outside }); await Promise.resolve();
+  assert.equal(home.panel.inert, true);
 });
 
-test('language selection restores focus, and a short viewport opens the panel upwards', (t) => {
-  const { entries: [entry], fire, document } = environment(t, { height: 120 });
-  fire(entry.toggle, 'click');
-  assert.equal(entry.root.dataset.dropdownSide, 'up');
-  const link = entry.panel.links[0]; link.language = true;
-  fire(entry.panel, 'click', { target: link });
-  assert.equal(document.activeElement, entry.toggle);
-  assert.equal(entry.toggle.attrs.get('aria-expanded'), 'false');
+test('a hovered panel stays open when focus changes, but window exit, blur, hide and navigation cannot leave it stuck', async (t) => {
+  const { entries: [home], fire, document, window, outside } = environment(t);
+  fire(home.root, 'pointerenter', { pointerType: 'mouse' });
+  outside.focus(); fire(home.root, 'focusout', { relatedTarget: outside }); await Promise.resolve();
+  assert.equal(home.panel.inert, false, 'Moving between trigger and panel does not depend on focus');
+  fire(document, 'pointerout', { pointerType: 'mouse', relatedTarget: home.panel });
+  assert.equal(home.panel.inert, false, 'Internal pointer movement must not dismiss');
+  const exits = [
+    () => fire(document, 'pointerout', { pointerType: 'mouse', relatedTarget: null }),
+    () => fire(window, 'blur'),
+    () => { document.hidden = true; fire(document, 'visibilitychange'); },
+    () => fire(window, 'pagehide'),
+    () => fire(document, 'pointercancel'),
+    () => fire(window, 'resize'),
+    () => fire(document, 'aneka:before-navigation'),
+  ];
+  for (const exit of exits) {
+    fire(home.root, 'pointerenter', { pointerType: 'mouse' });
+    exit();
+    assert.equal(home.panel.inert, true);
+    assert.equal(home.toggle.attrs.get('aria-expanded'), 'false');
+    assert.equal(home.panel.attrs.get('aria-hidden'), 'true');
+  }
 });
 
-test('an edge-aligned or wrapped header keeps its dropdown inside the viewport', (t) => {
-  const { entries: [entry], fire } = environment(t);
-  entry.panel.bounds = { top: 100, bottom: 250, left: 200, right: 376 };
-  fire(entry.toggle, 'click');
-  assert.equal(entry.panel.style.translate, '-68px 0');
-  fire(entry.toggle, 'click');
-  entry.panel.bounds = { top: 100, bottom: 250, left: -30, right: 146 };
-  fire(entry.toggle, 'click');
-  assert.equal(entry.panel.style.translate, '42px 0');
+test('short or narrow viewports keep the dropdown inside visible bounds', (t) => {
+  const { entries: [, language], fire } = environment(t, { height: 120 });
+  language.panel.bounds = { top: 100, bottom: 250, left: 200, right: 376 };
+  fire(language.toggle, 'click', { detail: 0 });
+  assert.equal(language.root.dataset.dropdownSide, 'up');
+  assert.equal(language.panel.style.translate, '-68px 0');
+  fire(language.toggle, 'click', { detail: 0 });
+  language.panel.bounds = { top: 100, bottom: 250, left: -30, right: 146 };
+  fire(language.toggle, 'click', { detail: 0 });
+  assert.equal(language.panel.style.translate, '42px 0');
+});
+
+test('closed dropdowns are clamped after reflow and exclude the scrollbar gutter', (t) => {
+  const { entries: [home], fire, window } = environment(t, { contentWidth: 305 });
+  home.panel.bounds = { top: 100, bottom: 250, left: 80, right: 344 };
+  fire(window, 'resize');
+  assert.equal(home.panel.inert, true);
+  assert.equal(home.panel.style.translate, '-51px 0', 'An invisible panel must not widen a narrow document');
+});
+
+test('Tab between dropdown items does not close during the transient body focus interval', (t) => {
+  const { entries: [home], fire, outside } = environment(t);
+  fire(home.root, 'keydown', { key: 'ArrowDown', target: home.toggle });
+  outside.focus(); // Native focusout may run before the next element becomes active.
+  fire(home.root, 'focusout', { relatedTarget: home.panel.links[1] });
+  assert.equal(home.panel.inert, false);
+  home.panel.links[1].focus();
+  fire(home.root, 'focusout', { relatedTarget: home.panel.links[2] });
+  assert.equal(home.panel.inert, false);
 });

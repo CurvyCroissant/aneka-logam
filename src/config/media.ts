@@ -1,6 +1,7 @@
 import type { ImageMetadata } from 'astro';
 import type { Locale } from '../i18n/routes';
 import type { company } from './company';
+import storefront from '../assets/storefront.jpg';
 
 export interface SitePhoto {
   src: ImageMetadata;
@@ -16,4 +17,11 @@ export const productPhotos: Record<ProductKey, SitePhoto[]> = {
   wire: [],
   shaft: [],
 };
-export const storefrontPhotos: SitePhoto[] = [];
+export const storefrontPhotos: SitePhoto[] = [{
+  src: storefront,
+  alt: {
+    id: 'Tampak depan toko Aneka Logam di Pertokoan Glodok Metro, dengan papan nama di atas pintu toko.',
+    en: 'Aneka Logam storefront at Pertokoan Glodok Metro, with the shop sign above the entrance.',
+    zh: 'Aneka Logam 位于 Pertokoan Glodok Metro 的门店外观，店招位于入口上方。',
+  },
+}];

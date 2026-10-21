@@ -71,6 +71,7 @@ export default defineConfig({
     format: 'directory',
     inlineStylesheets: 'never',
   },
+  server: { allowedHosts: ['terminal.local'] },
   // Keep the small interaction bundle external so it works with script-src 'self'.
   vite: { build: { assetsInlineLimit: 0 } },
   devToolbar: { enabled: false },

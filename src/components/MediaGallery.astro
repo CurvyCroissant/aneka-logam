@@ -21,10 +21,12 @@ const label = kind === 'store' ? t.storePhotos : t.productPhotos;
         ))}
       </div>
       {images.length > 1 && (
-        <div class="gallery-controls" data-gallery-controls hidden>
-          <button tabindex="0" type="button" class="gallery-previous" data-gallery-step="-1" aria-label={t.previousPhoto} data-i18n-aria-label="previousPhoto" aria-controls={`${id}-track`} disabled><Arrow /></button>
-          <output class="gallery-counter" data-gallery-counter aria-live="polite">1 / {images.length}</output>
-          <button tabindex="0" type="button" data-gallery-step="1" aria-label={t.nextPhoto} data-i18n-aria-label="nextPhoto" aria-controls={`${id}-track`}><Arrow /></button>
+        <div class="gallery-controls-slot">
+          <div class="gallery-controls" data-gallery-controls hidden>
+            <button tabindex="0" type="button" class="gallery-previous" data-gallery-step="-1" aria-label={t.previousPhoto} data-i18n-aria-label="previousPhoto" aria-controls={`${id}-track`} disabled><Arrow /></button>
+            <output class="gallery-counter" data-gallery-counter aria-live="polite">1 / {images.length}</output>
+            <button tabindex="0" type="button" data-gallery-step="1" aria-label={t.nextPhoto} data-i18n-aria-label="nextPhoto" aria-controls={`${id}-track`}><Arrow /></button>
+          </div>
         </div>
       )}
     </>

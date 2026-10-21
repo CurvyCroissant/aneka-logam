@@ -23,9 +23,11 @@ const t = copy(locale);
       </li>
     ))}
   </ul>
-  <div class="carousel-controls gallery-controls" data-category-controls hidden>
-    <button tabindex="0" type="button" class="gallery-previous" data-category-step="-1" aria-controls="category-carousel-track" aria-label={t.previousCategory} data-i18n-aria-label="previousCategory" disabled><Arrow /></button>
-    <output class="gallery-counter" data-category-counter aria-live="polite">1 / {company.categories.length}</output>
-    <button tabindex="0" type="button" data-category-step="1" aria-controls="category-carousel-track" aria-label={t.nextCategory} data-i18n-aria-label="nextCategory"><Arrow /></button>
+  <div class="carousel-controls-slot">
+    <div class="carousel-controls gallery-controls" data-category-controls hidden>
+      <button tabindex="0" type="button" class="gallery-previous" data-category-step="-1" aria-controls="category-carousel-track" aria-label={t.previousCategory} data-i18n-aria-label="previousCategory" disabled><Arrow /></button>
+      <output class="gallery-counter" data-category-counter aria-live="polite">1 / {company.categories.length}</output>
+      <button tabindex="0" type="button" data-category-step="1" aria-controls="category-carousel-track" aria-label={t.nextCategory} data-i18n-aria-label="nextCategory"><Arrow /></button>
+    </div>
   </div>
 </div>

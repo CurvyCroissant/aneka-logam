@@ -3,7 +3,7 @@ import { Image } from 'astro:assets';
 import logo from '../assets/logo-no-bg.png';
 import { company } from '../config/company';
 import { copy } from '../i18n/copy';
-import { pagePath, categoryPath, locales, localeInfo, type Locale, type LocalizedPaths } from '../i18n/routes';
+import { pagePath, locales, localeInfo, type Locale, type LocalizedPaths } from '../i18n/routes';
 import Chevron from './Chevron.astro';
 interface Props { locale: Locale; paths: LocalizedPaths }
 const { locale, paths } = Astro.props;
@@ -11,8 +11,8 @@ const t = copy(locale);
 const isHome = Astro.url.pathname === pagePath(locale, 'home');
 const isProducts = Astro.url.pathname === pagePath(locale, 'products');
 ---
-<header class="site-header">
-  <div class="container header-inner" data-reveal>
+<header class="site-header" data-reveal>
+  <div class="container header-inner">
     <a class="wordmark" tabindex="0" data-brand-link data-page-link="home" href={pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>
       <span class="logo-mark" data-image-loader data-image-state="loading" aria-hidden="true">
         <span class="image-skeleton"></span>
@@ -23,24 +23,12 @@ const isProducts = Astro.url.pathname === pagePath(locale, 'products');
     <nav class="primary-navigation" aria-label={t.mainNavigation} data-i18n-aria-label="mainNavigation">
       <ul class="nav-links">
         <li class="nav-dropdown" data-dropdown>
-          <div class="nav-topline">
-            <a class="page-link" tabindex="0" lang="en" href={pagePath(locale, 'home')} data-page-link="home" aria-current={isHome ? 'page' : undefined}><span>Home</span></a>
-            <button class="dropdown-toggle" type="button" tabindex="0" data-dropdown-toggle aria-controls="home-dropdown" aria-expanded="false" aria-label={t.homeSections} data-i18n-aria-label="homeSections"><Chevron /></button>
-          </div>
+          <a class="page-link page-dropdown-trigger" tabindex="0" lang="en" href={pagePath(locale, 'home')} data-page-link="home" data-dropdown-toggle aria-controls="home-dropdown" aria-expanded="false" aria-current={isHome ? 'page' : undefined}><span>Home</span><Chevron /></a>
           <ul id="home-dropdown" class="dropdown-panel" data-dropdown-panel>
             {(['home', 'products', 'contact'] as const).map((section) => <li><a tabindex="0" lang="en" href={isHome ? `#${section}` : `${pagePath(locale, 'home')}#${section}`} data-section-destination={section} data-section-link={isHome ? section : undefined}>{t[section]}</a></li>)}
           </ul>
         </li>
-        <li class="nav-dropdown" data-dropdown>
-          <div class="nav-topline">
-            <a class="page-link" tabindex="0" lang="en" href={pagePath(locale, 'products')} data-page-link="products" aria-current={isProducts ? 'page' : undefined}><span>Products</span></a>
-            <button class="dropdown-toggle" type="button" tabindex="0" data-dropdown-toggle aria-controls="products-dropdown" aria-expanded="false" aria-label={t.productSections} data-i18n-aria-label="productSections"><Chevron /></button>
-          </div>
-          <ul id="products-dropdown" class="dropdown-panel" data-dropdown-panel>
-            <li><a tabindex="0" href={pagePath(locale, 'products')} data-category-destination="all"><span data-i18n="allProducts">{t.allProducts}</span></a></li>
-            {company.categories.map((category) => <li><a tabindex="0" href={categoryPath(locale, category)} data-category-destination={category.id}>{category.name}</a></li>)}
-          </ul>
-        </li>
+        <li><a class="page-link" tabindex="0" lang="en" href={pagePath(locale, 'products')} data-page-link="products" aria-current={isProducts ? 'page' : undefined}><span>Products</span></a></li>
       </ul>
     </nav>
     <nav class="language-switch" aria-label={t.languageNavigation} data-i18n-aria-label="languageNavigation">

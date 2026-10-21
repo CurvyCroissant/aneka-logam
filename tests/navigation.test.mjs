@@ -329,7 +329,7 @@ for (const page of ['home', 'products']) test(`Mandarin switches in place on ${p
   assert.equal(env.window.scrollY, 420.5);
 });
 
-test('the Products dropdown filters in place; its page link returns to All Products', async (t) => {
+test('catalog category links filter in place; the Products page link returns to All Products', async (t) => {
   const env = environment(t, { page: 'products', saved: { ...savedVisit, url: '/products/' } });
   let category = 'all';
   const catalog = { current: () => category, select: (value) => { category = value; }, categoryForFragment: (id) => ['all', 'per'].includes(id) ? id : undefined };

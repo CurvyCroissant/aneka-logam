@@ -84,6 +84,7 @@ export function setupImageViewer(reducedMotion: MediaQueryList) {
       clone.removeAttribute('data-image-content');
       clone.setAttribute('aria-hidden', 'true');
       if (clone instanceof HTMLImageElement && original instanceof HTMLImageElement) {
+        clone.style.objectPosition = getComputedStyle(original).objectPosition;
         clone.removeAttribute('srcset');
         clone.removeAttribute('sizes');
         clone.src = original.currentSrc || original.src;

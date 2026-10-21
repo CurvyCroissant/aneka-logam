@@ -152,10 +152,12 @@ for (const [file, { name, nodes }] of pages) {
       const section = attr(link, 'data-section-destination');
       requireThat(attr(link, 'href') === `${homePage ? '' : pagePath(language, 'home')}#${section}`, `${name}: the Home dropdown must reach its section in the current language.`);
     }
-    for (const link of elements(primaryNav).filter((node) => attr(node, 'data-category-destination') !== undefined)) requireThat(attr(link, 'href') === categoryPath(language, { id: attr(link, 'data-category-destination') }), `${name}: the Products dropdown must reach its filter.`);
+    const homeLink = pageLinks.find((link) => attr(link, 'data-page-link') === 'home');
+    requireThat(Boolean(homeLink && attr(homeLink, 'data-dropdown-toggle') !== undefined && elements(homeLink).some((node) => node.tagName === 'svg')), `${name}: Home and its arrow must be one page link and hover target.`);
+    requireThat(!elements(primaryNav).some((node) => attr(node, 'id') === 'products-dropdown' || attr(node, 'data-category-destination') !== undefined), `${name}: Products must be a direct page link without a dropdown.`);
   }
   const toggles = nodes.filter((node) => attr(node, 'data-dropdown-toggle') !== undefined);
-  requireThat(toggles.length === 3, `${name}: provide disclosure controls for Home, Products, and languages.`);
+  requireThat(toggles.length === 2, `${name}: provide dropdown controls for Home and languages only.`);
   for (const toggle of toggles) requireThat(attr(toggle, 'aria-expanded') === 'false' && nodes.some((node) => attr(node, 'id') === attr(toggle, 'aria-controls') && attr(node, 'data-dropdown-panel') !== undefined), `${name}: dropdown controls must identify their collapsed panel.`);
   requireThat(!nodes.some((node) => ['menu', 'menubar', 'menuitem'].includes(attr(node, 'role'))), `${name}: use native navigation links and disclosure buttons rather than application-menu roles.`);
   const phrase = 'Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring';
@@ -184,6 +186,8 @@ for (const [file, { name, nodes }] of pages) {
   requireThat(nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-copy')).length === (homePage ? 4 : 2), `${name}: each contact group needs phone/email copy actions.`);
   requireThat(nodes.filter((node) => attr(node, 'href') === 'https://wa.me/6281386303535').length === (homePage ? 2 : 1), `${name}: each contact group needs the confirmed WhatsApp number.`);
   const footer = nodes.find((node) => node.tagName === 'footer');
+  const header = nodes.find((node) => node.tagName === 'header');
+  requireThat(Boolean(header && attr(header, 'data-reveal') !== undefined && footer && attr(footer, 'data-reveal') !== undefined), `${name}: reveal the complete header and footer containers.`);
   requireThat(!elements(footer).some((node) => ['h1', 'h2', 'h3'].includes(node.tagName)), `${name}: footer groups must have no visible column titles.`);
   const footerInner = footer && elements(footer).find((node) => attr(node, 'class') === 'container footer-inner');
   const columns = footerInner?.childNodes.filter((node) => ['nav', 'section'].includes(node.tagName)) ?? [];
