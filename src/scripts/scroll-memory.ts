@@ -13,8 +13,9 @@ export function setupScrollMemory(fontsReady: Promise<unknown>, catalog?: Produc
   const previous = parseScrollSnapshot(history.state?.alScroll) ?? readScrollSnapshot(storage, key());
   const saved = parseScrollSnapshot(window.__anekaBoot?.snapshot) ?? (shouldRestoreScroll(previous, currentUrl(), navigation?.type ?? '') ? previous : undefined);
   const details = [...document.querySelectorAll<HTMLDetailsElement>('[data-remember-details]')];
-  const galleries = [...document.querySelectorAll<HTMLElement>('[data-gallery-track]')];
+  const galleries = [...document.querySelectorAll<HTMLElement>('[data-gallery-track], [data-catalog-track]')];
   let ready = false;
+  let departing: ScrollSnapshot | undefined;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
@@ -23,19 +24,20 @@ export function setupScrollMemory(fontsReady: Promise<unknown>, catalog?: Produc
       version: 1, url: currentUrl(), x: Math.max(0, scrollX), y: Math.max(0, scrollY),
       details: details.filter((element) => element.dataset.expanded === 'true' || (element.dataset.expanded !== 'false' && element.open)).map((element) => element.id),
       galleries: Object.fromEntries(galleries.map((track) => [track.id, track.dataset.categoryTrack !== undefined ? carouselIndex(track) : Math.max(0, Math.round(track.scrollLeft / Math.max(1, track.clientWidth)))])),
-      ...(catalog ? { category: catalog.current(), view: catalog.view() } : {}),
+      ...(catalog ? { category: catalog.current(), view: catalog.view(), ...(catalog.sort() === 'none' ? {} : { categorySort: catalog.sort() as 'ascending' | 'descending' }) } : {}),
     };
   }
   function save() {
     if (!ready) return;
     clearTimeout(saveTimer); saveTimer = undefined;
-    const snapshot = capture();
+    const snapshot = departing ?? capture();
     saveScrollSnapshot(storage, key(), snapshot);
     try { history.replaceState({ ...history.state, alScroll: snapshot }, '', currentUrl()); } catch { /* Restricted history. */ }
   }
   function scheduleSave() { if (ready && saveTimer === undefined) saveTimer = setTimeout(save, 400); }
   function setDetails(snapshot: ScrollSnapshot) {
     if (catalog && snapshot.view) catalog.setView(snapshot.view);
+    catalog?.setSort(snapshot.categorySort ?? 'none');
     catalog?.select(snapshot.category ?? 'all');
     details.forEach((element) => { element.open = snapshot.details.includes(element.id); });
     for (const track of galleries) {
@@ -73,8 +75,16 @@ export function setupScrollMemory(fontsReady: Promise<unknown>, catalog?: Produc
   }
   window.addEventListener('scroll', scheduleSave, { passive: true });
   window.addEventListener('scrollend', save);
-  window.addEventListener('pagehide', save);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
+  // Snapshot before the browser can reset scroll/layout during refresh teardown.
+  // Later hidden-page scroll/pagehide events must not replace it with zero.
+  const freeze = () => { if (ready) { departing ??= capture(); save(); } };
+  window.addEventListener('pageswap', freeze);
+  window.addEventListener('pagehide', freeze);
+  window.addEventListener('pageshow', () => { departing = undefined; });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') freeze();
+    else departing = undefined;
+  });
   document.addEventListener('aneka:catalog-change', save);
   details.forEach((element) => element.addEventListener('toggle', scheduleSave));
   galleries.forEach((track) => track.addEventListener('scroll', scheduleSave, { passive: true }));

@@ -128,3 +128,14 @@ test('an observer failure releases every hidden component', async (t) => {
   setupReveals(Promise.reject(new Error('Storage disabled'))); await Promise.resolve();
   assert.ok(!visible.classes.has('reveal-pending') && !below.classes.has('reveal-pending'));
 });
+
+test('page-navigation entrances wait for the live document, then start together at the current viewport', async (t) => {
+  const { header, hero } = environment(t, { shell: true });
+  let finishPage;
+  window.__anekaBoot = { whenVisible: () => new Promise((resolve) => { finishPage = resolve; }) };
+  setupReveals(Promise.resolve()); await Promise.resolve();
+  assert.ok(hero.classes.has('reveal-pending'));
+  assert.ok(!header.classes.has('is-revealing') && !hero.classes.has('is-revealing'), 'Do not consume reveal time in a frozen navigation snapshot');
+  finishPage(); await Promise.resolve();
+  assert.ok(header.classes.has('is-revealing') && hero.classes.has('is-revealing'));
+});

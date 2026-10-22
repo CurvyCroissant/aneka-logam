@@ -8,24 +8,24 @@ interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
 ---
-<!-- Explicit roles preserve table semantics when the thumbnail view uses CSS grid. -->
+<!-- Keep the same rows and galleries when changing presentation. -->
 <table id="product-list" class="product-grid" data-product-list role="table" aria-labelledby="catalog-heading">
   <thead class="sr-only" role="rowgroup"><tr role="row">
     <th scope="col" role="columnheader" data-i18n="productColumn">{t.productColumn}</th>
-    <th scope="col" role="columnheader" data-i18n="categoryColumn">{t.categoryColumn}</th>
+    <th scope="col" role="columnheader" data-category-sort-header aria-sort="none"><span data-sort-fallback data-i18n="categoryColumn">{t.categoryColumn}</span><button type="button" tabindex="0" data-category-sort aria-label={t.sortCategoryAscending} data-i18n-aria-label="sortCategoryAscending" hidden><span data-i18n="categoryColumn">{t.categoryColumn}</span><span class="catalog-sort-icon" data-sort-icon aria-hidden="true">↕</span></button></th>
     <th scope="col" role="columnheader" data-i18n="descriptionColumn">{t.descriptionColumn}</th>
   </tr></thead>
-  <tbody role="rowgroup">
-  {company.products.map((product) => {
-    const category = company.categories.find((category) => category.id === product.category)!;
-    return <tr id={product.id} class="product-card catalog-card" role="row" data-product-category={product.category} data-reveal>
+  {company.categories.map((category) => <>
+    <tbody class="catalog-group-heading" data-catalog-group-heading={category.id} role="rowgroup"><tr role="row"><th id={`catalog-group-${category.id}`} scope="rowgroup" colspan={3} role="rowheader">{category.name}</th></tr></tbody>
+    <tbody id={`catalog-track-${category.id}`} class="catalog-group-track" data-catalog-track={category.id} data-category-track role="rowgroup" aria-labelledby={`catalog-group-${category.id}`}>
+    {company.products.filter((product) => product.category === category.id).map((product) => <tr id={product.id} class="product-card catalog-card" role="row" data-product-category={product.category} data-category-card data-reveal>
       <td class="catalog-product-cell" role="cell"><div class="catalog-product-inner">
         <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={category.imageKind} locale={locale} />
         <h2 class="catalog-product-name">{product.name}</h2>
       </div></td>
-      <td class="catalog-category-cell" role="cell"><span class="catalog-category-label" aria-hidden="true" data-i18n="categoryColumn">{t.categoryColumn}</span><span>{category.name}</span></td>
+      <td class="catalog-category-cell" role="cell"><span class="catalog-category-label">{category.name}</span></td>
       <td class="catalog-description-cell" role="cell"><p data-i18n={`product.${product.key}.summary`}>{product.summary[locale]}</p></td>
-    </tr>;
-  })}
-  </tbody>
+    </tr>)}
+    </tbody>
+  </>)}
 </table>

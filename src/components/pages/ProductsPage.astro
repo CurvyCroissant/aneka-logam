@@ -9,7 +9,7 @@ const { locale } = Astro.props;
 const t = copy(locale);
 ---
 <BaseLayout locale={locale} page="products" title={t.productsTitle} description={t.catalogDescription} paths={pagePaths('products')}>
-  <section id="products" class="section catalog-products" data-product-catalog data-catalog-view="thumbnails" aria-labelledby="catalog-heading" tabindex="-1">
+  <section id="products" class="section catalog-products" data-product-catalog data-catalog-view="thumbnails" data-category="all" aria-labelledby="catalog-heading" tabindex="-1">
     <div class="container">
       <div class="section-heading" data-reveal><h1 id="catalog-heading" lang="en" data-font-text>Products</h1><span class="section-rule" aria-hidden="true"></span></div>
       <div class="catalog-toolbar">
@@ -18,11 +18,11 @@ const t = copy(locale);
         {company.categories.map((category) => <button type="button" tabindex="0" data-product-filter={category.id} aria-pressed="false" aria-controls="product-list"><span>{category.name}</span><span class="category-count" aria-hidden="true">{company.products.filter((product) => product.category === category.id).length}</span></button>)}
       </div>
       <div class="catalog-views" role="group" aria-label={t.catalogView} data-i18n-aria-label="catalogView" data-catalog-views hidden>
-        <button type="button" tabindex="0" data-catalog-view-button="thumbnails" aria-pressed="true" aria-controls="product-list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span data-i18n="thumbnailView" data-i18n-size>{t.thumbnailView}</span></button>
-        <button type="button" tabindex="0" data-catalog-view-button="details" aria-pressed="false" aria-controls="product-list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M9 5h12M9 12h12M9 19h12M3 5h1M3 12h1M3 19h1"/></svg><span data-i18n="detailsView" data-i18n-size>{t.detailsView}</span></button>
+        <button type="button" tabindex="0" data-catalog-view-button="thumbnails" aria-pressed="true" aria-controls="product-list" aria-label={t.thumbnailView} data-i18n-aria-label="thumbnailView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+        <button type="button" tabindex="0" data-catalog-view-button="details" aria-pressed="false" aria-controls="product-list" aria-label={t.detailsView} data-i18n-aria-label="detailsView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M9 5h12M9 12h12M9 19h12M3 5h1M3 12h1M3 19h1"/></svg></button>
       </div>
       </div>
-      <div class="catalog-viewport" data-catalog-viewport><ProductList locale={locale} /></div>
+      <div class="catalog-viewport" data-catalog-viewport><div class="catalog-scroll" data-catalog-scroll role="region" aria-label={t.catalogView} data-i18n-aria-label="catalogView"><ProductList locale={locale} /></div></div>
     </div>
   </section>
 </BaseLayout>

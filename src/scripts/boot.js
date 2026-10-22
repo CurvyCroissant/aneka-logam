@@ -8,6 +8,7 @@
   let browserTransition = false;
   let pendingReturn;
   let returnAnimation;
+  let pageMotion = Promise.resolve();
   let pageRevision = 0;
   function previousEntry() {
     try {
@@ -42,6 +43,7 @@
         { translate: direction === 'back' ? '-100% 0' : '100% 0' }, { translate: '0 0' },
       ], { duration: parseFloat(style.getPropertyValue('--move-duration')) || 850, easing: style.getPropertyValue('--ease').trim() || 'ease-out' });
       returnAnimation = animation;
+      pageMotion = animation.finished.catch(() => {});
       void animation.finished.then(() => { if (returnAnimation === animation) returnAnimation = undefined; }, () => {});
     } catch { /* A skipped animation must never block history or restoration. */ }
   }
@@ -62,6 +64,7 @@
     browserTransition = false;
     rememberEntry();
     const transition = event.viewTransition;
+    pageMotion = transition?.finished?.catch(() => {}) ?? Promise.resolve();
     // Browser swipe animations already provide the visual return; do not double it.
     if (previous?.browserTransition) { transition?.skipTransition?.(); return; }
     const fallback = () => {
@@ -82,7 +85,7 @@
   document.addEventListener('aneka:before-navigation', cancelReturn);
   const url = location.pathname + location.search + location.hash;
   const navigation = performance.getEntriesByType('navigation')[0];
-  const valid = (saved) => saved?.version === 1 && saved.url === url && Number.isFinite(saved.x) && saved.x >= 0 && Number.isFinite(saved.y) && saved.y >= 0 && Array.isArray(saved.details) && saved.details.every((id) => typeof id === 'string') && (saved.category === undefined || typeof saved.category === 'string') && (saved.view === undefined || saved.view === 'thumbnails' || saved.view === 'details') && saved.galleries && typeof saved.galleries === 'object' && !Array.isArray(saved.galleries) && Object.values(saved.galleries).every((n) => Number.isInteger(n) && n >= 0);
+  const valid = (saved) => saved?.version === 1 && saved.url === url && Number.isFinite(saved.x) && saved.x >= 0 && Number.isFinite(saved.y) && saved.y >= 0 && Array.isArray(saved.details) && saved.details.every((id) => typeof id === 'string') && (saved.category === undefined || typeof saved.category === 'string') && (saved.view === undefined || saved.view === 'thumbnails' || saved.view === 'details') && (saved.categorySort === undefined || saved.categorySort === 'ascending' || saved.categorySort === 'descending') && saved.galleries && typeof saved.galleries === 'object' && !Array.isArray(saved.galleries) && Object.values(saved.galleries).every((n) => Number.isInteger(n) && n >= 0);
   let saved = history.state?.alScroll;
   if (!valid(saved)) {
     try { saved = JSON.parse(sessionStorage.getItem(`aneka-logam:scroll:${location.pathname}${location.search}`) || 'null'); } catch { /* Privacy setting. */ }
@@ -91,6 +94,7 @@
   let timer;
   const boot = {
     snapshot: restoring ? saved : undefined, restoring: Boolean(restoring), completed: false,
+    whenVisible() { return pageMotion; },
     finish() {
       this.completed = true; clearTimeout(timer); root.classList.remove('is-restoring');
       // Keep the shell readable if a later enhancement fails before reveal setup.

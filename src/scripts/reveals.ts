@@ -76,5 +76,15 @@ export function setupReveals(ready: Promise<unknown>) {
     complete(element);
   }, { capture: true });
   timeout = setTimeout(start, 10000);
-  void ready.then(start, start);
+  const afterRestoration = (restored: unknown = false) => {
+    // Let font skeletons work during startup, then hold entrances until the live
+    // document replaces the page-transition snapshot. Refresh has no such wait.
+    for (const element of pending) element.classList.add('reveal-pending');
+    try {
+      const motion = window.__anekaBoot?.whenVisible?.();
+      if (motion) { void motion.then(() => start(restored), () => start(restored)); return; }
+    } catch { /* Skipped transitions still reveal normally. */ }
+    start(restored);
+  };
+  void ready.then(afterRestoration, afterRestoration);
 }

@@ -48,7 +48,7 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
   const productsLink = new Element(); productsLink.dataset.pageLink = 'products'; productsLink.href = '/products/';
   const contactLink = new Element(); contactLink.dataset.pageLink = 'contact'; contactLink.href = '/#contact';
   const categoryLink = new Element(); categoryLink.dataset.categoryDestination = 'per'; categoryLink.href = '/products/#per';
-  const selectors = { '[data-remember-details]': [detail], '[data-gallery-track]': [gallery], '[data-i18n]': [heading, fixedHeading, offscreen], '[data-image-trigger]': [trigger], '[data-language-link]': [id, en, zh], 'a[href^="#"]': [sectionLink], '[data-page-link]': [homeLink, productsLink, contactLink], '[data-category-destination]': [categoryLink] };
+  const selectors = { '[data-remember-details]': [detail], '[data-gallery-track], [data-catalog-track]': [gallery], '[data-i18n]': [heading, fixedHeading, offscreen], '[data-image-trigger]': [trigger], '[data-language-link]': [id, en, zh], 'a[href^="#"]': [sectionLink], '[data-page-link]': [homeLink, productsLink, contactLink], '[data-category-destination]': [categoryLink] };
   const document = Object.assign(new EventTarget(), { documentElement: root, querySelectorAll: (s) => selectors[s] ?? [], querySelector: (s) => s === '.site-header' ? header : null, getElementById: (s) => ({ contact, springs, home, main })[s] ?? null });
   const location = { pathname: page === 'products' ? '/products/' : '/', search: '', hash, get href() { return `https://test.invalid${this.pathname}${this.search}${this.hash}`; } };
   const updateUrl = (url) => { const value = new URL(url, 'https://test.invalid'); Object.assign(location, { pathname: value.pathname, search: value.search, hash: value.hash }); };
@@ -217,7 +217,7 @@ test('catalog selection survives refresh, language changes and Back together wit
   const saved = { ...savedVisit, url: '/products/', category: 'as', y: 420.5 };
   const env = environment(t, { page: 'products', saved });
   let selection = 'all';
-  const catalog = { view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: () => undefined };
+  const catalog = { sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: () => undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   setupNavigation(memory, { matches: false });
   assert.equal(selection, 'as');
@@ -238,7 +238,7 @@ test('catalog selection survives refresh, language changes and Back together wit
 test('category entry takes priority over an older saved catalog visit and consumes its fragment', async (t) => {
   const env = environment(t, { page: 'products', navigation: 'navigate', hash: '#per', saved: { ...savedVisit, url: '/products/', y: 600 } });
   let selection = 'all';
-  const catalog = { view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: (id) => id === 'per' ? 'per' : undefined };
+  const catalog = { sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: (id) => id === 'per' ? 'per' : undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   assert.equal(selection, 'per');
   assert.equal(env.window.scrollY, 0, 'Category entries start with the filter controls in view');
@@ -332,7 +332,7 @@ for (const page of ['home', 'products']) test(`Mandarin switches in place on ${p
 test('catalog category links filter in place; the Products page link returns to All Products', async (t) => {
   const env = environment(t, { page: 'products', saved: { ...savedVisit, url: '/products/' } });
   let category = 'all';
-  const catalog = { view: () => 'thumbnails', setView: () => {}, current: () => category, select: (value) => { category = value; }, categoryForFragment: (id) => ['all', 'per'].includes(id) ? id : undefined };
+  const catalog = { sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => category, select: (value) => { category = value; }, categoryForFragment: (id) => ['all', 'per'].includes(id) ? id : undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   setupNavigation(memory, { matches: true });
   assert.equal(env.click(env.categoryLink).defaultPrevented, true);
@@ -369,7 +369,7 @@ test('catalog view is restored before scroll positioning and survives language h
   const saved = { ...savedVisit, url: '/products/', category: 'per', view: 'details', y: 420.25 };
   const env = environment(t, { page: 'products', saved });
   let category = 'all', view = 'thumbnails';
-  const catalog = { current: () => category, view: () => view, select: (next) => { category = next; }, setView: (next) => { view = next; }, categoryForFragment: () => undefined };
+  const catalog = { sort: () => 'none', setSort: () => {}, current: () => category, view: () => view, select: (next) => { category = next; }, setView: (next) => { view = next; }, categoryForFragment: () => undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   assert.equal(view, 'details');
   assert.equal(category, 'per');
@@ -383,4 +383,40 @@ test('catalog view is restored before scroll positioning and survives language h
   env.window.dispatchEvent(Object.assign(new Event('popstate'), { state: previous }));
   assert.equal(view, 'details');
   assert.equal(env.window.scrollY, 420.25);
+});
+
+
+test('refresh teardown cannot overwrite the final bottom position after pageswap or hidden-page resets', async (t) => {
+  const env = environment(t);
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  env.window.scrollY = 4300;
+  env.window.dispatchEvent(new Event('pageswap'));
+  env.window.scrollY = 0;
+  env.window.dispatchEvent(new Event('scrollend'));
+  env.window.dispatchEvent(new Event('pagehide'));
+  assert.equal(env.history.state.alScroll.y, 4300);
+  env.window.dispatchEvent(new Event('pageshow'));
+  env.window.scrollY = 200; memory.save();
+  assert.equal(env.history.state.alScroll.y, 200, 'A BFCache return resumes normal saving');
+});
+
+test('tab hiding freezes a stable visit; visible scrolling resumes after returning', async (t) => {
+  const env = environment(t);
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  env.window.scrollY = 4299.5;
+  document.visibilityState = 'hidden'; document.dispatchEvent(new Event('visibilitychange'));
+  env.window.scrollY = 0; env.window.dispatchEvent(new Event('pagehide'));
+  assert.equal(env.history.state.alScroll.y, 4299.5);
+  document.visibilityState = 'visible'; document.dispatchEvent(new Event('visibilitychange'));
+  memory.save(); assert.equal(env.history.state.alScroll.y, 0);
+});
+
+test('category sort order returns with the saved catalog view and pixels', async (t) => {
+  const saved = { ...savedVisit, url: '/products/', category: 'all', view: 'details', categorySort: 'ascending', y: 420.25 };
+  const env = environment(t, { page: 'products', saved });
+  let order = 'none';
+  const catalog = { current: () => 'all', view: () => 'details', sort: () => order, setSort: (next) => { order = next; }, setView: () => {}, select: () => {} };
+  const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
+  assert.equal(order, 'ascending'); assert.equal(env.window.scrollY, 420.25);
+  memory.save(); assert.equal(env.history.state.alScroll.categorySort, 'ascending');
 });

@@ -220,6 +220,10 @@ for (const [file, { name, nodes }] of pages) {
     for (const product of company.products) requireThat(nodes.some((node) => node.tagName === 'tr' && attr(node, 'id') === product.id && attr(node, 'data-product-category') === product.category && elements(node).some((child) => child.tagName === 'h2' && text(child) === product.name)), `${name}: ${product.name} must retain its category, untranslated name, and heading level below the catalog h1.`);
     const viewControls = nodes.filter((node) => attr(node, 'data-catalog-view-button') !== undefined);
     requireThat(viewControls.map((node) => attr(node, 'data-catalog-view-button')).join(',') === 'thumbnails,details', `${name}: both catalog views must be keyboard reachable.`);
+    for (const control of viewControls) requireThat(Boolean(attr(control, 'aria-label')) && !text(control).trim() && elements(control).some((node) => node.tagName === 'svg'), `${name}: catalog view buttons must use icons with localized accessible names.`);
+    const sorter = nodes.find((node) => node.tagName === 'button' && attr(node, 'data-category-sort') !== undefined);
+    requireThat(Boolean(sorter && attr(sorter, 'aria-label') && attr(sorter.parentNode, 'aria-sort') === 'none'), `${name}: Category sorting needs a labeled native button and column-header sort state.`);
+    for (const category of company.categories) requireThat(nodes.some((node) => node.tagName === 'tbody' && attr(node, 'data-catalog-track') === category.id && attr(node, 'aria-labelledby') === `catalog-group-${category.id}`), `${name}: ${category.name} needs a named category carousel row.`);
     const table = nodes.find((node) => node.tagName === 'table' && attr(node, 'data-product-list') !== undefined);
     requireThat(Boolean(table) && elements(table).filter((node) => node.tagName === 'th' && attr(node, 'scope') === 'col').length === 3, `${name}: the shared catalog must expose Product, Category and Description column headers.`);
     for (const product of company.products) {
