@@ -13,16 +13,20 @@ function environment(t, hash = '') {
   const cards = categories.map((category) => { const card = new Control(); card.id = category; card.dataset.productCategory = category; return card; });
   const buttons = ['all', ...categories].map((category) => { const button = new Control(); button.dataset.productFilter = category; return button; });
   const list = new Control(); list.items = cards;
+  let columns = 2, cardHeight = 200;
+  list.getBoundingClientRect = () => ({ height: Math.ceil(cards.filter((card) => !card.hidden).length / columns) * cardHeight });
+  const viewport = new Control(); viewport.style = {};
   const controls = new Control(); controls.items = buttons; controls.hidden = true;
-  const root = new Control(); root.children = { '[data-product-list]': list, '[data-product-filters]': controls };
+  const root = new Control(); root.children = { '[data-product-list]': list, '[data-product-filters]': controls, '[data-catalog-viewport]': viewport };
   const document = Object.assign(new EventTarget(), { querySelector: () => root, querySelectorAll: () => [] });
-  for (const [name, value] of Object.entries({ document, location: { hash } })) {
+  const window = new EventTarget();
+  for (const [name, value] of Object.entries({ document, window, location: { hash } })) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, name);
     Object.defineProperty(globalThis, name, { configurable: true, value });
     t.after(() => { if (previous) Object.defineProperty(globalThis, name, previous); else delete globalThis[name]; });
   }
   const catalog = setupProductCatalog({ matches: false });
-  return { catalog, cards, buttons, controls, document };
+  return { catalog, cards, buttons, controls, document, window, viewport, reflow: (count, height = cardHeight) => { columns = count; cardHeight = height; } };
 }
 
 test('All Products is the default and category buttons remove unrelated cards from layout', (t) => {
@@ -57,4 +61,29 @@ test('filter changes notify scroll memory once and retain card/image identity', 
   assert.equal(changes, 1);
   assert.equal(env.cards[3], original);
   assert.equal(original.hidden, false);
+});
+
+test('every filter reserves the All Products height without stretching or exposing hidden cards', (t) => {
+  const env = environment(t, '#per');
+  assert.equal(env.viewport.style.minBlockSize, '400px');
+  for (const category of ['shim-plate', 'kawat', 'as', 'all']) {
+    env.catalog.select(category);
+    assert.equal(env.viewport.style.minBlockSize, '400px');
+    assert.equal(env.cards.filter((card) => !card.hidden).length, category === 'all' ? 4 : 1);
+  }
+});
+
+test('reserved height follows responsive and translated text reflow, retaining the selected filter', (t) => {
+  const env = environment(t, '#per');
+  env.reflow(1);
+  env.window.dispatchEvent(new Event('resize'));
+  assert.equal(env.viewport.style.minBlockSize, '800px');
+  env.reflow(1, 250);
+  env.document.dispatchEvent(new Event('aneka:content-change'));
+  assert.equal(env.viewport.style.minBlockSize, '1000px');
+  assert.equal(env.catalog.current(), 'per');
+  assert.deepEqual(env.cards.map((card) => card.hidden), [true, false, true, true]);
+  env.reflow(2, 250);
+  env.window.dispatchEvent(new Event('resize'));
+  assert.equal(env.viewport.style.minBlockSize, '500px', 'A former narrow layout must not leave oversized empty space');
 });

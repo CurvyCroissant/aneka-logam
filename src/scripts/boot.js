@@ -2,6 +2,16 @@
 (() => {
   const root = document.documentElement;
   root.classList.add('js', 'fonts-loading');
+  // This listener must be registered in the blocking head script, before paint.
+  // Native history and BFCache remain in charge of document navigation.
+  window.addEventListener('pagereveal', (event) => {
+    if (!event.viewTransition) return;
+    const activation = window.navigation?.activation;
+    const from = activation?.from?.index;
+    const to = activation?.entry?.index;
+    const back = activation?.navigationType === 'traverse' && Number.isInteger(from) && Number.isInteger(to) && to >= 0 && from > to;
+    event.viewTransition.types?.add(back ? 'back' : 'forward');
+  });
   const url = location.pathname + location.search + location.hash;
   const navigation = performance.getEntriesByType('navigation')[0];
   const valid = (saved) => saved?.version === 1 && saved.url === url && Number.isFinite(saved.x) && saved.x >= 0 && Number.isFinite(saved.y) && saved.y >= 0 && Array.isArray(saved.details) && saved.details.every((id) => typeof id === 'string') && (saved.category === undefined || typeof saved.category === 'string') && saved.galleries && typeof saved.galleries === 'object' && !Array.isArray(saved.galleries) && Object.values(saved.galleries).every((n) => Number.isInteger(n) && n >= 0);
@@ -13,7 +23,11 @@
   let timer;
   const boot = {
     snapshot: restoring ? saved : undefined, restoring: Boolean(restoring), completed: false,
-    finish() { this.completed = true; clearTimeout(timer); root.classList.remove('is-restoring'); },
+    finish() {
+      this.completed = true; clearTimeout(timer); root.classList.remove('is-restoring');
+      // Keep the shell readable if a later enhancement fails before reveal setup.
+      root.classList.add('reveals-ready');
+    },
   };
   window.__anekaBoot = boot;
   try {

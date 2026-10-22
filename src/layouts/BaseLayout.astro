@@ -55,7 +55,7 @@ const shareImage = await getImage({ src: shareLogo, width: 1200, height: 1200, f
     <meta property="og:title" content={title} data-i18n-content={titleKey} />
     <meta property="og:description" content={description} data-i18n-content={descriptionKey} />
     {Astro.site && <meta property="og:image" content={new URL(shareImage.src, Astro.site)} />}
-    {Astro.site && <meta property="og:image:alt" content={`${company.name} logo`} />}
+    {Astro.site && <meta property="og:image:alt" content={t.logoAlt} data-i18n-content="logoAlt" />}
     {canonical && <meta property="og:url" content={canonical} />}
   </head>
   <body>

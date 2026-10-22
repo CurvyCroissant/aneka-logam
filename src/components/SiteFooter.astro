@@ -9,7 +9,8 @@ interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
 ---
-<footer class="site-footer" data-reveal>
+<div class="footer-reveal-frame">
+<footer class="site-footer" data-reveal="footer">
   <div class="container footer-inner">
     <nav class="footer-navigation" aria-label={t.pageNavigation} data-i18n-aria-label="pageNavigation">
       <ul class="nav-links">
@@ -25,3 +26,4 @@ const t = copy(locale);
     <small class="copyright">&copy; {new Date().getFullYear()} {company.name}</small>
   </div>
 </footer>
+</div>

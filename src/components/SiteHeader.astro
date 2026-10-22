@@ -11,7 +11,7 @@ const t = copy(locale);
 const isHome = Astro.url.pathname === pagePath(locale, 'home');
 const isProducts = Astro.url.pathname === pagePath(locale, 'products');
 ---
-<header class="site-header" data-reveal>
+<header class="site-header" data-reveal="header">
   <div class="container header-inner">
     <a class="wordmark" tabindex="0" data-brand-link data-page-link="home" href={pagePath(locale, 'home')} aria-label={`${company.name} — Home`}>
       <span class="logo-mark" data-image-loader data-image-state="loading" aria-hidden="true">

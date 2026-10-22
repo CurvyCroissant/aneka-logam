@@ -216,7 +216,7 @@ for (const [file, { name, nodes }] of pages) {
     const filters = nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-product-filter') !== undefined);
     requireThat(filters.length === company.categories.length + 1 && attr(filters[0], 'data-product-filter') === 'all' && attr(filters[0], 'aria-pressed') === 'true', `${name}: All Products must be the first, default category filter.`);
     for (const category of company.categories) requireThat(filters.some((node) => attr(node, 'data-product-filter') === category.id && attr(node, 'aria-pressed') === 'false'), `${name}: missing ${category.name} filter button.`);
-    for (const product of company.products) requireThat(nodes.some((node) => node.tagName === 'li' && attr(node, 'id') === product.id && attr(node, 'data-product-category') === product.category && elements(node).some((child) => child.tagName === 'h3' && text(child) === product.name)), `${name}: ${product.name} must retain its category and untranslated name.`);
+    for (const product of company.products) requireThat(nodes.some((node) => node.tagName === 'li' && attr(node, 'id') === product.id && attr(node, 'data-product-category') === product.category && elements(node).some((child) => child.tagName === 'h2' && text(child) === product.name)), `${name}: ${product.name} must retain its category, untranslated name, and heading level below the catalog h1.`);
   }
   requireThat(nodes.filter((node) => attr(node, 'data-gallery') !== undefined).length === (homePage ? 1 : productsPage ? company.products.length : 0), `${name}: reserve a gallery for each catalog product and the home storefront.`);
   const robotsMeta = nodes.find((node) => attr(node, 'name') === 'robots');

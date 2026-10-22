@@ -62,6 +62,7 @@ export function applyLocale(locale: Locale) {
   }
   const status = document.querySelector('[data-copy-status]');
   if (status) status.textContent = '';
+  document.dispatchEvent(new Event('aneka:content-change'));
   return changed;
 }
 

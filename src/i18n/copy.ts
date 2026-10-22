@@ -1,9 +1,11 @@
 import type { Locale } from './routes';
+import { company } from '../config/company.ts';
 
 const id = {
   home: 'Home',
   products: 'Products',
   contact: 'Contact',
+  logoAlt: `Logo ${company.name}`,
   mainNavigation: 'Navigasi utama',
   homeSections: 'Navigasi Halaman Home',
   productSections: 'Kategori Halaman Products',
@@ -48,6 +50,7 @@ const en: typeof id = {
   home: 'Home',
   products: 'Products',
   contact: 'Contact',
+  logoAlt: `${company.name} logo`,
   mainNavigation: 'Main navigation',
   homeSections: 'Home Page Sections',
   productSections: 'Products Page Categories',
@@ -68,8 +71,8 @@ const en: typeof id = {
   imageError: 'Image could not be loaded',
   previewFailed: 'Preview could not be loaded. Please try again.',
   closeImageHint: 'Click outside the image or press Escape to close.',
-  productPhotoPending: 'Product photos coming soon',
-  storePhotoPending: 'Store photo coming soon',
+  productPhotoPending: 'Product photos not yet available',
+  storePhotoPending: 'Store photos not yet available',
   previousPhoto: 'Previous photo',
   nextPhoto: 'Next photo',
   productPhotos: 'Product Photos',
@@ -92,6 +95,7 @@ const zh: typeof id = {
   home: 'Home',
   products: 'Products',
   contact: 'Contact',
+  logoAlt: `${company.name} 标志`,
   mainNavigation: '主导航',
   homeSections: 'Home 页面分区',
   productSections: 'Products 页面分类',

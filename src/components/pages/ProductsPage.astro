@@ -16,7 +16,7 @@ const t = copy(locale);
         <button type="button" tabindex="0" data-product-filter="all" aria-pressed="true" aria-controls="product-list"><span data-i18n="allProducts">{t.allProducts}</span><span class="category-count" aria-hidden="true">{company.products.length}</span></button>
         {company.categories.map((category) => <button type="button" tabindex="0" data-product-filter={category.id} aria-pressed="false" aria-controls="product-list"><span>{category.name}</span><span class="category-count" aria-hidden="true">{company.products.filter((product) => product.category === category.id).length}</span></button>)}
       </div>
-      <ProductList locale={locale} />
+      <div class="catalog-viewport" data-catalog-viewport><ProductList locale={locale} /></div>
     </div>
   </section>
 </BaseLayout>

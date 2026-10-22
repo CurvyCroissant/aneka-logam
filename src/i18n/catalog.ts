@@ -2,7 +2,11 @@ import { copy } from './copy.ts';
 import { company } from '../config/company.ts';
 import type { Locale } from './routes';
 
-export function catalog(locale: Locale): Record<string, string> {
+const catalogs = new Map<Locale, Readonly<Record<string, string>>>();
+
+export function catalog(locale: Locale): Readonly<Record<string, string>> {
+  const cached = catalogs.get(locale);
+  if (cached) return cached;
   const result: Record<string, string> = {};
   function flatten(object: object, prefix = '') {
     for (const [key, value] of Object.entries(object)) {
@@ -17,5 +21,7 @@ export function catalog(locale: Locale): Record<string, string> {
   for (const product of company.products) {
     result[`product.${product.key}.summary`] = product.summary[locale];
   }
-  return result;
+  const values = Object.freeze(result);
+  catalogs.set(locale, values);
+  return values;
 }

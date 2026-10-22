@@ -11,7 +11,7 @@ const { locale } = Astro.props;
     <li id={product.id} class="product-card catalog-card" data-product-category={product.category} data-reveal data-reveal-order={index % 2}>
       <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={company.categories.find((category) => category.id === product.category)!.imageKind} locale={locale} />
       <div class="product-copy">
-        <div class="product-title"><h3>{product.name}</h3><span class="product-index" aria-hidden="true">0{index + 1}</span></div>
+        <div class="product-title"><h2>{product.name}</h2><span class="product-index" aria-hidden="true">0{index + 1}</span></div>
         <p data-i18n={`product.${product.key}.summary`}>{product.summary[locale]}</p>
       </div>
     </li>
