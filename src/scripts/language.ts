@@ -84,8 +84,8 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
   function finish() {
     memory.save();
     document.dispatchEvent(new Event('aneka:location-change'));
-    requestAnimationFrame(() => root.classList.remove('is-localizing'));
   }
+  const settled = () => root.classList.remove('is-localizing');
   for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-language-link]')) {
     link.addEventListener('click', (event) => {
       if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
@@ -103,7 +103,7 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
         }
         memory.position(previous.x, previous.y);
         finish();
-      });
+      }, true, settled);
     });
   }
   for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
@@ -157,6 +157,6 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
       else memory.position(0, 0);
       memory.cleanUrl();
       finish();
-    }, false);
+    }, false, settled);
   });
 }

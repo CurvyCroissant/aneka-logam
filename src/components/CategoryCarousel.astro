@@ -10,10 +10,10 @@ const t = copy(locale);
 ---
 <div class="category-carousel" data-category-carousel data-reveal>
   <ul id="category-carousel-track" class="category-track" data-category-track data-gallery-track aria-label={t.productCategories} data-i18n-aria-label="productCategories">
-    {company.categories.map((category, index) => (
+    {company.categories.map((category) => (
       <li class="category-card" data-category-card>
         <a class="category-card-link" tabindex="0" href={categoryPath(locale, category)} data-category-destination={category.id}>
-          <div class="category-visual" aria-hidden="true"><ProductSketch kind={category.imageKind} /><span class="category-index">0{index + 1}</span></div>
+          <div class="category-visual" aria-hidden="true"><ProductSketch kind={category.imageKind} /></div>
           <div class="category-copy">
             <h3>{category.name}</h3>
             <p data-i18n={`category.${category.key}.summary`}>{category.summary[locale]}</p>

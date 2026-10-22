@@ -6,6 +6,7 @@ export interface ScrollSnapshot {
   details: string[];
   galleries: Record<string, number>;
   category?: string;
+  view?: 'thumbnails' | 'details';
 }
 
 type StorageReader = Pick<Storage, 'getItem'>;
@@ -25,6 +26,7 @@ export function parseScrollSnapshot(input: unknown): ScrollSnapshot | undefined 
     if (!value.galleries || typeof value.galleries !== 'object' || Array.isArray(value.galleries)) return;
     if (!Object.values(value.galleries).every((n) => typeof n === 'number' && Number.isInteger(n) && n >= 0)) return;
     if (value.category !== undefined && typeof value.category !== 'string') return;
+    if (value.view !== undefined && value.view !== 'thumbnails' && value.view !== 'details') return;
     return value as ScrollSnapshot;
   } catch { return; }
 }

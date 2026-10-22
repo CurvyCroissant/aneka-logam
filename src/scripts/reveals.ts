@@ -5,35 +5,16 @@ export function setupReveals(ready: Promise<unknown>) {
   const pending = new Set(elements);
   const running = new Map<HTMLElement, () => void>();
   const header = elements.find((element) => element.dataset.reveal === 'header');
-  const hero = elements.find((element) => element.dataset.reveal === 'hero');
-  let headerFinished = !header;
-  let heroWaiting = false;
   let observer: IntersectionObserver | undefined;
   let started = false;
-  let released = false;
   let timeout: ReturnType<typeof setTimeout> | undefined;
-  const inset = Math.min(180, Math.round(innerHeight * 0.18));
 
   function visible(element: HTMLElement) {
     const bounds = element.getBoundingClientRect();
-    return bounds.top < innerHeight - inset && bounds.bottom > 0;
-  }
-  function finishHeader() {
-    headerFinished = true;
-    if (heroWaiting && hero && !released) {
-      heroWaiting = false;
-      if (visible(hero)) reveal(hero);
-      else observer?.observe(hero);
-    }
+    return bounds.top < innerHeight && bounds.bottom > 0 && bounds.left < innerWidth && bounds.right > 0;
   }
   function reveal(element: HTMLElement) {
     if (!pending.has(element)) return;
-    if (element === hero && !headerFinished) {
-      heroWaiting = true;
-      // The hero cannot overtake the full header entrance.
-      if (header) reveal(header);
-      return;
-    }
     pending.delete(element);
     observer?.unobserve(element);
     if (!pending.size) observer?.disconnect();
@@ -46,7 +27,6 @@ export function setupReveals(ready: Promise<unknown>) {
       element.classList.remove('is-revealing', 'reveal-still');
       element.removeEventListener('animationend', onEnd);
       element.removeEventListener('animationcancel', onEnd);
-      if (element === header) finishHeader();
     };
     const onEnd = (event: Event) => { if (event.target === element) finish(); };
     running.set(element, finish);
@@ -61,10 +41,8 @@ export function setupReveals(ready: Promise<unknown>) {
     observer?.unobserve(element);
     element.classList.remove('reveal-pending', 'reveal-still');
     running.get(element)?.();
-    if (element === header && !headerFinished) finishHeader();
   }
   function release() {
-    released = true;
     observer?.disconnect();
     for (const element of pending) element.classList.remove('reveal-pending', 'reveal-still');
     pending.clear();
@@ -77,11 +55,11 @@ export function setupReveals(ready: Promise<unknown>) {
     clearTimeout(timeout);
     try {
       // Read layout once before changing classes; do not alternate reads/writes.
-      const initiallyVisible = [...pending].filter(visible);
+      const initiallyVisible = [...pending].filter((element) => element === header || visible(element));
       for (const element of pending) element.classList.add('reveal-pending');
       observer = new IntersectionObserver((entries) => {
         for (const entry of entries) if (entry.isIntersecting) reveal(entry.target as HTMLElement);
-      }, { threshold: 0, rootMargin: `0px 0px -${inset}px 0px` });
+      }, { threshold: 0, rootMargin: '0px' });
       for (const element of initiallyVisible) {
         if (restored === true) element.classList.add('reveal-still');
         reveal(element);
@@ -95,7 +73,6 @@ export function setupReveals(ready: Promise<unknown>) {
     const element = event.target.closest<HTMLElement>('[data-reveal]');
     if (!element) return;
     // A focused control must be visible immediately, even during shell motion.
-    if (element === hero && header) complete(header);
     complete(element);
   }, { capture: true });
   timeout = setTimeout(start, 10000);

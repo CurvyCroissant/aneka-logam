@@ -23,7 +23,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>, catalog?: Produc
       version: 1, url: currentUrl(), x: Math.max(0, scrollX), y: Math.max(0, scrollY),
       details: details.filter((element) => element.dataset.expanded === 'true' || (element.dataset.expanded !== 'false' && element.open)).map((element) => element.id),
       galleries: Object.fromEntries(galleries.map((track) => [track.id, track.dataset.categoryTrack !== undefined ? carouselIndex(track) : Math.max(0, Math.round(track.scrollLeft / Math.max(1, track.clientWidth)))])),
-      ...(catalog ? { category: catalog.current() } : {}),
+      ...(catalog ? { category: catalog.current(), view: catalog.view() } : {}),
     };
   }
   function save() {
@@ -35,6 +35,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>, catalog?: Produc
   }
   function scheduleSave() { if (ready && saveTimer === undefined) saveTimer = setTimeout(save, 400); }
   function setDetails(snapshot: ScrollSnapshot) {
+    if (catalog && snapshot.view) catalog.setView(snapshot.view);
     catalog?.select(snapshot.category ?? 'all');
     details.forEach((element) => { element.open = snapshot.details.includes(element.id); });
     for (const track of galleries) {
@@ -60,7 +61,7 @@ export function setupScrollMemory(fontsReady: Promise<unknown>, catalog?: Produc
     if (category) { catalog!.select(category); position(0, 0); }
     else { const target = document.getElementById(id); if (target) scrollToSection(target); }
   }
-  function push(url: string, snapshot = capture()) { history.pushState({ alScroll: { ...snapshot, url } }, '', url); }
+  function push(url: string, snapshot = capture()) { history.pushState({ ...history.state, alEntry: (Number.isSafeInteger(history.state?.alEntry) ? history.state.alEntry : 0) + 1, alScroll: { ...snapshot, url } }, '', url); }
   function cleanUrl() {
     if (!location.hash) return;
     const url = `${location.pathname}${location.search}`;

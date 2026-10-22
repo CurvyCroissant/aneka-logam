@@ -86,6 +86,8 @@ function scheduleNavigation() {
 
 function updateHeader() {
   headerHeight = header?.offsetHeight ?? 0;
+  // Enlarged text must not turn a sticky header into a viewport-sized obstruction.
+  header?.toggleAttribute('data-header-flow', headerHeight > innerHeight * 0.45);
   const sticky = header && getComputedStyle(header).position === 'sticky';
   document.documentElement.style.setProperty('--header-height', `${sticky ? headerHeight : 0}px`);
   scheduleNavigation();

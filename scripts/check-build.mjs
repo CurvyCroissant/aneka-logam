@@ -209,6 +209,7 @@ for (const [file, { name, nodes }] of pages) {
     requireThat(owners.map((node) => text(node).trim()).join(',') === 'Budiyanto,Delinah', `${name}: show each owner on a separate row.`);
     requireThat(nodes.some((node) => node.tagName === 'h3' && text(node).trim() === catalog(language).owners), `${name}: use the confirmed owner heading.`);
   }
+  requireThat(!nodes.some((node) => /(?:^| )(?:category-index|product-index|section-number)(?: |$)/.test(attr(node, 'class') ?? '')), `${name}: decorative item/section identifiers were removed.`);
   requireThat(!nodes.some((node) => attr(node, 'data-i18n') === 'rangeNote'), `${name}: the removed availability note must not return.`);
   if (productsPage) {
     const main = nodes.find((node) => node.tagName === 'main');
@@ -216,7 +217,17 @@ for (const [file, { name, nodes }] of pages) {
     const filters = nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-product-filter') !== undefined);
     requireThat(filters.length === company.categories.length + 1 && attr(filters[0], 'data-product-filter') === 'all' && attr(filters[0], 'aria-pressed') === 'true', `${name}: All Products must be the first, default category filter.`);
     for (const category of company.categories) requireThat(filters.some((node) => attr(node, 'data-product-filter') === category.id && attr(node, 'aria-pressed') === 'false'), `${name}: missing ${category.name} filter button.`);
-    for (const product of company.products) requireThat(nodes.some((node) => node.tagName === 'li' && attr(node, 'id') === product.id && attr(node, 'data-product-category') === product.category && elements(node).some((child) => child.tagName === 'h2' && text(child) === product.name)), `${name}: ${product.name} must retain its category, untranslated name, and heading level below the catalog h1.`);
+    for (const product of company.products) requireThat(nodes.some((node) => node.tagName === 'tr' && attr(node, 'id') === product.id && attr(node, 'data-product-category') === product.category && elements(node).some((child) => child.tagName === 'h2' && text(child) === product.name)), `${name}: ${product.name} must retain its category, untranslated name, and heading level below the catalog h1.`);
+    const viewControls = nodes.filter((node) => attr(node, 'data-catalog-view-button') !== undefined);
+    requireThat(viewControls.map((node) => attr(node, 'data-catalog-view-button')).join(',') === 'thumbnails,details', `${name}: both catalog views must be keyboard reachable.`);
+    const table = nodes.find((node) => node.tagName === 'table' && attr(node, 'data-product-list') !== undefined);
+    requireThat(Boolean(table) && elements(table).filter((node) => node.tagName === 'th' && attr(node, 'scope') === 'col').length === 3, `${name}: the shared catalog must expose Product, Category and Description column headers.`);
+    for (const product of company.products) {
+      const row = nodes.find((node) => attr(node, 'id') === product.id && attr(node, 'data-product-category') !== undefined);
+      const category = company.categories.find((category) => category.id === product.category);
+      requireThat(elements(row).some((node) => attr(node, 'class') === 'catalog-category-cell' && text(node).includes(category.name)), `${name}: ${product.name} must show its category in both views.`);
+    }
+
   }
   requireThat(nodes.filter((node) => attr(node, 'data-gallery') !== undefined).length === (homePage ? 1 : productsPage ? company.products.length : 0), `${name}: reserve a gallery for each catalog product and the home storefront.`);
   const robotsMeta = nodes.find((node) => attr(node, 'name') === 'robots');

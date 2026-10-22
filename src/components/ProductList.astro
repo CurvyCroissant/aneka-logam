@@ -1,19 +1,31 @@
 ---
 import { company } from '../config/company';
 import { productPhotos } from '../config/media';
+import { copy } from '../i18n/copy';
 import type { Locale } from '../i18n/routes';
 import MediaGallery from './MediaGallery.astro';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
+const t = copy(locale);
 ---
-<ul id="product-list" class="product-grid" data-product-list>
-  {company.products.map((product, index) => (
-    <li id={product.id} class="product-card catalog-card" data-product-category={product.category} data-reveal data-reveal-order={index % 2}>
-      <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={company.categories.find((category) => category.id === product.category)!.imageKind} locale={locale} />
-      <div class="product-copy">
-        <div class="product-title"><h2>{product.name}</h2><span class="product-index" aria-hidden="true">0{index + 1}</span></div>
-        <p data-i18n={`product.${product.key}.summary`}>{product.summary[locale]}</p>
-      </div>
-    </li>
-  ))}
-</ul>
+<!-- Explicit roles preserve table semantics when the thumbnail view uses CSS grid. -->
+<table id="product-list" class="product-grid" data-product-list role="table" aria-labelledby="catalog-heading">
+  <thead class="sr-only" role="rowgroup"><tr role="row">
+    <th scope="col" role="columnheader" data-i18n="productColumn">{t.productColumn}</th>
+    <th scope="col" role="columnheader" data-i18n="categoryColumn">{t.categoryColumn}</th>
+    <th scope="col" role="columnheader" data-i18n="descriptionColumn">{t.descriptionColumn}</th>
+  </tr></thead>
+  <tbody role="rowgroup">
+  {company.products.map((product) => {
+    const category = company.categories.find((category) => category.id === product.category)!;
+    return <tr id={product.id} class="product-card catalog-card" role="row" data-product-category={product.category} data-reveal>
+      <td class="catalog-product-cell" role="cell"><div class="catalog-product-inner">
+        <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={category.imageKind} locale={locale} />
+        <h2 class="catalog-product-name">{product.name}</h2>
+      </div></td>
+      <td class="catalog-category-cell" role="cell"><span class="catalog-category-label" aria-hidden="true" data-i18n="categoryColumn">{t.categoryColumn}</span><span>{category.name}</span></td>
+      <td class="catalog-description-cell" role="cell"><p data-i18n={`product.${product.key}.summary`}>{product.summary[locale]}</p></td>
+    </tr>;
+  })}
+  </tbody>
+</table>

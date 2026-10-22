@@ -217,7 +217,7 @@ test('catalog selection survives refresh, language changes and Back together wit
   const saved = { ...savedVisit, url: '/products/', category: 'as', y: 420.5 };
   const env = environment(t, { page: 'products', saved });
   let selection = 'all';
-  const catalog = { current: () => selection, select: (value) => { selection = value; }, categoryForFragment: () => undefined };
+  const catalog = { view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: () => undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   setupNavigation(memory, { matches: false });
   assert.equal(selection, 'as');
@@ -238,7 +238,7 @@ test('catalog selection survives refresh, language changes and Back together wit
 test('category entry takes priority over an older saved catalog visit and consumes its fragment', async (t) => {
   const env = environment(t, { page: 'products', navigation: 'navigate', hash: '#per', saved: { ...savedVisit, url: '/products/', y: 600 } });
   let selection = 'all';
-  const catalog = { current: () => selection, select: (value) => { selection = value; }, categoryForFragment: (id) => id === 'per' ? 'per' : undefined };
+  const catalog = { view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: (id) => id === 'per' ? 'per' : undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   assert.equal(selection, 'per');
   assert.equal(env.window.scrollY, 0, 'Category entries start with the filter controls in view');
@@ -332,7 +332,7 @@ for (const page of ['home', 'products']) test(`Mandarin switches in place on ${p
 test('catalog category links filter in place; the Products page link returns to All Products', async (t) => {
   const env = environment(t, { page: 'products', saved: { ...savedVisit, url: '/products/' } });
   let category = 'all';
-  const catalog = { current: () => category, select: (value) => { category = value; }, categoryForFragment: (id) => ['all', 'per'].includes(id) ? id : undefined };
+  const catalog = { view: () => 'thumbnails', setView: () => {}, current: () => category, select: (value) => { category = value; }, categoryForFragment: (id) => ['all', 'per'].includes(id) ? id : undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   setupNavigation(memory, { matches: true });
   assert.equal(env.click(env.categoryLink).defaultPrevented, true);
@@ -342,4 +342,45 @@ test('catalog category links filter in place; the Products page link returns to 
   assert.equal(env.history.state.alScroll.category, 'per');
   env.click(env.productsLink);
   assert.equal(category, 'all');
+});
+
+test('text-sized controls resize horizontally during the incoming language wipe', async (t) => {
+  const env = environment(t, { motion: 'manual' });
+  env.heading.dataset.i18nSize = '';
+  env.heading.getBoundingClientRect = () => ({ width: env.heading.textContent.length * 10, height: 24, top: 100, bottom: 124 });
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  setupNavigation(memory, { matches: false });
+  env.click(env.en);
+  const outgoing = env.heading.animations[0];
+  assert.equal(outgoing.frames[0].inlineSize, '70px');
+  outgoing.finish(); await flush();
+  const incoming = env.heading.animations[1];
+  assert.equal(incoming.frames[0].inlineSize, '70px');
+  assert.equal(incoming.frames[1].inlineSize, '60px');
+  assert.equal(incoming.options.duration, 425);
+  assert.equal(incoming.frames[0].clipPath, 'inset(0 100% 0 0)');
+  assert.ok(env.root.classes.has('is-localizing'), 'Keep scroll anchoring paused throughout the live resize');
+  incoming.finish(); await flush();
+  assert.ok(incoming.cancelled, 'Release the width constraint when the wipe finishes');
+  assert.ok(!env.root.classes.has('is-localizing'));
+});
+
+test('catalog view is restored before scroll positioning and survives language history', async (t) => {
+  const saved = { ...savedVisit, url: '/products/', category: 'per', view: 'details', y: 420.25 };
+  const env = environment(t, { page: 'products', saved });
+  let category = 'all', view = 'thumbnails';
+  const catalog = { current: () => category, view: () => view, select: (next) => { category = next; }, setView: (next) => { view = next; }, categoryForFragment: () => undefined };
+  const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
+  assert.equal(view, 'details');
+  assert.equal(category, 'per');
+  assert.equal(env.window.scrollY, 420.25);
+  setupNavigation(memory, { matches: false });
+  const previous = env.history.state;
+  env.click(env.en);
+  assert.equal(env.history.state.alScroll.view, 'details');
+  view = 'thumbnails'; memory.save();
+  env.updateUrl('/products/'); env.history.state = previous;
+  env.window.dispatchEvent(Object.assign(new Event('popstate'), { state: previous }));
+  assert.equal(view, 'details');
+  assert.equal(env.window.scrollY, 420.25);
 });

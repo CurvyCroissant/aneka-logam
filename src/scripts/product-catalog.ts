@@ -1,8 +1,11 @@
 import { fragmentId } from '../lib/scroll-memory.ts';
 import { motionTiming } from '../lib/motion.ts';
 
+export type CatalogView = 'thumbnails' | 'details';
 export interface ProductCatalog {
   current(): string;
+  view(): CatalogView;
+  setView(view: CatalogView, animate?: boolean): void;
   select(category: string, animate?: boolean): void;
   categoryForFragment(fragment: string): string | undefined;
 }
@@ -12,13 +15,34 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
   const list = catalog?.querySelector<HTMLElement>('[data-product-list]');
   const viewport = catalog?.querySelector<HTMLElement>('[data-catalog-viewport]');
   const controls = catalog?.querySelector<HTMLElement>('[data-product-filters]');
+  const views = catalog?.querySelector<HTMLElement>('[data-catalog-views]');
   if (!catalog || !list || !controls) return;
   const cards = [...list.querySelectorAll<HTMLElement>('[data-product-category]')];
   const buttons = [...controls.querySelectorAll<HTMLButtonElement>('[data-product-filter]')];
   const categories = new Set(buttons.map((button) => button.dataset.productFilter));
+  const viewButtons = [...(views?.querySelectorAll<HTMLButtonElement>('[data-catalog-view-button]') ?? [])];
   let selected = 'all';
+  let view: CatalogView = 'thumbnails';
   let animation: Animation | undefined;
   let reservedHeight = 0;
+
+  function animateList() {
+    animation?.cancel();
+    if (typeof list!.animate !== 'function') return;
+    try {
+      animation = list!.animate(motion.matches ? [{ opacity: 0.3 }, { opacity: 1 }] : [{ opacity: 0.3, translate: '0 18px' }, { opacity: 1, translate: '0 0' }], motionTiming('move', motion));
+    } catch { /* The chosen view/filter remains available without animation. */ }
+  }
+  function setView(next: CatalogView, animate = false) {
+    const changed = next !== view;
+    view = next === 'details' ? 'details' : 'thumbnails';
+    catalog!.dataset.catalogView = view;
+    list!.querySelector('thead')?.classList.toggle('sr-only', view === 'thumbnails');
+    for (const button of viewButtons) button.setAttribute('aria-pressed', String(button.dataset.catalogViewButton === view));
+    sizeToAllProducts();
+    try { window.localStorage?.setItem('aneka-logam:catalog-view', view); } catch { /* Private browsing can disable preference storage. */ }
+    if (changed && animate) animateList();
+  }
 
   function sizeToAllProducts() {
     if (!viewport) return;
@@ -51,15 +75,14 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
       else link.removeAttribute('aria-current');
     }
     catalog!.dataset.category = next;
-    if (animate && changed && typeof list!.animate === 'function') {
-      try {
-        animation = list!.animate(motion.matches ? [{ opacity: 0.3 }, { opacity: 1 }] : [{ opacity: 0.3, translate: '0 18px' }, { opacity: 1, translate: '0 0' }], motionTiming('move', motion));
-      } catch { /* Filtering remains immediate when animation is unavailable. */ }
-    }
+    if (animate && changed) animateList();
   }
-  sizeToAllProducts();
+  let preference: CatalogView = 'thumbnails';
+  try { if (window.localStorage?.getItem('aneka-logam:catalog-view') === 'details') preference = 'details'; } catch { /* Use the default when storage is unavailable. */ }
+  setView(preference);
   select(categoryForFragment(fragmentId(location.hash)) ?? 'all');
   controls.hidden = false;
+  if (views) views.hidden = false;
   // Font/text reflow, viewport changes and translations can alter the All layout.
   let observing = false;
   try {
@@ -70,11 +93,18 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
   } catch { /* Resize events remain available if an observer cannot be created. */ }
   if (!observing) window.addEventListener('resize', sizeToAllProducts, { passive: true });
   document.addEventListener('aneka:content-change', sizeToAllProducts);
+  for (const button of viewButtons) button.addEventListener('click', () => {
+    const next = button.dataset.catalogViewButton;
+    if ((next !== 'thumbnails' && next !== 'details') || next === view) return;
+    document.dispatchEvent(new Event('aneka:before-navigation'));
+    setView(next, true);
+    document.dispatchEvent(new Event('aneka:catalog-change'));
+  });
   for (const button of buttons) button.addEventListener('click', () => {
     if (button.dataset.productFilter === selected) return;
     document.dispatchEvent(new Event('aneka:before-navigation'));
     select(button.dataset.productFilter ?? 'all', true);
     document.dispatchEvent(new Event('aneka:catalog-change'));
   });
-  return { current: () => selected, select, categoryForFragment };
+  return { current: () => selected, view: () => view, setView, select, categoryForFragment };
 }

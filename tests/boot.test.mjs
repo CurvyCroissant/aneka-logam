@@ -5,13 +5,17 @@ import { readFileSync } from 'node:fs';
 const code = readFileSync(new URL('../src/scripts/boot.js', import.meta.url), 'utf8');
 const snapshot = { version: 1, url: '/#contact', x: 0, y: 1267, details: ['details-spring'], galleries: {} };
 
-function boot({ type = 'reload', stored = snapshot, state, blocked = false, hash = '#contact' } = {}) {
+function boot({ type = 'reload', stored = snapshot, state, blocked = false, hash = '#contact', activeEntry, legacy = false, reduced = false } = {}) {
   const classes = new Set(), replaced = [], timers = new Map();
-  const document = { documentElement: { classList: { add: (...names) => names.forEach((n) => classes.add(n)), remove: (...names) => names.forEach((n) => classes.delete(n)) } } };
+  const animations = [];
+  const document = Object.assign(new EventTarget(), { documentElement: { dataset: {}, classList: { add: (...names) => names.forEach((n) => classes.add(n)), remove: (...names) => names.forEach((n) => classes.delete(n)) } }, body: { animate(frames, options) { let finish; const animation = { frames, options, cancelled: false, finished: new Promise((resolve) => { finish = resolve; }), cancel() { this.cancelled = true; finish(); } }; animations.push(animation); return animation; } } });
   const history = { scrollRestoration: 'auto', state, replaceState: (s, unused, url) => { replaced.push(url); history.state = s; } };
   const window = new EventTarget();
-  vm.runInNewContext(code, { document, history, window, location: { pathname: '/', search: '', hash }, performance: { getEntriesByType: () => [{ type }] }, sessionStorage: { getItem: () => { if (blocked) throw new Error('Blocked'); return JSON.stringify(stored); } }, setTimeout: (fn) => { timers.set(1, fn); return 1; }, clearTimeout: (id) => timers.delete(id) });
-  return { classes, replaced, history, window, timers };
+  if (!legacy) window.onpagereveal = null;
+  window.matchMedia = () => ({ matches: reduced });
+  const data = new Map(); if (activeEntry) data.set('aneka-logam:active-entry', JSON.stringify(activeEntry));
+  vm.runInNewContext(code, { document, history, window, location: { pathname: '/', search: '', hash }, performance: { getEntriesByType: () => [{ type }] }, getComputedStyle: () => ({ getPropertyValue: (key) => key === '--move-duration' ? '850ms' : 'ease-out' }), sessionStorage: { getItem: (key) => { if (blocked) throw new Error('Blocked'); return key === 'aneka-logam:active-entry' ? data.get(key) ?? null : JSON.stringify(stored); }, setItem: (key, value) => { if (blocked) throw new Error('Blocked'); data.set(key, value); } }, setTimeout: (fn) => { timers.set(1, fn); return 1; }, clearTimeout: (id) => timers.delete(id) });
+  return { classes, replaced, history, window, timers, document, animations };
 }
 
 test('saved reload removes the stale contact hash before parsing and takes one scroll owner', () => {
@@ -80,4 +84,53 @@ test('direction is refreshed on BFCache returns and degrades safely without new 
   assert.deepEqual(reveal(), ['forward']);
   window.dispatchEvent(Object.assign(new Event('pagereveal'), { viewTransition: {} }));
   window.dispatchEvent(new Event('pagereveal'));
+});
+
+test('history returns without a native view transition animate after scroll/font restoration', () => {
+  const env = boot({ type: 'back_forward', state: { alScroll: snapshot, alEntry: 1 }, activeEntry: { position: 2 } });
+  env.window.dispatchEvent(new Event('pagereveal'));
+  assert.equal(env.document.documentElement.dataset.pageDirection, 'back');
+  assert.equal(env.animations.length, 0, 'Restore the real view before animating it');
+  env.window.__anekaBoot.finish();
+  assert.equal(env.animations.length, 1);
+  assert.equal(env.animations[0].frames[0].translate, '-100% 0');
+  assert.equal(env.animations[0].options.duration, 850);
+});
+
+test('legacy pageshow returns use history entry positions to distinguish Back and Forward', () => {
+  for (const [position, previous, direction] of [[1, 2, 'back'], [3, 2, 'forward']]) {
+    const env = boot({ legacy: true, type: 'back_forward', state: { alEntry: position }, activeEntry: { position: previous } });
+    env.window.__anekaBoot.finish();
+    env.window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+    assert.equal(env.document.documentElement.dataset.pageDirection, direction);
+    assert.equal(env.animations.length, 1);
+    assert.equal(env.animations[0].frames[0].translate, direction === 'back' ? '-100% 0' : '100% 0');
+    env.window.dispatchEvent(new Event('pagehide'));
+    assert.ok(env.animations[0].cancelled, 'Never retain a page transform in BFCache');
+  }
+});
+
+test('a rejected native transition uses the fallback, while stale rejections cannot restart it', async () => {
+  const env = boot({ type: 'back_forward', state: { alEntry: 1 }, activeEntry: { position: 2 } });
+  env.window.__anekaBoot.finish();
+  let reject;
+  const transition = { types: new Set(), ready: new Promise((resolve, fail) => { reject = fail; }) };
+  env.window.dispatchEvent(Object.assign(new Event('pagereveal'), { viewTransition: transition }));
+  assert.equal(env.animations.length, 0);
+  reject(new Error('Browser skipped the transition')); await Promise.resolve(); await Promise.resolve();
+  assert.equal(env.animations.length, 1);
+  const stale = { ready: new Promise((resolve, fail) => { reject = fail; }) };
+  env.window.dispatchEvent(Object.assign(new Event('pagereveal'), { viewTransition: stale }));
+  env.document.dispatchEvent(new Event('aneka:before-navigation'));
+  reject(new Error('Cancelled return')); await Promise.resolve(); await Promise.resolve();
+  assert.equal(env.animations.length, 1);
+});
+
+test('browser swipe visuals and reduced motion do not receive a duplicate spatial fallback', () => {
+  for (const options of [{ activeEntry: { position: 2, browserTransition: true } }, { activeEntry: { position: 2 }, reduced: true }]) {
+    const env = boot({ ...options, type: 'back_forward', state: { alEntry: 1 } });
+    env.window.__anekaBoot.finish();
+    env.window.dispatchEvent(new Event('pagereveal'));
+    assert.equal(env.animations.length, 0);
+  }
 });

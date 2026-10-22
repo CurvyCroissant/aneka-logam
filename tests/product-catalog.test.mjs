@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setupProductCatalog } from '../src/scripts/product-catalog.ts';
 
-function environment(t, hash = '') {
+function environment(t, hash = '', { preference, blocked = false } = {}) {
   class Control extends EventTarget {
     dataset = {}; attrs = new Map(); hidden = false;
     setAttribute(key, value) { this.attrs.set(key, value); }
@@ -14,19 +14,23 @@ function environment(t, hash = '') {
   const buttons = ['all', ...categories].map((category) => { const button = new Control(); button.dataset.productFilter = category; return button; });
   const list = new Control(); list.items = cards;
   let columns = 2, cardHeight = 200;
-  list.getBoundingClientRect = () => ({ height: Math.ceil(cards.filter((card) => !card.hidden).length / columns) * cardHeight });
+  list.getBoundingClientRect = () => ({ height: root.dataset.catalogView === 'details' ? 20 + cards.filter((card) => !card.hidden).length * 60 : Math.ceil(cards.filter((card) => !card.hidden).length / columns) * cardHeight });
   const viewport = new Control(); viewport.style = {};
   const controls = new Control(); controls.items = buttons; controls.hidden = true;
-  const root = new Control(); root.children = { '[data-product-list]': list, '[data-product-filters]': controls, '[data-catalog-viewport]': viewport };
+  const viewButtons = ['thumbnails', 'details'].map((view) => { const button = new Control(); button.dataset.catalogViewButton = view; return button; });
+  const views = new Control(); views.items = viewButtons; views.hidden = true;
+  const root = new Control(); root.children = { '[data-product-list]': list, '[data-product-filters]': controls, '[data-catalog-viewport]': viewport, '[data-catalog-views]': views };
   const document = Object.assign(new EventTarget(), { querySelector: () => root, querySelectorAll: () => [] });
   const window = new EventTarget();
+  const stored = new Map([['aneka-logam:catalog-view', preference]]);
+  Object.defineProperty(window, 'localStorage', { get() { if (blocked) throw new Error('Blocked'); return { getItem: (key) => stored.get(key), setItem: (key, value) => stored.set(key, value) }; } });
   for (const [name, value] of Object.entries({ document, window, location: { hash } })) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, name);
     Object.defineProperty(globalThis, name, { configurable: true, value });
     t.after(() => { if (previous) Object.defineProperty(globalThis, name, previous); else delete globalThis[name]; });
   }
   const catalog = setupProductCatalog({ matches: false });
-  return { catalog, cards, buttons, controls, document, window, viewport, reflow: (count, height = cardHeight) => { columns = count; cardHeight = height; } };
+  return { catalog, cards, buttons, controls, document, window, viewport, viewButtons, views, stored, reflow: (count, height = cardHeight) => { columns = count; cardHeight = height; } };
 }
 
 test('All Products is the default and category buttons remove unrelated cards from layout', (t) => {
@@ -86,4 +90,34 @@ test('reserved height follows responsive and translated text reflow, retaining t
   env.reflow(2, 250);
   env.window.dispatchEvent(new Event('resize'));
   assert.equal(env.viewport.style.minBlockSize, '500px', 'A former narrow layout must not leave oversized empty space');
+});
+
+test('view switching preserves filter and card identity and reserves the active All layout height', (t) => {
+  const env = environment(t, '#per');
+  const originals = [...env.cards];
+  env.viewButtons[1].dispatchEvent(new Event('click'));
+  assert.equal(env.catalog.view(), 'details');
+  assert.equal(env.views.hidden, false);
+  assert.equal(env.catalog.current(), 'per');
+  assert.equal(env.viewport.style.minBlockSize, '260px');
+  assert.deepEqual(env.viewButtons.map((button) => button.attrs.get('aria-pressed')), ['false', 'true']);
+  assert.deepEqual(env.cards, originals, 'Do not clone galleries or create a second set of images');
+  env.catalog.select('all');
+  assert.equal(env.viewport.style.minBlockSize, '260px');
+  env.viewButtons[0].dispatchEvent(new Event('click'));
+  assert.equal(env.viewport.style.minBlockSize, '400px');
+  assert.equal(env.stored.get('aneka-logam:catalog-view'), 'thumbnails');
+});
+
+test('a saved detail preference is restored; blocked preference storage keeps controls functional', (t) => {
+  const env = environment(t, '', { preference: 'details' });
+  assert.equal(env.catalog.view(), 'details');
+  assert.equal(env.viewport.style.minBlockSize, '260px');
+});
+
+test('blocked preference storage falls back to thumbnails and still permits view changes', (t) => {
+  const env = environment(t, '', { blocked: true });
+  assert.equal(env.catalog.view(), 'thumbnails');
+  env.viewButtons[1].dispatchEvent(new Event('click'));
+  assert.equal(env.catalog.view(), 'details');
 });
