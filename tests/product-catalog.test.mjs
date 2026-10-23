@@ -31,9 +31,11 @@ function environment(t, hash = '', { preference, blocked = false, extraPer = fal
   const viewport = new Control(); viewport.style = {};
   const scroll = new Control(); scroll.scrollWidth = 768;
   const controls = new Control(); controls.items = buttons; controls.hidden = true;
+  const mobileFilter = new Control(); mobileFilter.value = 'all'; mobileFilter.disabled = true;
+  const mobileControls = new Control(); mobileControls.hidden = true;
   const viewButtons = ['thumbnails', 'details'].map((view) => { const button = new Control(); button.dataset.catalogViewButton = view; return button; });
   const views = new Control(); views.items = viewButtons; views.hidden = true;
-  const root = new Control(); root.children = { '[data-product-list]': list, '[data-product-filters]': controls, '[data-catalog-viewport]': viewport, '[data-catalog-views]': views, '[data-catalog-scroll]': scroll };
+  const root = new Control(); root.children = { '[data-product-list]': list, '[data-product-filters]': controls, '[data-catalog-viewport]': viewport, '[data-catalog-views]': views, '[data-catalog-scroll]': scroll, '[data-product-filter-select]': mobileFilter, '[data-product-mobile-filter]': mobileControls };
   const document = Object.assign(new EventTarget(), { documentElement: { lang: 'id' }, querySelector: () => root, querySelectorAll: () => [] });
   const window = new EventTarget();
   const stored = new Map([['aneka-logam:catalog-view', preference]]);
@@ -45,7 +47,7 @@ function environment(t, hash = '', { preference, blocked = false, extraPer = fal
   }
   const catalog = setupProductCatalog({ matches: false });
   const order = () => list.order.filter((item) => item.dataset.catalogTrack).map((track) => track.dataset.catalogTrack);
-  return { catalog, cards, buttons, controls, document, window, viewport, viewButtons, views, stored, tracks, headings, sortHeader, sortButton, sortIcon, scroll, order, reflow: (height) => { cardHeight = height; } };
+  return { catalog, cards, buttons, controls, document, window, viewport, viewButtons, views, stored, tracks, headings, sortHeader, sortButton, sortIcon, scroll, order, mobileFilter, mobileControls, reflow: (height) => { cardHeight = height; } };
 }
 
 test('All Products defaults to category rows; filtering removes unrelated cards and row headings', (t) => {
@@ -57,7 +59,7 @@ test('All Products defaults to category rows; filtering removes unrelated cards 
   assert.equal(env.catalog.current(), 'per');
   assert.deepEqual(env.cards.map((card) => card.hidden), [true, false, true, true]);
   assert.deepEqual(env.tracks.map((track) => track.hidden), [true, false, true, true]);
-  assert.ok(env.headings.every((heading) => heading.hidden));
+  assert.deepEqual(env.headings.map((heading) => heading.hidden), [true, false, true, true]);
   assert.deepEqual(env.buttons.map((button) => button.attrs.get('aria-pressed')), ['false', 'false', 'true', 'false', 'false']);
   env.buttons[0].dispatchEvent(new Event('click'));
   assert.ok(env.cards.every((card) => !card.hidden));
@@ -154,4 +156,30 @@ test('blocked preference storage falls back to thumbnails and still permits view
   const env = environment(t, '', { blocked: true });
   env.viewButtons[1].dispatchEvent(new Event('click'));
   assert.equal(env.catalog.view(), 'details');
+});
+
+
+test('mobile filter and desktop buttons share one selection through restoration and view changes', (t) => {
+  const env = environment(t, '#per');
+  assert.equal(env.mobileFilter.value, 'per');
+  assert.equal(env.mobileFilter.disabled, false); assert.equal(env.mobileControls.hidden, false);
+  let changes = 0; env.document.addEventListener('aneka:catalog-change', () => changes++);
+  env.mobileFilter.value = 'kawat'; env.mobileFilter.dispatchEvent(new Event('change'));
+  assert.equal(env.catalog.current(), 'kawat');
+  assert.equal(env.buttons[3].attrs.get('aria-pressed'), 'true');
+  assert.deepEqual(env.cards.map((card) => card.hidden), [true, true, false, true]);
+  assert.equal(changes, 1);
+  env.mobileFilter.dispatchEvent(new Event('change')); assert.equal(changes, 1);
+  env.catalog.setView('details'); assert.equal(env.mobileFilter.value, 'kawat');
+  env.buttons[0].dispatchEvent(new Event('click')); assert.equal(env.mobileFilter.value, 'all');
+  env.catalog.select('as'); assert.equal(env.mobileFilter.value, 'as');
+});
+
+test('carousel offsets survive the browser clamping hidden tracks during filtering or view switches', (t) => {
+  const env = environment(t, '', { extraPer: true });
+  env.tracks[1].scrollLeft = 180;
+  env.catalog.select('kawat'); env.tracks[1].scrollLeft = 0;
+  env.catalog.select('all'); assert.equal(env.tracks[1].scrollLeft, 180);
+  env.catalog.setView('details'); env.tracks[1].scrollLeft = 0;
+  env.catalog.setView('thumbnails'); assert.equal(env.tracks[1].scrollLeft, 180);
 });

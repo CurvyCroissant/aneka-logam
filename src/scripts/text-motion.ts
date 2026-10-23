@@ -2,13 +2,24 @@ import { motionTiming } from '../lib/motion.ts';
 
 let revision = 0;
 const active = new Set<Animation>();
+const sizing = new Set<HTMLElement>();
 let settleActive: (() => void) | undefined;
 let settleTimer: ReturnType<typeof setTimeout> | undefined;
+
+function clearSizing() {
+  for (const element of sizing) element.classList.remove('i18n-sizing');
+  sizing.clear();
+}
+function constrainLabel(element: HTMLElement) {
+  sizing.add(element);
+  element.classList.add('i18n-sizing');
+}
 
 export function cancelTextTransition() {
   revision++;
   for (const animation of active) animation.cancel();
   active.clear();
+  clearSizing();
   clearTimeout(settleTimer);
   settleActive?.();
   settleActive = undefined;
@@ -30,7 +41,7 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
     return [element, {
       clipPath: style.clipPath && style.clipPath !== 'none' ? style.clipPath : 'inset(0 0 0 0)',
       translate: style.translate && style.translate !== 'none' ? style.translate : '0 0',
-      ...(element.dataset.i18nSize !== undefined ? { inlineSize: inlineSize(element, style) } : {}),
+      ...(element.dataset.i18nSize !== undefined ? { inlineSize: inlineSize(element, style), whiteSpace: style.whiteSpace || 'normal' } : {}),
     }];
   }));
   cancelTextTransition();
@@ -42,21 +53,38 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
     try {
       const animation = element.animate(frames, { ...timing, duration, easing: motion.matches ? timing.easing : 'linear', fill });
       active.add(animation);
-      void animation.finished.then(() => { if (fill !== 'forwards') { active.delete(animation); animation.cancel(); } }, () => active.delete(animation));
+      const release = () => {
+        active.delete(animation);
+        if (fill !== 'forwards' && ticket === revision) { sizing.delete(element); element.classList.remove('i18n-sizing'); }
+      };
+      void animation.finished.then(() => { if (fill !== 'forwards') { animation.cancel(); release(); } }, release);
       return animation;
-    } catch { return undefined; /* Translation stays available without animation support. */ }
+    } catch {
+      sizing.delete(element); element.classList.remove('i18n-sizing');
+      return undefined; // Translation stays available without animation support.
+    }
   }
   function enter() {
     if (ticket !== revision) return;
     for (const animation of active) animation.cancel();
     active.clear();
+    clearSizing();
     commit();
     // Measure new intrinsic label widths in one batch, before starting any writes.
     // Their flex parents then resize with the wipe; paragraphs retain fluid widths.
-    const widths = new Map(targets.filter((element) => element.dataset.i18nSize !== undefined).map((element) => [element, inlineSize(element)]));
+    const widths = new Map<HTMLElement, string>();
+    for (const element of targets) {
+      if (element.dataset.i18nSize === undefined) continue;
+      const style = getComputedStyle(element);
+      const lineHeight = parseFloat(style.lineHeight);
+      // Only constrain labels whose final layout genuinely fits on one line.
+      // Prevent the longer translation wrapping inside the old, smaller width.
+      if (!Number.isFinite(lineHeight) || element.getBoundingClientRect().height <= lineHeight + 1) widths.set(element, inlineSize(element, style));
+    }
+    for (const element of widths.keys()) constrainLabel(element);
     const incoming = targets.map((element) => animate(element, motion.matches ? [{ opacity: 0.2 }, { opacity: 1 }] : [
-      { clipPath: 'inset(0 100% 0 0)', translate: '-8px 0', ...(widths.has(element) ? { inlineSize: starts.get(element)!.inlineSize } : {}) },
-      { clipPath: 'inset(0 0 0 0)', translate: '0 0', ...(widths.has(element) ? { inlineSize: widths.get(element) } : {}) },
+      { clipPath: 'inset(0 100% 0 0)', translate: '-8px 0', ...(widths.has(element) ? { inlineSize: starts.get(element)!.inlineSize, whiteSpace: 'nowrap' } : {}) },
+      { clipPath: 'inset(0 0 0 0)', translate: '0 0', ...(widths.has(element) ? { inlineSize: widths.get(element), whiteSpace: 'nowrap' } : {}) },
     ], 'both')).filter((animation): animation is Animation => Boolean(animation));
     const finish = () => {
       if (ticket !== revision || !settleActive) return;
@@ -71,8 +99,9 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
     }
   }
   if (!targets.length || motion.matches || !exit) { enter(); return; }
+  for (const element of targets) if (starts.get(element)!.whiteSpace === 'nowrap') constrainLabel(element);
   const outgoing = targets.map((element) => animate(element, [
-    starts.get(element)!, { clipPath: 'inset(0 100% 0 0)', translate: '-8px 0', ...(starts.get(element)!.inlineSize ? { inlineSize: starts.get(element)!.inlineSize } : {}) },
+    starts.get(element)!, { clipPath: 'inset(0 100% 0 0)', translate: '-8px 0', ...(starts.get(element)!.inlineSize ? { inlineSize: starts.get(element)!.inlineSize, whiteSpace: starts.get(element)!.whiteSpace } : {}) },
   ], 'forwards')).filter((animation): animation is Animation => Boolean(animation));
   if (!outgoing.length) { enter(); return; }
   let timer: ReturnType<typeof setTimeout>;

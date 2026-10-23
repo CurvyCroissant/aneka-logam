@@ -16,7 +16,7 @@ const t = copy(locale);
     <th scope="col" role="columnheader" data-i18n="descriptionColumn">{t.descriptionColumn}</th>
   </tr></thead>
   {company.categories.map((category) => <>
-    <tbody class="catalog-group-heading" data-catalog-group-heading={category.id} role="rowgroup"><tr role="row"><th id={`catalog-group-${category.id}`} scope="rowgroup" colspan={3} role="rowheader">{category.name}</th></tr></tbody>
+    <tbody id={category.id} class="catalog-group-heading" data-catalog-group-heading={category.id} role="rowgroup"><tr role="row"><th id={`catalog-group-${category.id}`} scope="rowgroup" colspan={3} role="rowheader">{category.name}</th></tr></tbody>
     <tbody id={`catalog-track-${category.id}`} class="catalog-group-track" data-catalog-track={category.id} data-category-track role="rowgroup" aria-labelledby={`catalog-group-${category.id}`}>
     {company.products.filter((product) => product.category === category.id).map((product) => <tr id={product.id} class="product-card catalog-card" role="row" data-product-category={product.category} data-category-card data-reveal>
       <td class="catalog-product-cell" role="cell"><div class="catalog-product-inner">

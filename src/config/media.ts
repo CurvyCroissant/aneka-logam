@@ -1,6 +1,7 @@
 import type { ImageMetadata } from 'astro';
 import type { Locale } from '../i18n/routes';
-import type { company } from './company';
+import { company } from './company';
+import logo from '../assets/logo-no-bg.png';
 import storefront from '../assets/storefront.jpg';
 
 export interface SitePhoto {
@@ -11,12 +12,15 @@ export interface SitePhoto {
 type ProductKey = (typeof company.products)[number]['key'];
 // Import photographs from src/assets and add { src, alt: { id, en, zh } } entries.
 // Each product supports one or more photos; empty arrays use an illustrated placeholder.
-export const productPhotos: Record<ProductKey, SitePhoto[]> = {
-  shimPlate: [],
-  spring: [],
-  wire: [],
-  shaft: [],
-};
+// All twelve preview items reuse the supplied logo; generated image variants are cached.
+export const productPhotos = Object.fromEntries(company.products.map((product) => [product.key, [{
+  src: logo,
+  alt: {
+    id: `Gambar sementara ${product.name}: logo Aneka Logam.`,
+    en: `Temporary image for ${product.name}: Aneka Logam logo.`,
+    zh: `${product.name} 的临时图片：Aneka Logam 品牌标志。`,
+  },
+}]])) as Record<ProductKey, SitePhoto[]>;
 export const storefrontPhotos: SitePhoto[] = [{
   src: storefront,
   alt: {

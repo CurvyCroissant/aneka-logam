@@ -13,7 +13,7 @@ const label = kind === 'store' ? t.storePhotos : t.productPhotos;
 <div class={`media-gallery ${kind === 'store' ? 'store-gallery' : 'product-gallery'}`} data-gallery={id}>
   {images.length ? (
     <>
-      <div class="gallery-track" id={`${id}-track`} data-gallery-track tabindex={images.length > 1 ? 0 : undefined} role="region" aria-label={label} data-i18n-aria-label={kind === 'store' ? 'storePhotos' : 'productPhotos'}>
+      <div class="gallery-track" id={`${id}-track`} data-gallery-track data-single-photo={images.length === 1 || undefined} tabindex={images.length > 1 ? 0 : undefined} role="region" aria-label={label} data-i18n-aria-label={kind === 'store' ? 'storePhotos' : 'productPhotos'}>
         {images.map((photo, index) => (
           <figure class="gallery-slide" aria-label={`${index + 1} / ${images.length}`}>
             <ZoomImage src={photo.src} alt={photo.alt[locale]} altTexts={photo.alt} locale={locale} widths={[360, 720, 1080]} sizes="(min-width: 80rem) 550px, (min-width: 48rem) 44vw, 92vw" />

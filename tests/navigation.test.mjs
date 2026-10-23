@@ -58,7 +58,7 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
   const window = Object.assign(new EventTarget(), { scrollX: 0, scrollY: 0, scrollCalls: [], scrollTo(options) { this.scrollCalls.push(options); this.scrollX = options.left; this.scrollY = options.top; }, __anekaBoot: { snapshot: navigation === 'navigate' ? undefined : saved, finish: () => root.classList.remove('is-restoring') } });
   Object.defineProperty(window, 'sessionStorage', { get() { if (blocked) throw new Error('Storage blocked'); return storage; } });
   const globals = { document, window, location, history, innerWidth: 1000, innerHeight: 700, performance: { getEntriesByType: () => [{ type: navigation }] }, requestAnimationFrame: (fn) => queueMicrotask(fn) };
-  globals.getComputedStyle = (element) => ({ position: element === header && sticky ? 'sticky' : 'relative', opacity: String(element.opacity), translate: 'none', clipPath: 'none', scale: '1', getPropertyValue: (name) => ({ '--state-duration': '650ms', '--move-duration': '850ms', '--reduced-duration': '180ms', '--ease': 'cubic-bezier(0.22, 0.61, 0.36, 1)' })[name] ?? '' });
+  globals.getComputedStyle = (element) => ({ position: element === header && sticky ? 'sticky' : 'relative', opacity: String(element.opacity), lineHeight: '24px', whiteSpace: element.whitespace ?? 'normal', translate: 'none', clipPath: 'none', scale: '1', getPropertyValue: (name) => ({ '--state-duration': '650ms', '--move-duration': '850ms', '--reduced-duration': '180ms', '--ease': 'cubic-bezier(0.22, 0.61, 0.36, 1)' })[name] ?? '' });
   for (const [key, value] of Object.entries(globals)) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, key);
     Object.defineProperty(globalThis, key, { configurable: true, value });
@@ -357,11 +357,14 @@ test('text-sized controls resize horizontally during the incoming language wipe'
   const incoming = env.heading.animations[1];
   assert.equal(incoming.frames[0].inlineSize, '70px');
   assert.equal(incoming.frames[1].inlineSize, '60px');
+  assert.ok(incoming.frames.every((frame) => frame.whiteSpace === 'nowrap'), 'Never wrap a one-line label while its narrower width grows');
   assert.equal(incoming.options.duration, 425);
+  assert.ok(env.heading.classes.has('i18n-sizing'), 'CSS also protects one-line labels while width is animated');
   assert.equal(incoming.frames[0].clipPath, 'inset(0 100% 0 0)');
   assert.ok(env.root.classes.has('is-localizing'), 'Keep scroll anchoring paused throughout the live resize');
   incoming.finish(); await flush();
   assert.ok(incoming.cancelled, 'Release the width constraint when the wipe finishes');
+  assert.ok(!env.heading.classes.has('i18n-sizing'), 'Release temporary whitespace on completion');
   assert.ok(!env.root.classes.has('is-localizing'));
 });
 
@@ -419,4 +422,48 @@ test('category sort order returns with the saved catalog view and pixels', async
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   assert.equal(order, 'ascending'); assert.equal(env.window.scrollY, 420.25);
   memory.save(); assert.equal(env.history.state.alScroll.categorySort, 'ascending');
+});
+
+
+test('a longer incoming label keeps a single line while its width grows', async (t) => {
+  const env = environment(t, { motion: 'manual' });
+  env.heading.dataset.i18nSize = '';
+  env.heading.getBoundingClientRect = () => ({ width: env.heading.textContent.length * 10, height: 24, top: 100, bottom: 124 });
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  setupNavigation(memory, { matches: false });
+  env.click(env.en); env.heading.animations[0].finish(); await flush();
+  env.heading.animations[1].finish(); await flush();
+  env.click(env.id); env.heading.animations[2].finish(); await flush();
+  const incoming = env.heading.animations[3];
+  assert.equal(incoming.frames[0].inlineSize, '60px'); assert.equal(incoming.frames[1].inlineSize, '70px');
+  assert.ok(incoming.frames.every((frame) => frame.whiteSpace === 'nowrap'));
+  assert.equal(incoming.options.duration, 425);
+});
+
+test('a label that needs multiple lines at enlarged text is left fluid during translation', async (t) => {
+  const env = environment(t, { motion: 'manual' });
+  env.heading.dataset.i18nSize = '';
+  env.heading.getBoundingClientRect = () => ({ width: 100, height: 48, top: 100, bottom: 148 });
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  setupNavigation(memory, { matches: false });
+  env.click(env.en); env.heading.animations[0].finish(); await flush();
+  const incoming = env.heading.animations[1];
+  assert.ok(incoming.frames.every((frame) => frame.inlineSize === undefined && frame.whiteSpace === undefined));
+  assert.equal(incoming.frames[0].clipPath, 'inset(0 100% 0 0)', 'Preserve the wipe when normal wrapping is required');
+});
+
+
+test('a rapid reversal preserves the no-wrap constraint at a partially resized width', async (t) => {
+  const env = environment(t, { motion: 'manual' });
+  env.heading.dataset.i18nSize = '';
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  setupNavigation(memory, { matches: false });
+  env.click(env.en); env.heading.animations[0].finish(); await flush();
+  env.heading.whitespace = 'nowrap';
+  env.heading.getBoundingClientRect = () => ({ width: 50, height: 24, top: 100, bottom: 124 });
+  env.click(env.id);
+  const outgoing = env.heading.animations[2];
+  assert.ok(outgoing.frames.every((frame) => frame.whiteSpace === 'nowrap'));
+  assert.ok(outgoing.frames.every((frame) => frame.inlineSize === '50px'));
+  cancelTextTransition(); assert.ok(!env.heading.classes.has('i18n-sizing'), 'Release temporary whitespace on cancellation');
 });

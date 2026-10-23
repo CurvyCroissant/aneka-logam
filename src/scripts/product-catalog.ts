@@ -22,6 +22,8 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
   const scroll = catalog?.querySelector<HTMLElement>('[data-catalog-scroll]');
   const controls = catalog?.querySelector<HTMLElement>('[data-product-filters]');
   const views = catalog?.querySelector<HTMLElement>('[data-catalog-views]');
+  const mobileControls = catalog?.querySelector<HTMLElement>('[data-product-mobile-filter]');
+  const mobileFilter = catalog?.querySelector<HTMLSelectElement>('[data-product-filter-select]');
   if (!catalog || !list || !controls) return;
   const cards = [...list.querySelectorAll<HTMLElement>('[data-product-category]')];
   const tracks = [...list.querySelectorAll<HTMLElement>('[data-catalog-track]')];
@@ -40,6 +42,14 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
   let order: CatalogSort = 'none';
   let animation: Animation | undefined;
   let reservedHeight = 0;
+  const carouselOffsets = new Map<HTMLElement, number>();
+
+  function rememberCarousels() {
+    if (view === 'thumbnails' && selected === 'all') for (const track of tracks) carouselOffsets.set(track, track.scrollLeft);
+  }
+  function restoreCarousels() {
+    if (view === 'thumbnails' && selected === 'all') for (const track of tracks) track.scrollLeft = carouselOffsets.get(track) ?? track.scrollLeft;
+  }
 
   function animateList() {
     animation?.cancel();
@@ -87,7 +97,7 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
     catalog!.dataset.category = selected;
     head?.classList.toggle('sr-only', view === 'thumbnails');
     for (const track of tracks) track.hidden = selected !== 'all' && track.dataset.catalogTrack !== selected;
-    for (const heading of headings) heading.hidden = view !== 'thumbnails' || selected !== 'all';
+    for (const heading of headings) heading.hidden = view !== 'thumbnails' || (selected !== 'all' && heading.dataset.catalogGroupHeading !== selected);
     updateSortControl();
     arrangeGroups();
   }
@@ -116,8 +126,10 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
   }
   function setView(next: CatalogView, animate = false) {
     const changed = next !== view;
+    rememberCarousels();
     view = next === 'details' ? 'details' : 'thumbnails';
     applyPresentation();
+    restoreCarousels();
     for (const button of viewButtons) button.setAttribute('aria-pressed', String(button.dataset.catalogViewButton === view));
     sizeToAllProducts();
     try { window.localStorage?.setItem('aneka-logam:catalog-view', view); } catch { /* Private browsing can disable preference storage. */ }
@@ -137,15 +149,18 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
   function select(category: string, animate = false) {
     const next = categories.has(category) ? category : 'all';
     const changed = next !== selected;
+    rememberCarousels();
     selected = next;
     animation?.cancel();
     for (const card of cards) card.hidden = next !== 'all' && card.dataset.productCategory !== next;
     for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.productFilter === next));
+    if (mobileFilter) mobileFilter.value = next;
     for (const link of document.querySelectorAll<HTMLElement>('[data-category-destination]')) {
       if (link.dataset.categoryDestination === next) link.setAttribute('aria-current', 'true');
       else link.removeAttribute('aria-current');
     }
     applyPresentation();
+    restoreCarousels();
     refreshInteractions();
     if (animate && changed) animateList();
   }
@@ -154,6 +169,8 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
   setView(preference);
   select(categoryForFragment(fragmentId(location.hash)) ?? 'all');
   controls.hidden = false;
+  if (mobileFilter) mobileFilter.disabled = false;
+  if (mobileControls) mobileControls.hidden = false;
   if (views) views.hidden = false;
   let observing = false;
   try {
@@ -180,6 +197,12 @@ export function setupProductCatalog(motion: MediaQueryList): ProductCatalog | un
     if (button.dataset.productFilter === selected) return;
     document.dispatchEvent(new Event('aneka:before-navigation'));
     select(button.dataset.productFilter ?? 'all', true);
+    document.dispatchEvent(new Event('aneka:catalog-change'));
+  });
+  mobileFilter?.addEventListener('change', () => {
+    if (mobileFilter.value === selected) return;
+    document.dispatchEvent(new Event('aneka:before-navigation'));
+    select(mobileFilter.value, true);
     document.dispatchEvent(new Event('aneka:catalog-change'));
   });
   window.addEventListener('pagehide', () => animation?.cancel());

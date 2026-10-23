@@ -64,7 +64,7 @@ for (const file of files) {
   requireThat(nodes.filter((node) => node.tagName === 'main').length === 1, `${name}: needs exactly one main landmark.`);
   requireThat(new Set(ids).size === ids.length, `${name}: duplicate element IDs.`);
   requireThat(ids.includes('main'), `${name}: main content landmark is missing.`);
-  const controls = nodes.filter((node) => ['a', 'button', 'summary'].includes(node.tagName));
+  const controls = nodes.filter((node) => ['a', 'button', 'summary', 'select'].includes(node.tagName));
   const brand = controls[0];
   requireThat(brand?.tagName === 'a' && attr(brand, 'data-brand-link') !== undefined && elements(brand).some((node) => node.tagName === 'img') && elements(brand).some((node) => attr(node, 'class') === 'brand-name' && text(node) === company.displayName), `${name}: the logo and company name must form the first, single Home control.`);
   requireThat(!nodes.some((node) => attr(node, 'class') === 'skip-link'), `${name}: the owner removed the skip-link popup.`);
@@ -217,6 +217,10 @@ for (const [file, { name, nodes }] of pages) {
     const filters = nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-product-filter') !== undefined);
     requireThat(filters.length === company.categories.length + 1 && attr(filters[0], 'data-product-filter') === 'all' && attr(filters[0], 'aria-pressed') === 'true', `${name}: All Products must be the first, default category filter.`);
     for (const category of company.categories) requireThat(filters.some((node) => attr(node, 'data-product-filter') === category.id && attr(node, 'aria-pressed') === 'false'), `${name}: missing ${category.name} filter button.`);
+    const mobileFilter = nodes.find((node) => node.tagName === 'select' && attr(node, 'data-product-filter-select') !== undefined);
+    const mobileOptions = mobileFilter ? elements(mobileFilter).filter((node) => node.tagName === 'option') : [];
+    requireThat(Boolean(mobileFilter && mobileFilter.parentNode.tagName === 'label' && elements(mobileFilter.parentNode).some((node) => attr(node, 'data-i18n') === 'productCategories')), `${name}: the mobile category dropdown needs a translated native label.`);
+    requireThat(mobileOptions.map((node) => attr(node, 'value')).join(',') === ['all', ...company.categories.map((category) => category.id)].join(','), `${name}: mobile and desktop filters must expose the same categories.`);
     for (const product of company.products) requireThat(nodes.some((node) => node.tagName === 'tr' && attr(node, 'id') === product.id && attr(node, 'data-product-category') === product.category && elements(node).some((child) => child.tagName === 'h2' && text(child) === product.name)), `${name}: ${product.name} must retain its category, untranslated name, and heading level below the catalog h1.`);
     const viewControls = nodes.filter((node) => attr(node, 'data-catalog-view-button') !== undefined);
     requireThat(viewControls.map((node) => attr(node, 'data-catalog-view-button')).join(',') === 'thumbnails,details', `${name}: both catalog views must be keyboard reachable.`);
@@ -229,7 +233,7 @@ for (const [file, { name, nodes }] of pages) {
     for (const product of company.products) {
       const row = nodes.find((node) => attr(node, 'id') === product.id && attr(node, 'data-product-category') !== undefined);
       const category = company.categories.find((category) => category.id === product.category);
-      requireThat(elements(row).some((node) => attr(node, 'class') === 'catalog-category-cell' && text(node).includes(category.name)), `${name}: ${product.name} must show its category in both views.`);
+      requireThat(elements(row).some((node) => attr(node, 'class') === 'catalog-category-cell' && text(node).includes(category.name)), `${name}: ${product.name} must retain its category for Details and table accessibility.`);
     }
 
   }

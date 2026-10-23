@@ -9,9 +9,9 @@ test('default URLs remain Indonesian and English has its own static URLs', () =>
   assert.deepEqual(pagePaths('home'), { id: '/', en: '/en/', zh: '/zh/' });
   assert.deepEqual(pagePaths('products'), { id: '/products/', en: '/en/products/', zh: '/zh/products/' });
   assert.deepEqual(pagePaths('contact'), { id: '/#contact', en: '/en/#contact', zh: '/zh/#contact' });
-  const spring = company.products.find(({key}) => key === 'spring');
-  assert.equal(productPath('id', spring), '/products/#per');
-  assert.equal(productPath('en', spring), '/en/products/#per');
+  const spring = company.products.find(({category}) => category === 'per');
+  assert.equal(productPath('id', spring), '/products/#per-demo-a');
+  assert.equal(productPath('en', spring), '/en/products/#per-demo-a');
   for (const category of company.categories) {
     assert.equal(categoryPath('id', category), `/products/#${category.id}`);
     assert.equal(categoryPath('en', category), `/en/products/#${category.id}`);
@@ -51,7 +51,14 @@ test('the exact shop phrase and proper company details are language invariant', 
 
 test('all supplied product names stay fixed and belong to a translated general category', () => {
   assert.deepEqual(company.categories.map(({ name }) => name), ['Shim Plate', 'Per', 'Kawat', 'As']);
-  assert.deepEqual(company.products.map(({ name }) => name), ['Shim Plate', 'Per', 'Kawat', 'As']);
+  assert.equal(company.products.length, 12);
+  assert.equal(new Set(company.products.map(({ id }) => id)).size, 12);
+  assert.equal(new Set(company.products.map(({ key }) => key)).size, 12);
+  for (const category of company.categories) {
+    const items = company.products.filter((product) => product.category === category.id);
+    assert.deepEqual(items.map(({ name }) => name), ['A', 'B', 'C'].map((suffix) => `${category.name} — Demo ${suffix}`));
+    assert.ok(items.every((product) => product.demo && product.summary.en.includes('Demo item')));
+  }
   assert.equal(new Set(company.categories.map(({ id }) => id)).size, company.categories.length);
   for (const category of company.categories) {
     assert.ok(category.name);
