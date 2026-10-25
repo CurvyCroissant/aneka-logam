@@ -1,8 +1,42 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { setupImageLoading } from '../src/scripts/loading.ts';
+import { setupImageLoading, waitForBrandFont } from '../src/scripts/loading.ts';
 
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
+
+function fontEnvironment(t) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const classes = new Set(['fonts-loading', 'font-failed']);
+  let resolveFont;
+  const loaded = new Promise((resolve) => { resolveFont = resolve; });
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: {
+    documentElement: { classList: { add: (name) => classes.add(name), remove: (name) => classes.delete(name) } },
+    fonts: { load: () => loaded },
+  } });
+  t.after(() => { if (previous) Object.defineProperty(globalThis, 'document', previous); else delete globalThis.document; });
+  return { classes, resolveFont };
+}
+
+test('a successful font load clears a previous startup fallback', async (t) => {
+  const env = fontEnvironment(t);
+  const ready = waitForBrandFont();
+  env.resolveFont([{}]);
+  await ready;
+  assert.ok(!env.classes.has('font-failed'));
+  assert.ok(!env.classes.has('fonts-loading'));
+});
+
+test('a slow font first becomes readable, then recovers its brand styling when it arrives', async (t) => {
+  const env = fontEnvironment(t);
+  const ready = waitForBrandFont();
+  t.mock.timers.tick(7000); await ready;
+  assert.ok(env.classes.has('font-failed'));
+  assert.ok(!env.classes.has('fonts-loading'), 'Do not leave a skeleton indefinitely');
+  env.resolveFont([{}]); await flush();
+  assert.ok(!env.classes.has('font-failed'), 'A late font must not leave the Products title permanently unformatted');
+});
+
 function environment(t, { complete = true, width = 560, decode = async () => {} } = {}) {
   const image = Object.assign(new EventTarget(), { complete, naturalWidth: width, decode });
   const error = { hidden: true };

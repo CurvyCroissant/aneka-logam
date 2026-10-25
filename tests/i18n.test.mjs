@@ -58,6 +58,9 @@ test('all supplied product names stay fixed and belong to a translated general c
     const items = company.products.filter((product) => product.category === category.id);
     assert.deepEqual(items.map(({ name }) => name), ['A', 'B', 'C'].map((suffix) => `${category.name} — Demo ${suffix}`));
     assert.ok(items.every((product) => product.demo && product.summary.en.includes('Demo item')));
+    for (const product of items) for (const locale of locales) {
+      assert.ok(product.summary[locale].startsWith(category.summary[locale]), 'Demo descriptions must still clarify the untranslated product name in every language');
+    }
   }
   assert.equal(new Set(company.categories.map(({ id }) => id)).size, company.categories.length);
   for (const category of company.categories) {

@@ -53,8 +53,19 @@ test('a failed enhancement releases the page and fonts instead of leaving a blan
   const result = boot();
   result.timers.get(1)();
   assert.ok(!result.classes.has('is-restoring') && !result.classes.has('fonts-loading') && !result.classes.has('js'));
-  assert.ok(result.classes.has('font-failed'));
+  assert.ok(!result.classes.has('font-failed'), 'An enhancement timeout must not override a successfully loaded brand font');
   assert.equal(result.history.scrollRestoration, 'auto');
+});
+
+test('late enhancement startup recovers after the readable startup timeout', () => {
+  const result = boot();
+  result.timers.get(1)();
+  assert.ok(!result.classes.has('js'));
+  result.window.__anekaBoot.finish();
+  assert.ok(result.classes.has('js'), 'Restore enhanced image, dropdown and loading styles when startup eventually succeeds');
+  assert.ok(result.classes.has('reveals-ready'));
+  assert.ok(!result.classes.has('is-restoring'));
+  assert.equal(result.history.scrollRestoration, 'manual', 'Late completion must reclaim scroll ownership from its temporary native fallback');
 });
 
 test('corrupt coordinates never hide the page or replace its deep link', () => {

@@ -190,6 +190,33 @@ test('a rapid language reversal cancels stale replacement without adding a histo
   assert.equal(env.history.pushes.length, 0);
 });
 
+test('a stalled language animation releases its masks and temporary label sizing within the fallback bound', async (t) => {
+  const env = environment(t, { motion: 'manual' });
+  env.heading.dataset.i18nSize = '';
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  setupNavigation(memory, { matches: false });
+  env.click(env.en);
+  t.mock.timers.tick(675); await flush();
+  const incoming = env.heading.animations[1];
+  assert.equal(env.heading.textContent, 'Owners');
+  assert.ok(env.heading.classes.has('i18n-sizing'));
+  t.mock.timers.tick(675); await flush();
+  assert.ok(incoming.cancelled, 'A pending fill mask must never leave translated text invisible');
+  assert.ok(!env.heading.classes.has('i18n-sizing'));
+  assert.ok(!env.root.classes.has('is-localizing'));
+});
+
+test('reduced-motion language changes keep text fluid without temporary width constraints', async (t) => {
+  const env = environment(t, { motion: 'manual' });
+  env.heading.dataset.i18nSize = '';
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  setupNavigation(memory, { matches: true });
+  env.click(env.en);
+  assert.equal(env.heading.textContent, 'Owners');
+  assert.ok(!env.heading.classes.has('i18n-sizing'));
+  assert.ok(env.heading.animations[0].frames.every((frame) => frame.inlineSize === undefined && frame.whiteSpace === undefined));
+});
+
 test('catalog language changes stay on the catalog and retain exact scroll pixels', async (t) => {
   const saved = { ...savedVisit, url: '/products/', y: 2867.5 };
   const env = environment(t, { page: 'products', saved });

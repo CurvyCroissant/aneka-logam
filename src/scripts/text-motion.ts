@@ -74,7 +74,7 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
     // Their flex parents then resize with the wipe; paragraphs retain fluid widths.
     const widths = new Map<HTMLElement, string>();
     for (const element of targets) {
-      if (element.dataset.i18nSize === undefined) continue;
+      if (motion.matches || element.dataset.i18nSize === undefined) continue;
       const style = getComputedStyle(element);
       const lineHeight = parseFloat(style.lineHeight);
       // Only constrain labels whose final layout genuinely fits on one line.
@@ -89,6 +89,8 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
     const finish = () => {
       if (ticket !== revision || !settleActive) return;
       clearTimeout(settleTimer);
+      for (const animation of incoming) { active.delete(animation); animation.cancel(); }
+      clearSizing();
       settleActive = undefined;
       settled();
     };

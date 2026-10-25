@@ -24,9 +24,9 @@ export const company = {
     name: `${category.name} — Demo ${suffix}`,
     demo: true,
     summary: {
-      id: 'Produk contoh untuk pratinjau katalog.',
-      en: 'Demo item for the catalog preview.',
-      zh: '用于目录预览的示例产品。',
+      id: `${category.summary.id} Produk contoh untuk pratinjau katalog.`,
+      en: `${category.summary.en} Demo item for the catalog preview.`,
+      zh: `${category.summary.zh}用于目录预览的示例产品。`,
     },
   }))),
   contact: {

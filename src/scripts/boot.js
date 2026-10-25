@@ -97,8 +97,9 @@
     whenVisible() { return pageMotion; },
     finish() {
       this.completed = true; clearTimeout(timer); root.classList.remove('is-restoring');
+      try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch { /* Restricted history. */ }
       // Keep the shell readable if a later enhancement fails before reveal setup.
-      root.classList.add('reveals-ready');
+      root.classList.add('js', 'reveals-ready');
       playReturn();
     },
   };
@@ -118,7 +119,8 @@
   timer = setTimeout(() => {
     if (boot.completed) return;
     root.classList.remove('is-restoring', 'fonts-loading', 'js');
-    root.classList.add('font-failed');
+    // A delayed/broken enhancement is not a font failure. Native font-display
+    // already has a readable fallback and can recover without this bundle.
     if ('scrollRestoration' in history) history.scrollRestoration = 'auto';
   }, 10000);
 })();

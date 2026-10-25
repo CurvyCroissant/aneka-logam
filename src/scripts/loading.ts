@@ -2,8 +2,15 @@ export async function waitForBrandFont(): Promise<void> {
   const root = document.documentElement;
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
+    const font = document.fonts.load('700 1em Montserrat', 'ANEKA LOGAM').then((faces) => {
+      const available = faces.length > 0;
+      // Startup may already have shown a readable fallback. Recover even when
+      // this request completes after the bounded wait below.
+      if (available) root.classList.remove('font-failed');
+      return available;
+    });
     const loaded = await Promise.race([
-      document.fonts.load('700 1em Montserrat', 'ANEKA LOGAM').then((faces) => faces.length > 0),
+      font,
       new Promise<boolean>((resolve) => { timeout = setTimeout(() => resolve(false), 7000); }),
     ]);
     if (!loaded) root.classList.add('font-failed');
