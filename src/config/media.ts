@@ -12,7 +12,7 @@ export interface SitePhoto {
 type ProductKey = (typeof company.products)[number]['key'];
 // Import photographs from src/assets and add { src, alt: { id, en, zh } } entries.
 // Each product supports one or more photos; empty arrays use an illustrated placeholder.
-// All twelve preview items reuse the supplied logo; generated image variants are cached.
+// All twenty preview items reuse the supplied logo; generated image variants are cached.
 export const productPhotos = Object.fromEntries(company.products.map((product) => [product.key, [{
   src: logo,
   alt: {

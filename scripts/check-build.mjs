@@ -157,7 +157,7 @@ for (const [file, { name, nodes }] of pages) {
     requireThat(!elements(primaryNav).some((node) => attr(node, 'id') === 'products-dropdown' || attr(node, 'data-category-destination') !== undefined), `${name}: Products must be a direct page link without a dropdown.`);
   }
   const toggles = nodes.filter((node) => attr(node, 'data-dropdown-toggle') !== undefined);
-  requireThat(toggles.length === 2, `${name}: provide dropdown controls for Home and languages only.`);
+  requireThat(toggles.length === (productsPage ? 3 : 2), `${name}: provide shared dropdown controls for Home, languages and the mobile catalog filter.`);
   for (const toggle of toggles) requireThat(attr(toggle, 'aria-expanded') === 'false' && nodes.some((node) => attr(node, 'id') === attr(toggle, 'aria-controls') && attr(node, 'data-dropdown-panel') !== undefined), `${name}: dropdown controls must identify their collapsed panel.`);
   requireThat(!nodes.some((node) => ['menu', 'menubar', 'menuitem'].includes(attr(node, 'role'))), `${name}: use native navigation links and disclosure buttons rather than application-menu roles.`);
   const phrase = 'Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring';
@@ -217,10 +217,20 @@ for (const [file, { name, nodes }] of pages) {
     const filters = nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-product-filter') !== undefined);
     requireThat(filters.length === company.categories.length + 1 && attr(filters[0], 'data-product-filter') === 'all' && attr(filters[0], 'aria-pressed') === 'true', `${name}: All Products must be the first, default category filter.`);
     for (const category of company.categories) requireThat(filters.some((node) => attr(node, 'data-product-filter') === category.id && attr(node, 'aria-pressed') === 'false'), `${name}: missing ${category.name} filter button.`);
-    const mobileFilter = nodes.find((node) => node.tagName === 'select' && attr(node, 'data-product-filter-select') !== undefined);
-    const mobileOptions = mobileFilter ? elements(mobileFilter).filter((node) => node.tagName === 'option') : [];
-    requireThat(Boolean(mobileFilter && mobileFilter.parentNode.tagName === 'label' && elements(mobileFilter.parentNode).some((node) => attr(node, 'data-i18n') === 'productCategories')), `${name}: the mobile category dropdown needs a translated native label.`);
-    requireThat(mobileOptions.map((node) => attr(node, 'value')).join(',') === ['all', ...company.categories.map((category) => category.id)].join(','), `${name}: mobile and desktop filters must expose the same categories.`);
+    const mobileFilter = nodes.find((node) => node.tagName === 'button' && attr(node, 'data-product-filter-toggle') !== undefined);
+    const mobileOptions = nodes.filter((node) => node.tagName === 'button' && attr(node, 'data-product-filter-option') !== undefined);
+    requireThat(Boolean(mobileFilter && attr(mobileFilter.parentNode, 'data-dropdown') !== undefined && attr(mobileFilter, 'aria-labelledby') === 'catalog-filter-label catalog-filter-value'), `${name}: the mobile filter must reuse the named header disclosure pattern.`);
+    requireThat(mobileOptions.map((node) => attr(node, 'data-product-filter-option')).join(',') === ['all', ...company.categories.map((category) => category.id)].join(','), `${name}: mobile and desktop filters must expose the same categories.`);
+    requireThat(attr(mobileOptions[0], 'aria-pressed') === 'true' && mobileOptions.slice(1).every((node) => attr(node, 'aria-pressed') === 'false'), `${name}: mobile filtering must show the current selection.`);
+    const toolbar = nodes.find((node) => attr(node, 'class') === 'catalog-toolbar');
+    requireThat(Boolean(toolbar && attr(toolbar, 'data-reveal') !== undefined), `${name}: reveal filter and view controls together.`);
+    const tableHead = nodes.find((node) => node.tagName === 'thead');
+    requireThat(Boolean(tableHead && attr(tableHead, 'data-reveal') !== undefined && attr(tableHead, 'hidden') !== undefined), `${name}: reveal the Details header when it becomes visible.`);
+    requireThat(!nodes.some((node) => attr(node, 'data-catalog-viewport') !== undefined), `${name}: catalog views must not reserve an unrelated view's height.`);
+    for (const category of company.categories) {
+      for (const attribute of ['data-catalog-track', 'data-catalog-group-heading', 'data-catalog-controls']) requireThat(nodes.some((node) => attr(node, attribute) === category.id && attr(node, 'data-reveal') !== undefined), `${name}: reveal each category's heading, carousel and controls.`);
+      requireThat(nodes.some((node) => attr(node, 'id') === `catalog-controls-${category.id}` && attr(node, 'data-category-controls') !== undefined), `${name}: each category needs shared Home-style carousel controls.`);
+    }
     for (const product of company.products) requireThat(nodes.some((node) => node.tagName === 'tr' && attr(node, 'id') === product.id && attr(node, 'data-product-category') === product.category && elements(node).some((child) => child.tagName === 'h2' && text(child) === product.name)), `${name}: ${product.name} must retain its category, untranslated name, and heading level below the catalog h1.`);
     const viewControls = nodes.filter((node) => attr(node, 'data-catalog-view-button') !== undefined);
     requireThat(viewControls.map((node) => attr(node, 'data-catalog-view-button')).join(',') === 'thumbnails,details', `${name}: both catalog views must be keyboard reachable.`);

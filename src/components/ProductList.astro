@@ -4,21 +4,22 @@ import { productPhotos } from '../config/media';
 import { copy } from '../i18n/copy';
 import type { Locale } from '../i18n/routes';
 import MediaGallery from './MediaGallery.astro';
+import CarouselControls from './CarouselControls.astro';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
 ---
 <!-- Keep the same rows and galleries when changing presentation. -->
 <table id="product-list" class="product-grid" data-product-list role="table" aria-labelledby="catalog-heading">
-  <thead class="sr-only" role="rowgroup"><tr role="row">
+  <thead role="rowgroup" data-reveal hidden><tr role="row">
     <th scope="col" role="columnheader" data-i18n="productColumn">{t.productColumn}</th>
     <th scope="col" role="columnheader" data-category-sort-header aria-sort="none"><span data-sort-fallback data-i18n="categoryColumn">{t.categoryColumn}</span><button type="button" tabindex="0" data-category-sort aria-label={t.sortCategoryAscending} data-i18n-aria-label="sortCategoryAscending" hidden><span data-i18n="categoryColumn">{t.categoryColumn}</span><span class="catalog-sort-icon" data-sort-icon aria-hidden="true">↕</span></button></th>
     <th scope="col" role="columnheader" data-i18n="descriptionColumn">{t.descriptionColumn}</th>
   </tr></thead>
   {company.categories.map((category) => <>
-    <tbody id={category.id} class="catalog-group-heading" data-catalog-group-heading={category.id} role="rowgroup"><tr role="row"><th id={`catalog-group-${category.id}`} scope="rowgroup" colspan={3} role="rowheader">{category.name}</th></tr></tbody>
-    <tbody id={`catalog-track-${category.id}`} class="catalog-group-track" data-catalog-track={category.id} data-category-track role="rowgroup" aria-labelledby={`catalog-group-${category.id}`}>
-    {company.products.filter((product) => product.category === category.id).map((product) => <tr id={product.id} class="product-card catalog-card" role="row" data-product-category={product.category} data-category-card data-reveal>
+    <tbody id={category.id} class="catalog-group-heading" data-catalog-group-heading={category.id} role="rowgroup" data-reveal><tr role="row"><th id={`catalog-group-${category.id}`} scope="rowgroup" colspan={3} role="rowheader">{category.name}</th></tr></tbody>
+    <tbody id={`catalog-track-${category.id}`} class="catalog-group-track category-track" data-catalog-track={category.id} data-category-track data-category-carousel data-category-controls-id={`catalog-controls-${category.id}`} role="rowgroup" aria-labelledby={`catalog-group-${category.id}`} data-reveal>
+    {company.products.filter((product) => product.category === category.id).map((product) => <tr id={product.id} class="product-card catalog-card" role="row" data-product-category={product.category} data-category-card>
       <td class="catalog-product-cell" role="cell"><div class="catalog-product-inner">
         <MediaGallery id={`product-${product.id}`} images={productPhotos[product.key]} kind={category.imageKind} locale={locale} />
         <h2 class="catalog-product-name">{product.name}</h2>
@@ -27,5 +28,8 @@ const t = copy(locale);
       <td class="catalog-description-cell" role="cell"><p data-i18n={`product.${product.key}.summary`}>{product.summary[locale]}</p></td>
     </tr>)}
     </tbody>
+    <tbody class="catalog-controls-group" data-catalog-controls={category.id} data-reveal><tr><td colspan={3}>
+      <CarouselControls id={`catalog-controls-${category.id}`} trackId={`catalog-track-${category.id}`} count={company.products.filter((product) => product.category === category.id).length} kind="product" locale={locale} />
+    </td></tr></tbody>
   </>)}
 </table>

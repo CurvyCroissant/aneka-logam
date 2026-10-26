@@ -21,21 +21,25 @@ function environment(t, hash = '', { preference, blocked = false, extraPer = fal
     track.children = { '.catalog-category-label': { textContent: names[index] } }; track.scrollWidth = track.items.length * 300; return track;
   });
   const headings = categories.map((category) => { const heading = new Control(); heading.dataset.catalogGroupHeading = category; return heading; });
-  const buttons = ['all', ...categories].map((category) => { const button = new Control(); button.dataset.productFilter = category; return button; });
+  const buttons = ['all', ...categories].map((category) => { const button = new Control(); button.dataset.productFilter = category; button.children = { '[data-product-filter-name]': { textContent: ({ all: 'Semua Produk', 'shim-plate': 'Shim Plate', per: 'Per', kawat: 'Kawat', as: 'As' })[category] } }; return button; });
+  const carouselControls = categories.map((category) => { const control = new Control(); control.dataset.catalogControls = category; return control; });
   const head = new Control(), sortHeader = new Control(), sortButton = new Control(), sortIcon = new Control(), sortFallback = new Control();
   const list = new Control();
-  list.selectors = { '[data-product-category]': cards, '[data-catalog-track]': tracks, '[data-catalog-group-heading]': headings };
+  list.selectors = { '[data-product-category]': cards, '[data-catalog-track]': tracks, '[data-catalog-group-heading]': headings, '[data-catalog-controls]': carouselControls };
   list.children = { thead: head, '[data-category-sort-header]': sortHeader, '[data-category-sort]': sortButton, '[data-sort-icon]': sortIcon, '[data-sort-fallback]': sortFallback };
-  let cardHeight = 200;
-  list.getBoundingClientRect = () => ({ height: root.dataset.catalogView === 'details' ? 20 + cards.filter((card) => !card.hidden).length * 60 : root.dataset.category === 'all' ? tracks.filter((track) => !track.hidden).length * (cardHeight + 30) : Math.ceil(cards.filter((card) => !card.hidden).length / 2) * cardHeight });
+  list.order = categories.flatMap((category, index) => [headings[index], tracks[index], carouselControls[index]]);
+  let cardHeight = 200, layoutReads = 0;
+  list.getBoundingClientRect = () => { layoutReads++; return { height: root.dataset.catalogView === 'details' ? 20 + cards.filter((card) => !card.hidden).length * 60 : root.dataset.category === 'all' ? tracks.filter((track) => !track.hidden).length * (cardHeight + 30) : Math.ceil(cards.filter((card) => !card.hidden).length / 2) * cardHeight }; };
   const viewport = new Control(); viewport.style = {};
   const scroll = new Control(); scroll.scrollWidth = 768;
   const controls = new Control(); controls.items = buttons; controls.hidden = true;
-  const mobileFilter = new Control(); mobileFilter.value = 'all'; mobileFilter.disabled = true;
-  const mobileControls = new Control(); mobileControls.hidden = true;
+  const mobileFilter = new Control(); mobileFilter.disabled = true;
+  const mobileValue = new Control();
+  const mobileOptions = ['all', ...categories].map((category) => { const button = new Control(); button.dataset.productFilterOption = category; return button; });
+  const mobileControls = new Control(); mobileControls.hidden = true; mobileControls.items = mobileOptions;
   const viewButtons = ['thumbnails', 'details'].map((view) => { const button = new Control(); button.dataset.catalogViewButton = view; return button; });
   const views = new Control(); views.items = viewButtons; views.hidden = true;
-  const root = new Control(); root.children = { '[data-product-list]': list, '[data-product-filters]': controls, '[data-catalog-viewport]': viewport, '[data-catalog-views]': views, '[data-catalog-scroll]': scroll, '[data-product-filter-select]': mobileFilter, '[data-product-mobile-filter]': mobileControls };
+  const root = new Control(); root.children = { '[data-product-list]': list, '[data-product-filters]': controls, '[data-catalog-viewport]': viewport, '[data-catalog-views]': views, '[data-catalog-scroll]': scroll, '[data-product-filter-toggle]': mobileFilter, '[data-product-filter-value]': mobileValue, '[data-product-mobile-filter]': mobileControls };
   const document = Object.assign(new EventTarget(), { documentElement: { lang: 'id' }, querySelector: () => root, querySelectorAll: () => [] });
   const window = new EventTarget();
   const stored = new Map([['aneka-logam:catalog-view', preference]]);
@@ -45,9 +49,9 @@ function environment(t, hash = '', { preference, blocked = false, extraPer = fal
     Object.defineProperty(globalThis, name, { configurable: true, value });
     t.after(() => { if (previous) Object.defineProperty(globalThis, name, previous); else delete globalThis[name]; });
   }
-  const catalog = setupProductCatalog({ matches: false });
+  const catalog = setupProductCatalog();
   const order = () => list.order.filter((item) => item.dataset.catalogTrack).map((track) => track.dataset.catalogTrack);
-  return { catalog, cards, buttons, controls, document, window, viewport, viewButtons, views, stored, tracks, headings, sortHeader, sortButton, sortIcon, scroll, order, mobileFilter, mobileControls, reflow: (height) => { cardHeight = height; } };
+  return { list, head, carouselControls, mobileValue, mobileOptions, layoutReads: () => layoutReads, catalog, cards, buttons, controls, document, window, viewport, viewButtons, views, stored, tracks, headings, sortHeader, sortButton, sortIcon, scroll, order, mobileFilter, mobileControls, reflow: (height) => { cardHeight = height; } };
 }
 
 test('All Products defaults to category rows; filtering removes unrelated cards and row headings', (t) => {
@@ -59,7 +63,7 @@ test('All Products defaults to category rows; filtering removes unrelated cards 
   assert.equal(env.catalog.current(), 'per');
   assert.deepEqual(env.cards.map((card) => card.hidden), [true, false, true, true]);
   assert.deepEqual(env.tracks.map((track) => track.hidden), [true, false, true, true]);
-  assert.deepEqual(env.headings.map((heading) => heading.hidden), [true, false, true, true]);
+  assert.ok(env.headings.every((heading) => heading.hidden), 'Filtered thumbnails have no repeated category title');
   assert.deepEqual(env.buttons.map((button) => button.attrs.get('aria-pressed')), ['false', 'false', 'true', 'false', 'false']);
   env.buttons[0].dispatchEvent(new Event('click'));
   assert.ok(env.cards.every((card) => !card.hidden));
@@ -82,29 +86,32 @@ test('filter changes notify scroll memory once and retain card/image identity', 
   assert.equal(env.cards[3], original);
 });
 
-test('both views and every filter reserve the thumbnail All height without exposing hidden cards', (t) => {
+test('views and filters size themselves without measuring or reserving the All Products layout', (t) => {
   const env = environment(t, '#per');
   for (const view of ['thumbnails', 'details']) {
     env.catalog.setView(view);
     for (const category of ['shim-plate', 'kawat', 'as', 'all']) {
       env.catalog.select(category);
-      assert.equal(env.viewport.style.minBlockSize, '920px');
+      assert.equal(env.viewport.style.minBlockSize, undefined);
+      assert.equal(env.layoutReads(), 0, 'Never temporarily unhide everything to reserve the largest view');
       assert.equal(env.cards.filter((card) => !card.hidden).length, category === 'all' ? 4 : 1);
+      assert.equal(env.head.hidden, view !== 'details');
+      assert.ok(env.carouselControls.every((control) => control.hidden === (view !== 'thumbnails' || category !== 'all')));
     }
   }
 });
 
-test('reserved height follows text/viewport reflow and retains category carousel positions', (t) => {
+test('text/viewport reflow keeps filtering and carousel positions without a height lock', (t) => {
   const env = environment(t, '#per', { extraPer: true });
   env.tracks[1].scrollLeft = 300;
   env.reflow(250); env.window.dispatchEvent(new Event('resize'));
-  assert.equal(env.viewport.style.minBlockSize, '1120px');
+  assert.equal(env.viewport.style.minBlockSize, undefined);
   assert.equal(env.tracks[1].scrollLeft, 300);
   assert.equal(env.catalog.current(), 'per');
   env.catalog.setView('details');
   env.reflow(180); env.document.dispatchEvent(new Event('aneka:content-change'));
-  assert.equal(env.viewport.style.minBlockSize, '840px');
-  assert.equal(env.catalog.view(), 'details');
+  assert.equal(env.viewport.style.minBlockSize, undefined);
+  assert.equal(env.layoutReads(), 0);
   assert.deepEqual(env.cards.map((card) => card.hidden), [true, false, true, true, false]);
 });
 
@@ -120,7 +127,7 @@ test('view switches preserve filter and identity; only overflowing visible scrol
   assert.equal(env.catalog.current(), 'per');
   assert.equal(env.scroll.attrs.get('tabindex'), '0');
   assert.deepEqual(env.cards, originals);
-  assert.equal(env.viewport.style.minBlockSize, '920px');
+  assert.equal(env.viewport.style.minBlockSize, undefined);
   assert.equal(env.stored.get('aneka-logam:catalog-view'), 'details');
 });
 
@@ -149,7 +156,7 @@ test('Category sorting toggles A–Z/Z–A with correct state and preserves grou
 test('saved detail preferences and blocked storage keep catalog controls functional', (t) => {
   const env = environment(t, '', { preference: 'details' });
   assert.equal(env.catalog.view(), 'details');
-  assert.equal(env.viewport.style.minBlockSize, '920px');
+  assert.equal(env.viewport.style.minBlockSize, undefined);
 });
 
 test('blocked preference storage falls back to thumbnails and still permits view changes', (t) => {
@@ -159,20 +166,27 @@ test('blocked preference storage falls back to thumbnails and still permits view
 });
 
 
-test('mobile filter and desktop buttons share one selection through restoration and view changes', (t) => {
+test('mobile disclosure choices stay synchronized with desktop filters, views and translations', (t) => {
   const env = environment(t, '#per');
-  assert.equal(env.mobileFilter.value, 'per');
+  assert.equal(env.mobileValue.textContent, 'Per');
+  assert.equal(env.mobileValue.dataset.i18n, undefined);
   assert.equal(env.mobileFilter.disabled, false); assert.equal(env.mobileControls.hidden, false);
   let changes = 0; env.document.addEventListener('aneka:catalog-change', () => changes++);
-  env.mobileFilter.value = 'kawat'; env.mobileFilter.dispatchEvent(new Event('change'));
+  env.mobileOptions[3].dispatchEvent(new Event('click'));
   assert.equal(env.catalog.current(), 'kawat');
   assert.equal(env.buttons[3].attrs.get('aria-pressed'), 'true');
+  assert.equal(env.mobileOptions[3].attrs.get('aria-pressed'), 'true');
+  assert.equal(env.mobileValue.textContent, 'Kawat');
   assert.deepEqual(env.cards.map((card) => card.hidden), [true, true, false, true]);
   assert.equal(changes, 1);
-  env.mobileFilter.dispatchEvent(new Event('change')); assert.equal(changes, 1);
-  env.catalog.setView('details'); assert.equal(env.mobileFilter.value, 'kawat');
-  env.buttons[0].dispatchEvent(new Event('click')); assert.equal(env.mobileFilter.value, 'all');
-  env.catalog.select('as'); assert.equal(env.mobileFilter.value, 'as');
+  env.mobileOptions[3].dispatchEvent(new Event('click')); assert.equal(changes, 1);
+  env.catalog.setView('details'); assert.equal(env.mobileValue.textContent, 'Kawat');
+  env.buttons[0].dispatchEvent(new Event('click')); assert.equal(env.mobileValue.textContent, 'Semua Produk');
+  assert.equal(env.mobileValue.dataset.i18n, 'allProducts');
+  env.document.documentElement.lang = 'en'; env.document.dispatchEvent(new Event('aneka:content-change'));
+  assert.equal(env.mobileValue.textContent, 'All Products');
+  env.catalog.select('as'); assert.equal(env.mobileValue.textContent, 'As');
+  assert.equal(env.mobileValue.dataset.i18n, undefined);
 });
 
 test('carousel offsets survive the browser clamping hidden tracks during filtering or view switches', (t) => {

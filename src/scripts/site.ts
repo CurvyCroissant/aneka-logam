@@ -9,16 +9,15 @@ import { copy } from '../i18n/copy';
 import { setupProductCatalog } from './product-catalog';
 import { setupHeaderDropdowns } from './header-dropdowns';
 
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 setupHeaderDropdowns();
-const catalog = setupProductCatalog(reducedMotion);
+const catalog = setupProductCatalog();
 const memory = setupScrollMemory(waitForBrandFont(), catalog);
 const restoration = memory.ready;
 setupImageLoading();
-setupNavigation(memory, reducedMotion);
+setupNavigation(memory);
 setupReveals(restoration);
 setupKeyboard();
-setupDeferredFeatures(reducedMotion);
+setupDeferredFeatures();
 
 const liveStatus = document.querySelector<HTMLElement>('[data-copy-status]');
 for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-copy]')) {
@@ -89,6 +88,7 @@ function updateHeader() {
   // Enlarged text must not turn a sticky header into a viewport-sized obstruction.
   header?.toggleAttribute('data-header-flow', headerHeight > innerHeight * 0.45);
   const sticky = header && getComputedStyle(header).position === 'sticky';
+  document.documentElement.style.setProperty('--header-block-size', `${headerHeight}px`);
   document.documentElement.style.setProperty('--header-height', `${sticky ? headerHeight : 0}px`);
   scheduleNavigation();
 }

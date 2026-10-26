@@ -1,8 +1,8 @@
-export function motionTiming(kind: 'state' | 'move', reducedMotion: MediaQueryList) {
+export function motionTiming(kind: 'state' | 'move') {
   const style = getComputedStyle(document.documentElement);
-  const fallback = reducedMotion.matches ? 180 : kind === 'state' ? 650 : 850;
+  const fallback = kind === 'state' ? 650 : 850;
   return {
-    duration: parseFloat(style.getPropertyValue(reducedMotion.matches ? '--reduced-duration' : `--${kind}-duration`)) || fallback,
+    duration: parseFloat(style.getPropertyValue(`--${kind}-duration`)) || fallback,
     easing: style.getPropertyValue('--ease').trim() || 'cubic-bezier(0.22, 0.61, 0.36, 1)',
   };
 }

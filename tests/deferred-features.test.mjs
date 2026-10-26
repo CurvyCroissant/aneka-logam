@@ -31,7 +31,7 @@ function environment(t, viewer = async () => {}, support = true) {
     Object.defineProperty(globalThis, name, { configurable: true, value });
     t.after(() => { if (previous) Object.defineProperty(globalThis, name, previous); else delete globalThis[name]; });
   }
-  setupDeferredFeatures({ matches: false }, {
+  setupDeferredFeatures({
     viewer: async () => { calls.viewer++; await viewer(); },
     carousel: async () => { calls.carousel++; },
     galleries: async () => { calls.galleries++; },

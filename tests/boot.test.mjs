@@ -137,11 +137,17 @@ test('a rejected native transition uses the fallback, while stale rejections can
   assert.equal(env.animations.length, 1);
 });
 
-test('browser swipe visuals and reduced motion do not receive a duplicate spatial fallback', () => {
-  for (const options of [{ activeEntry: { position: 2, browserTransition: true } }, { activeEntry: { position: 2 }, reduced: true }]) {
-    const env = boot({ ...options, type: 'back_forward', state: { alEntry: 1 } });
-    env.window.__anekaBoot.finish();
-    env.window.dispatchEvent(new Event('pagereveal'));
-    assert.equal(env.animations.length, 0);
-  }
+test('browser swipe visuals do not receive a duplicate spatial fallback', () => {
+  const env = boot({ activeEntry: { position: 2, browserTransition: true }, type: 'back_forward', state: { alEntry: 1 } });
+  env.window.__anekaBoot.finish();
+  env.window.dispatchEvent(new Event('pagereveal'));
+  assert.equal(env.animations.length, 0);
+});
+
+test('OS motion preferences do not disable the designed history animation', () => {
+  const env = boot({ reduced: true, activeEntry: { position: 2 }, type: 'back_forward', state: { alEntry: 1 } });
+  env.window.__anekaBoot.finish();
+  env.window.dispatchEvent(new Event('pagereveal'));
+  assert.equal(env.animations.length, 1);
+  assert.equal(env.animations[0].options.duration, 850);
 });

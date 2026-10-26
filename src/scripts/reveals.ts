@@ -70,9 +70,11 @@ export function setupReveals(ready: Promise<unknown>) {
   }
   document.addEventListener('focusin', (event) => {
     if (!(event.target instanceof Element)) return;
+    if (!event.target.matches(':focus-visible')) return;
     const element = event.target.closest<HTMLElement>('[data-reveal]');
     if (!element) return;
-    // A focused control must be visible immediately, even during shell motion.
+    // Keyboard focus must be visible immediately. Mouse-down must not snap an
+    // animating button away from its pointer before mouse-up can activate it.
     complete(element);
   }, { capture: true });
   timeout = setTimeout(start, 10000);

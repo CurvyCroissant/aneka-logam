@@ -26,7 +26,7 @@ export function cancelTextTransition() {
 }
 
 // Keep the old text until its right edge has swept left. Only then replace it.
-export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion: MediaQueryList, commit: () => void, exit = true, settled: () => void = () => {}) {
+export function transitionTranslatedText(elements: Iterable<HTMLElement>, commit: () => void, exit = true, settled: () => void = () => {}) {
   function inlineSize(element: HTMLElement, style = getComputedStyle(element)) {
     const width = parseFloat(style.inlineSize);
     return `${Number.isFinite(width) ? width : element.getBoundingClientRect().width}px`;
@@ -47,11 +47,11 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
   cancelTextTransition();
   const ticket = revision;
   settleActive = settled;
-  const timing = motionTiming('move', motion);
-  const duration = motion.matches ? timing.duration : timing.duration / 2;
+  const timing = motionTiming('move');
+  const duration = timing.duration / 2;
   function animate(element: HTMLElement, frames: Keyframe[], fill: FillMode = 'none') {
     try {
-      const animation = element.animate(frames, { ...timing, duration, easing: motion.matches ? timing.easing : 'linear', fill });
+      const animation = element.animate(frames, { ...timing, duration, easing: 'linear', fill });
       active.add(animation);
       const release = () => {
         active.delete(animation);
@@ -74,7 +74,7 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
     // Their flex parents then resize with the wipe; paragraphs retain fluid widths.
     const widths = new Map<HTMLElement, string>();
     for (const element of targets) {
-      if (motion.matches || element.dataset.i18nSize === undefined) continue;
+      if (element.dataset.i18nSize === undefined) continue;
       const style = getComputedStyle(element);
       const lineHeight = parseFloat(style.lineHeight);
       // Only constrain labels whose final layout genuinely fits on one line.
@@ -82,7 +82,7 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
       if (!Number.isFinite(lineHeight) || element.getBoundingClientRect().height <= lineHeight + 1) widths.set(element, inlineSize(element, style));
     }
     for (const element of widths.keys()) constrainLabel(element);
-    const incoming = targets.map((element) => animate(element, motion.matches ? [{ opacity: 0.2 }, { opacity: 1 }] : [
+    const incoming = targets.map((element) => animate(element, [
       { clipPath: 'inset(0 100% 0 0)', translate: '-8px 0', ...(widths.has(element) ? { inlineSize: starts.get(element)!.inlineSize, whiteSpace: 'nowrap' } : {}) },
       { clipPath: 'inset(0 0 0 0)', translate: '0 0', ...(widths.has(element) ? { inlineSize: widths.get(element), whiteSpace: 'nowrap' } : {}) },
     ], 'both')).filter((animation): animation is Animation => Boolean(animation));
@@ -100,7 +100,7 @@ export function transitionTranslatedText(elements: Iterable<HTMLElement>, motion
       void Promise.all(incoming.map((animation) => animation.finished.catch(() => {}))).then(finish);
     }
   }
-  if (!targets.length || motion.matches || !exit) { enter(); return; }
+  if (!targets.length || !exit) { enter(); return; }
   for (const element of targets) if (starts.get(element)!.whiteSpace === 'nowrap') constrainLabel(element);
   const outgoing = targets.map((element) => animate(element, [
     starts.get(element)!, { clipPath: 'inset(0 100% 0 0)', translate: '-8px 0', ...(starts.get(element)!.inlineSize ? { inlineSize: starts.get(element)!.inlineSize, whiteSpace: starts.get(element)!.whiteSpace } : {}) },

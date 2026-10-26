@@ -4,6 +4,7 @@ import { company } from '../../config/company';
 import { copy } from '../../i18n/copy';
 import { pagePaths, type Locale } from '../../i18n/routes';
 import ProductList from '../ProductList.astro';
+import Chevron from '../Chevron.astro';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
@@ -12,24 +13,25 @@ const t = copy(locale);
   <section id="products" class="section catalog-products" data-product-catalog data-catalog-view="thumbnails" data-category="all" aria-labelledby="catalog-heading" tabindex="-1">
     <div class="container">
       <div class="section-heading" data-reveal><h1 id="catalog-heading" lang="en" data-font-text>Products</h1><span class="section-rule" aria-hidden="true"></span></div>
-      <div class="catalog-toolbar">
+      <div class="catalog-toolbar" data-reveal>
       <div class="catalog-navigation" role="group" aria-label={t.productCategories} data-i18n-aria-label="productCategories" data-product-filters hidden>
-        <button type="button" tabindex="0" data-product-filter="all" aria-pressed="true" aria-controls="product-list"><span data-i18n="allProducts" data-i18n-size>{t.allProducts}</span><span class="category-count" aria-hidden="true">{company.products.length}</span></button>
-        {company.categories.map((category) => <button type="button" tabindex="0" data-product-filter={category.id} aria-pressed="false" aria-controls="product-list"><span>{category.name}</span><span class="category-count" aria-hidden="true">{company.products.filter((product) => product.category === category.id).length}</span></button>)}
+        <button type="button" tabindex="0" data-product-filter="all" aria-pressed="true" aria-controls="product-list"><span data-product-filter-name data-i18n="allProducts" data-i18n-size>{t.allProducts}</span><span class="category-count" aria-hidden="true">{company.products.length}</span></button>
+        {company.categories.map((category) => <button type="button" tabindex="0" data-product-filter={category.id} aria-pressed="false" aria-controls="product-list"><span data-product-filter-name>{category.name}</span><span class="category-count" aria-hidden="true">{company.products.filter((product) => product.category === category.id).length}</span></button>)}
       </div>
-      <label class="catalog-mobile-filter" data-product-mobile-filter hidden>
-        <span class="sr-only" data-i18n="productCategories">{t.productCategories}</span>
-        <select tabindex="0" data-product-filter-select aria-controls="product-list" disabled>
-          <option value="all" data-i18n="allProducts">{t.allProducts}</option>
-          {company.categories.map((category) => <option value={category.id}>{category.name}</option>)}
-        </select>
-      </label>
+      <div class="nav-dropdown catalog-mobile-filter" data-dropdown data-product-mobile-filter hidden>
+        <span id="catalog-filter-label" class="sr-only" data-i18n="productCategories">{t.productCategories}</span>
+        <button type="button" class="dropdown-toggle catalog-filter-toggle" tabindex="0" aria-labelledby="catalog-filter-label catalog-filter-value" data-dropdown-toggle data-product-filter-toggle aria-controls="catalog-filter-dropdown" aria-expanded="false" disabled><span id="catalog-filter-value" data-product-filter-value data-i18n="allProducts" data-i18n-size>{t.allProducts}</span><Chevron /></button>
+        <ul id="catalog-filter-dropdown" class="dropdown-panel" data-dropdown-panel>
+          <li><button type="button" tabindex="0" data-product-filter-option="all" aria-pressed="true" aria-controls="product-list"><span data-i18n="allProducts">{t.allProducts}</span><span class="category-count" aria-hidden="true">{company.products.length}</span></button></li>
+          {company.categories.map((category) => <li><button type="button" tabindex="0" data-product-filter-option={category.id} aria-pressed="false" aria-controls="product-list"><span>{category.name}</span><span class="category-count" aria-hidden="true">{company.products.filter((product) => product.category === category.id).length}</span></button></li>)}
+        </ul>
+      </div>
       <div class="catalog-views" role="group" aria-label={t.catalogView} data-i18n-aria-label="catalogView" data-catalog-views hidden>
         <button type="button" tabindex="0" data-catalog-view-button="thumbnails" aria-pressed="true" aria-controls="product-list" aria-label={t.thumbnailView} data-i18n-aria-label="thumbnailView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
         <button type="button" tabindex="0" data-catalog-view-button="details" aria-pressed="false" aria-controls="product-list" aria-label={t.detailsView} data-i18n-aria-label="detailsView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M9 5h12M9 12h12M9 19h12M3 5h1M3 12h1M3 19h1"/></svg></button>
       </div>
       </div>
-      <div class="catalog-viewport" data-catalog-viewport><div class="catalog-scroll" data-catalog-scroll role="region" aria-label={t.catalogView} data-i18n-aria-label="catalogView"><ProductList locale={locale} /></div></div>
+      <div class="catalog-scroll" data-catalog-scroll role="region" aria-label={t.catalogView} data-i18n-aria-label="catalogView"><ProductList locale={locale} /></div>
     </div>
   </section>
 </BaseLayout>

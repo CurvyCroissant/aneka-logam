@@ -1,7 +1,7 @@
 import { fitImage, imageContentRect, type ImageRect } from '../lib/image-geometry';
 import { motionTiming } from '../lib/motion';
 
-export function setupImageViewer(reducedMotion: MediaQueryList) {
+export function setupImageViewer() {
   const dialog = document.querySelector<HTMLDialogElement>('#image-viewer');
   const stage = dialog?.querySelector<HTMLElement>('[data-image-stage]');
   const scrim = dialog?.querySelector<HTMLElement>('[data-image-scrim]');
@@ -48,14 +48,13 @@ export function setupImageViewer(reducedMotion: MediaQueryList) {
     closing = true;
     const from = stage!.getBoundingClientRect();
     const opacity = getComputedStyle(scrim!).opacity;
-    const imageOpacity = getComputedStyle(stage!).opacity;
     cancelAnimations();
     const to = sourceRect();
-    Object.assign(stage!.style, position(reducedMotion.matches ? from : to));
+    Object.assign(stage!.style, position(to));
     scrim!.style.opacity = '0';
     if (supportsAnimation) {
-      const timing = motionTiming('state', reducedMotion);
-      imageAnimation = stage!.animate(reducedMotion.matches ? [{ opacity: imageOpacity }, { opacity: 0 }] : [position(from), position(to)], { ...timing, fill: 'both' });
+      const timing = motionTiming('state');
+      imageAnimation = stage!.animate([position(from), position(to)], { ...timing, fill: 'both' });
       scrimAnimation = scrim!.animate([{ opacity }, { opacity: 0 }], { ...timing, fill: 'both' });
       await imageAnimation.finished.catch(() => {});
     }
@@ -104,8 +103,8 @@ export function setupImageViewer(reducedMotion: MediaQueryList) {
       original.classList.add('image-source-hidden');
       stage.focus({ preventScroll: true });
       if (supportsAnimation) {
-        const timing = motionTiming('move', reducedMotion);
-        imageAnimation = stage.animate(reducedMotion.matches ? [{ opacity: 0 }, { opacity: 1 }] : [position(from), position(to)], timing);
+        const timing = motionTiming('move');
+        imageAnimation = stage.animate([position(from), position(to)], timing);
         scrimAnimation = scrim.animate([{ opacity: 0 }, { opacity: 1 }], timing);
       }
     });
@@ -121,7 +120,6 @@ export function setupImageViewer(reducedMotion: MediaQueryList) {
   }
   window.addEventListener('resize', resize, { passive: true });
   window.visualViewport?.addEventListener('resize', resize, { passive: true });
-  reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) resize(); });
   window.addEventListener('pagehide', () => { if (dialog.open) { dialog.close(); cleanup(); } });
   document.addEventListener('aneka:before-navigation', () => { if (dialog.open) { dialog.close(); cleanup(); } });
 }

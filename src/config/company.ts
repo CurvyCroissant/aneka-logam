@@ -17,7 +17,7 @@ export const company = {
   },
   categories,
   // Owner-requested preview items. Replace these demos when real item details are supplied.
-  products: categories.flatMap((category) => (['A', 'B', 'C'] as const).map((suffix) => ({
+  products: categories.flatMap((category) => (['A', 'B', 'C', 'D', 'E'] as const).map((suffix) => ({
     key: `${category.key}Demo${suffix}` as const,
     id: `${category.id}-demo-${suffix.toLowerCase()}`,
     category: category.id,

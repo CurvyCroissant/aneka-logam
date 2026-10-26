@@ -36,7 +36,7 @@
     const direction = pendingReturn;
     if (!direction || !window.__anekaBoot?.completed) return;
     pendingReturn = undefined;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || typeof document.body?.animate !== 'function') return;
+    if (typeof document.body?.animate !== 'function') return;
     const style = getComputedStyle(root);
     try {
       const animation = document.body.animate([

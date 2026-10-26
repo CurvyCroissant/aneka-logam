@@ -1,4 +1,4 @@
-export function setupGalleries(reducedMotion: MediaQueryList) {
+export function setupGalleries() {
   for (const gallery of document.querySelectorAll<HTMLElement>('[data-gallery]')) {
     const track = gallery.querySelector<HTMLElement>('[data-gallery-track]');
     const controls = gallery.querySelector<HTMLElement>('[data-gallery-controls]');
@@ -21,7 +21,7 @@ export function setupGalleries(reducedMotion: MediaQueryList) {
     }
     function step(direction: number) {
       const target = slides[Math.max(0, Math.min(slides.length - 1, current + direction))];
-      if (track && target) track.scrollTo({ left: target.offsetLeft, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+      if (track && target) track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
     }
     previous?.addEventListener('click', () => step(-1));
     next?.addEventListener('click', () => step(1));

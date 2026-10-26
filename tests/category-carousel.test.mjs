@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setupCategoryCarousels } from '../src/scripts/category-carousel.ts';
 
-function environment(t, reduced = false) {
+function environment(t) {
   class Control extends EventTarget {
     dataset = {}; hidden = false; disabled = false; scrollLeft = 0;
     querySelector(selector) { return this.children?.[selector] ?? null; }
@@ -14,7 +14,7 @@ function environment(t, reduced = false) {
   const controls = new Control(); controls.children = { '[data-category-step="-1"]': previous, '[data-category-step="1"]': next, '[data-category-counter]': counter };
   const track = new Control(); track.clientWidth = 600; track.scrollWidth = 1450;
   const cards = [0, 500, 1000].map((offsetLeft) => {
-    const card = new Control(); card.offsetLeft = offsetLeft; card.children = { a: new Control() }; return card;
+    const card = new Control(); card.offsetLeft = offsetLeft; card.children = { 'a, button': new Control() }; return card;
   });
   track.cards = cards;
   const carousel = new Control(); carousel.children = { '[data-category-track]': track, '[data-category-controls]': controls };
@@ -24,10 +24,9 @@ function environment(t, reduced = false) {
     Object.defineProperty(globalThis, name, { configurable: true, value });
     t.after(() => { if (saved) Object.defineProperty(globalThis, name, saved); else delete globalThis[name]; });
   }
-  const motion = { matches: reduced };
-  setupCategoryCarousels(motion);
+  setupCategoryCarousels();
   const key = (value) => { const event = new Event('keydown', { cancelable: true }); event.key = value; track.dispatchEvent(event); return event; };
-  return { previous, next, counter, controls, track, cards, carousel, window, motion, key };
+  return { previous, next, counter, controls, track, cards, carousel, window, key };
 }
 
 test('carousel buttons reach each card and clamp the last step to the available width', (t) => {
@@ -48,10 +47,10 @@ test('carousel buttons reach each card and clamp the last step to the available 
 });
 
 test('horizontal arrow keys move focus; vertical keys and gestures remain native page input', (t) => {
-  const env = environment(t, true);
+  const env = environment(t);
   assert.equal(env.key('ArrowRight').defaultPrevented, true);
-  assert.equal(env.track.lastScroll.behavior, 'instant');
-  assert.deepEqual(env.cards[1].querySelector('a').focusOptions, { preventScroll: true });
+  assert.equal(env.track.lastScroll.behavior, 'smooth');
+  assert.deepEqual(env.cards[1].querySelector('a, button').focusOptions, { preventScroll: true });
   for (const key of ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp']) assert.equal(env.key(key).defaultPrevented, false);
   for (const name of ['wheel', 'touchmove']) {
     const event = new Event(name, { cancelable: true }); env.track.dispatchEvent(event);
@@ -62,12 +61,13 @@ test('horizontal arrow keys move focus; vertical keys and gestures remain native
 
 test('controls adapt to viewport width and enhancement does not bind duplicate actions', (t) => {
   const env = environment(t);
-  setupCategoryCarousels(env.motion);
+  setupCategoryCarousels();
   env.next.dispatchEvent(new Event('click'));
   assert.equal(env.track.scrollLeft, 500, 'Repeated setup adds no second step handler');
   env.track.clientWidth = env.track.scrollWidth;
   env.window.dispatchEvent(new Event('resize'));
   assert.equal(env.controls.hidden, true);
+  assert.equal(env.key('ArrowRight').defaultPrevented, false, 'A filtered grid or detail group must retain native horizontal keyboard input');
   env.track.clientWidth = 600; env.track.scrollLeft = 0;
   env.window.dispatchEvent(new Event('resize'));
   assert.equal(env.controls.hidden, false);

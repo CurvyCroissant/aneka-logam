@@ -15,15 +15,15 @@ export function createDeferredFeature(initialize: () => Promise<void>) {
 }
 
 const initializers = {
-  viewer: async (motion: MediaQueryList) => { (await import('./image-viewer')).setupImageViewer(motion); },
-  carousel: async (motion: MediaQueryList) => { (await import('./category-carousel')).setupCategoryCarousels(motion); },
-  galleries: async (motion: MediaQueryList) => { (await import('./galleries')).setupGalleries(motion); },
+  viewer: async () => { (await import('./image-viewer')).setupImageViewer(); },
+  carousel: async () => { (await import('./category-carousel')).setupCategoryCarousels(); },
+  galleries: async () => { (await import('./galleries')).setupGalleries(); },
 };
 
-export function setupDeferredFeatures(motion: MediaQueryList, initialize = initializers) {
-  const viewer = createDeferredFeature(() => initialize.viewer(motion));
-  const carousel = createDeferredFeature(() => initialize.carousel(motion));
-  const galleries = createDeferredFeature(() => initialize.galleries(motion));
+export function setupDeferredFeatures(initialize = initializers) {
+  const viewer = createDeferredFeature(() => initialize.viewer());
+  const carousel = createDeferredFeature(() => initialize.carousel());
+  const galleries = createDeferredFeature(() => initialize.galleries());
   let activation = 0;
   const warm = (feature: ReturnType<typeof createDeferredFeature>) => { void feature.load().catch(() => {}); };
   const watched = new Map<Element, ReturnType<typeof createDeferredFeature>>();

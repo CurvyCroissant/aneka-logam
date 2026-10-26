@@ -51,12 +51,12 @@ test('the exact shop phrase and proper company details are language invariant', 
 
 test('all supplied product names stay fixed and belong to a translated general category', () => {
   assert.deepEqual(company.categories.map(({ name }) => name), ['Shim Plate', 'Per', 'Kawat', 'As']);
-  assert.equal(company.products.length, 12);
-  assert.equal(new Set(company.products.map(({ id }) => id)).size, 12);
-  assert.equal(new Set(company.products.map(({ key }) => key)).size, 12);
+  assert.equal(company.products.length, 20);
+  assert.equal(new Set(company.products.map(({ id }) => id)).size, 20);
+  assert.equal(new Set(company.products.map(({ key }) => key)).size, 20);
   for (const category of company.categories) {
     const items = company.products.filter((product) => product.category === category.id);
-    assert.deepEqual(items.map(({ name }) => name), ['A', 'B', 'C'].map((suffix) => `${category.name} — Demo ${suffix}`));
+    assert.deepEqual(items.map(({ name }) => name), ['A', 'B', 'C', 'D', 'E'].map((suffix) => `${category.name} — Demo ${suffix}`));
     assert.ok(items.every((product) => product.demo && product.summary.en.includes('Demo item')));
     for (const product of items) for (const locale of locales) {
       assert.ok(product.summary[locale].startsWith(category.summary[locale]), 'Demo descriptions must still clarify the untranslated product name in every language');

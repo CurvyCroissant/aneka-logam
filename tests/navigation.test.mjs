@@ -58,7 +58,7 @@ function environment(t, { saved = savedVisit, hash = '', blocked = false, motion
   const window = Object.assign(new EventTarget(), { scrollX: 0, scrollY: 0, scrollCalls: [], scrollTo(options) { this.scrollCalls.push(options); this.scrollX = options.left; this.scrollY = options.top; }, __anekaBoot: { snapshot: navigation === 'navigate' ? undefined : saved, finish: () => root.classList.remove('is-restoring') } });
   Object.defineProperty(window, 'sessionStorage', { get() { if (blocked) throw new Error('Storage blocked'); return storage; } });
   const globals = { document, window, location, history, innerWidth: 1000, innerHeight: 700, performance: { getEntriesByType: () => [{ type: navigation }] }, requestAnimationFrame: (fn) => queueMicrotask(fn) };
-  globals.getComputedStyle = (element) => ({ position: element === header && sticky ? 'sticky' : 'relative', opacity: String(element.opacity), lineHeight: '24px', whiteSpace: element.whitespace ?? 'normal', translate: 'none', clipPath: 'none', scale: '1', getPropertyValue: (name) => ({ '--state-duration': '650ms', '--move-duration': '850ms', '--reduced-duration': '180ms', '--ease': 'cubic-bezier(0.22, 0.61, 0.36, 1)' })[name] ?? '' });
+  globals.getComputedStyle = (element) => ({ position: element === header && sticky ? 'sticky' : 'relative', opacity: String(element.opacity), lineHeight: '24px', whiteSpace: element.whitespace ?? 'normal', translate: 'none', clipPath: 'none', scale: '1', getPropertyValue: (name) => ({ '--state-duration': '650ms', '--move-duration': '850ms', '--ease': 'cubic-bezier(0.22, 0.61, 0.36, 1)' })[name] ?? '' });
   for (const [key, value] of Object.entries(globals)) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, key);
     Object.defineProperty(globalThis, key, { configurable: true, value });
@@ -95,7 +95,7 @@ test('reload waits for the font, restores exact pixels and expanded content, and
 test('language changes preserve pixels, image identity, open details, and gallery selection; Back restores the old visit', async (t) => {
   const env = environment(t);
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   const originalImage = env.image;
   const previous = env.history.state;
   assert.equal(env.click(env.en).defaultPrevented, true);
@@ -131,7 +131,7 @@ test('fresh deep links and section navigation still scroll to the requested head
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
   assert.equal(env.window.scrollY, 1712, 'Contact starts immediately below the 88px sticky header');
   assert.equal(env.location.hash, '', 'Consume incoming deep links without retaining a fragment');
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   assert.equal(env.click(env.sectionLink).defaultPrevented, true);
   assert.equal(env.window.scrollY, 1712, 'Repeated navigation must not accumulate extra spacing');
   assert.equal(env.window.scrollCalls.at(-1).behavior, 'smooth');
@@ -147,8 +147,7 @@ test('fresh deep links and section navigation still scroll to the requested head
 test('language wipes out old text right-to-left before replacing it and wipes new text in left-to-right', async (t) => {
   const env = environment(t, { motion: 'manual' });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  const preference = { matches: false };
-  setupNavigation(memory, preference);
+  setupNavigation(memory);
   env.click(env.en);
   const outgoing = env.heading.animations[0];
   assert.equal(env.heading.textContent, 'Pemilik', 'Keep the old text until its wipe completes');
@@ -172,17 +171,18 @@ test('language wipes out old text right-to-left before replacing it and wipes ne
   assert.equal(incoming.options.easing, outgoing.options.easing);
   assert.equal(incoming.options.easing, 'linear');
   assert.equal(incoming.options.fill, 'both', 'Mask translated text during the pending animation phase');
-  preference.matches = true;
   env.click(env.id);
+  assert.equal(env.root.lang, 'en');
+  assert.equal(env.heading.animations[2].options.duration, 425);
+  env.heading.animations[2].finish(); await flush();
   assert.equal(env.root.lang, 'id');
-  assert.equal(env.heading.animations[2].options.duration, 180);
-  assert.ok(env.heading.animations[2].frames.every((frame) => frame.clipPath === undefined && frame.translate === undefined));
+  assert.ok(env.heading.animations[3].frames.every((frame) => frame.clipPath !== undefined && frame.translate !== undefined));
 });
 
 test('a rapid language reversal cancels stale replacement without adding a history entry', async (t) => {
   const env = environment(t, { motion: 'manual' });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   env.click(env.en); env.click(env.id); await flush();
   assert.equal(env.heading.animations[0].cancelled, true);
   assert.equal(env.heading.textContent, 'Pemilik');
@@ -194,7 +194,7 @@ test('a stalled language animation releases its masks and temporary label sizing
   const env = environment(t, { motion: 'manual' });
   env.heading.dataset.i18nSize = '';
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   env.click(env.en);
   t.mock.timers.tick(675); await flush();
   const incoming = env.heading.animations[1];
@@ -206,22 +206,29 @@ test('a stalled language animation releases its masks and temporary label sizing
   assert.ok(!env.root.classes.has('is-localizing'));
 });
 
-test('reduced-motion language changes keep text fluid without temporary width constraints', async (t) => {
+test('OS motion preferences do not disable the designed language wipe', async (t) => {
   const env = environment(t, { motion: 'manual' });
   env.heading.dataset.i18nSize = '';
+  let queries = 0;
+  env.window.matchMedia = () => { queries++; return { matches: true }; };
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: true });
+  setupNavigation(memory);
   env.click(env.en);
+  assert.equal(env.heading.textContent, 'Pemilik');
+  assert.equal(env.heading.animations[0].options.duration, 425);
+  env.heading.animations[0].finish(); await flush();
   assert.equal(env.heading.textContent, 'Owners');
+  assert.ok(env.heading.classes.has('i18n-sizing'));
+  env.heading.animations[1].finish(); await flush();
   assert.ok(!env.heading.classes.has('i18n-sizing'));
-  assert.ok(env.heading.animations[0].frames.every((frame) => frame.inlineSize === undefined && frame.whiteSpace === undefined));
+  assert.equal(queries, 0);
 });
 
 test('catalog language changes stay on the catalog and retain exact scroll pixels', async (t) => {
   const saved = { ...savedVisit, url: '/products/', y: 2867.5 };
   const env = environment(t, { page: 'products', saved });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   env.click(env.en);
   assert.equal(env.location.pathname, '/en/products/');
   assert.equal(env.window.scrollY, 2867.5);
@@ -246,7 +253,7 @@ test('catalog selection survives refresh, language changes and Back together wit
   let selection = 'all';
   const catalog = { sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: () => undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   assert.equal(selection, 'as');
   assert.equal(env.window.scrollY, 420.5);
   const previous = env.history.state;
@@ -286,10 +293,10 @@ test('refresh retains the selected category using card snap positions rather tha
 test('section scrolling on short landscape screens has no offset for a non-sticky header', async (t) => {
   const env = environment(t, { sticky: false });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: true });
+  setupNavigation(memory);
   env.click(env.sectionLink);
   assert.equal(env.window.scrollY, 1800);
-  assert.equal(env.window.scrollCalls.at(-1).behavior, 'instant');
+  assert.equal(env.window.scrollCalls.at(-1).behavior, 'smooth');
 });
 
 test('scroll input during startup takes priority over the saved position', async (t) => {
@@ -316,7 +323,7 @@ test('keyboard-initiated section navigation during startup takes priority over a
   const env = environment(t);
   let fontReady;
   const memory = setupScrollMemory(new Promise((resolve) => { fontReady = resolve; }));
-  setupNavigation(memory, { matches: true });
+  setupNavigation(memory);
   env.click(env.sectionLink);
   assert.equal(env.window.scrollY, 1712);
   fontReady();
@@ -337,7 +344,7 @@ test('blocked session storage uses history; malformed fragments cannot leave the
 for (const page of ['home', 'products']) test(`Mandarin switches in place on ${page}, keeps pixels/images, and supports a third-language history round trip`, async (t) => {
   const env = environment(t, { page, saved: { ...savedVisit, url: page === 'home' ? '/' : '/products/', y: 420.5 } });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   env.click(env.zh);
   assert.equal(env.root.lang, 'zh-Hans');
   assert.equal(env.location.pathname, page === 'home' ? '/zh/' : '/zh/products/');
@@ -361,7 +368,7 @@ test('catalog category links filter in place; the Products page link returns to 
   let category = 'all';
   const catalog = { sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => category, select: (value) => { category = value; }, categoryForFragment: (id) => ['all', 'per'].includes(id) ? id : undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
-  setupNavigation(memory, { matches: true });
+  setupNavigation(memory);
   assert.equal(env.click(env.categoryLink).defaultPrevented, true);
   assert.equal(category, 'per');
   assert.equal(env.window.scrollY, 0);
@@ -376,7 +383,7 @@ test('text-sized controls resize horizontally during the incoming language wipe'
   env.heading.dataset.i18nSize = '';
   env.heading.getBoundingClientRect = () => ({ width: env.heading.textContent.length * 10, height: 24, top: 100, bottom: 124 });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   env.click(env.en);
   const outgoing = env.heading.animations[0];
   assert.equal(outgoing.frames[0].inlineSize, '70px');
@@ -404,7 +411,7 @@ test('catalog view is restored before scroll positioning and survives language h
   assert.equal(view, 'details');
   assert.equal(category, 'per');
   assert.equal(env.window.scrollY, 420.25);
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   const previous = env.history.state;
   env.click(env.en);
   assert.equal(env.history.state.alScroll.view, 'details');
@@ -457,7 +464,7 @@ test('a longer incoming label keeps a single line while its width grows', async 
   env.heading.dataset.i18nSize = '';
   env.heading.getBoundingClientRect = () => ({ width: env.heading.textContent.length * 10, height: 24, top: 100, bottom: 124 });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   env.click(env.en); env.heading.animations[0].finish(); await flush();
   env.heading.animations[1].finish(); await flush();
   env.click(env.id); env.heading.animations[2].finish(); await flush();
@@ -472,7 +479,7 @@ test('a label that needs multiple lines at enlarged text is left fluid during tr
   env.heading.dataset.i18nSize = '';
   env.heading.getBoundingClientRect = () => ({ width: 100, height: 48, top: 100, bottom: 148 });
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   env.click(env.en); env.heading.animations[0].finish(); await flush();
   const incoming = env.heading.animations[1];
   assert.ok(incoming.frames.every((frame) => frame.inlineSize === undefined && frame.whiteSpace === undefined));
@@ -484,7 +491,7 @@ test('a rapid reversal preserves the no-wrap constraint at a partially resized w
   const env = environment(t, { motion: 'manual' });
   env.heading.dataset.i18nSize = '';
   const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
-  setupNavigation(memory, { matches: false });
+  setupNavigation(memory);
   env.click(env.en); env.heading.animations[0].finish(); await flush();
   env.heading.whitespace = 'nowrap';
   env.heading.getBoundingClientRect = () => ({ width: 50, height: 24, top: 100, bottom: 124 });

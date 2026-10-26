@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setupHeaderDropdowns } from '../src/scripts/header-dropdowns.ts';
 
-function environment(t, { hover = true, height = 700, contentWidth = 320 } = {}) {
+function environment(t, { hover = true, height = 700, contentWidth = 320, catalog = false } = {}) {
   class Control extends EventTarget {
     dataset = {}; attrs = new Map(); style = {}; inert = false;
     querySelector(selector) { return this.children?.[selector] ?? null; }
@@ -12,13 +12,13 @@ function environment(t, { hover = true, height = 700, contentWidth = 320 } = {})
     contains(target) { for (let node = target; node; node = node.parent) if (node === this) return true; return false; }
     focus() { document.activeElement = this; }
     matches(selector) { return selector === 'a[href]' ? this.kind === 'link' : selector === ':focus-visible' && Boolean(this.keyboardFocus); }
-    closest(selector) { return selector === 'a[href]' && this.kind === 'link' ? this : selector === '[data-language-link]' && this.language ? this : null; }
+    closest(selector) { return selector === 'a[href], button' && ['link', 'button'].includes(this.kind) ? this : selector === '[data-language-link], [data-product-filter-option]' && (this.language || this.filter) ? this : null; }
   }
-  const entries = ['link', 'button'].map((kind) => {
+  const entries = (catalog ? ['link', 'button', 'button'] : ['link', 'button']).map((kind, index) => {
     const root = new Control(), toggle = new Control(), panel = new Control();
     toggle.kind = kind; toggle.parent = root; panel.parent = root;
     root.children = { '[data-dropdown-toggle]': toggle, '[data-dropdown-panel]': panel };
-    panel.links = [0, 1, 2].map(() => { const link = new Control(); link.kind = 'link'; link.parent = panel; link.language = kind === 'button'; return link; });
+    panel.links = [0, 1, 2].map(() => { const link = new Control(); link.kind = 'link'; link.parent = panel; link.kind = index === 2 ? 'button' : 'link'; link.language = index === 1; link.filter = index === 2; return link; });
     return { root, toggle, panel };
   });
   const outside = new Control();
@@ -160,4 +160,19 @@ test('Tab between dropdown items does not close during the transient body focus 
   home.panel.links[1].focus();
   fire(home.root, 'focusout', { relatedTarget: home.panel.links[2] });
   assert.equal(home.panel.inert, false);
+});
+
+
+test('catalog filter choices reuse header disclosure behavior and return focus after one selection', (t) => {
+  const { entries: [, , filter], fire, document, outside } = environment(t, { catalog: true });
+  fire(filter.root, 'pointerenter', { pointerType: 'mouse' });
+  fire(filter.toggle, 'click', { detail: 1 });
+  assert.equal(filter.panel.inert, false);
+  fire(filter.panel, 'click', { target: filter.panel.links[1] });
+  assert.equal(filter.panel.inert, true);
+  assert.equal(document.activeElement, filter.toggle);
+  fire(filter.root, 'keydown', { key: 'ArrowDown', target: filter.toggle });
+  assert.equal(document.activeElement, filter.panel.links[0]);
+  outside.focus(); fire(filter.root, 'pointerleave', { pointerType: 'mouse' });
+  assert.equal(filter.panel.inert, true);
 });

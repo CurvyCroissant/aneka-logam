@@ -1,0 +1,17 @@
+---
+import Arrow from './Arrow.astro';
+import { copy } from '../i18n/copy';
+import type { Locale } from '../i18n/routes';
+interface Props { id: string; trackId: string; count: number; locale: Locale; kind?: 'category' | 'product' }
+const { id, trackId, count, locale, kind = 'category' } = Astro.props;
+const t = copy(locale);
+const previous = kind === 'product' ? 'previousProduct' : 'previousCategory';
+const next = kind === 'product' ? 'nextProduct' : 'nextCategory';
+---
+<div class="carousel-controls-slot">
+  <div id={id} class="carousel-controls gallery-controls" data-category-controls hidden>
+    <button tabindex="0" type="button" class="gallery-previous" data-category-step="-1" aria-controls={trackId} aria-label={t[previous]} data-i18n-aria-label={previous} disabled><Arrow /></button>
+    <output class="gallery-counter" data-category-counter aria-live="polite">1 / {count}</output>
+    <button tabindex="0" type="button" data-category-step="1" aria-controls={trackId} aria-label={t[next]} data-i18n-aria-label={next}><Arrow /></button>
+  </div>
+</div>

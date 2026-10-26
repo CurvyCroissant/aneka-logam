@@ -8,6 +8,7 @@ function environment(t, { support = true, broken = false, shell = false, heroTop
     constructor(top, reveal = '') { super(); this.top = top; this.left = 0; this.classes = new Set(); this.dataset = { reveal }; }
     classList = { add: (...names) => names.forEach((name) => this.classes.add(name)), remove: (...names) => names.forEach((name) => this.classes.delete(name)) };
     closest() { return this; }
+    matches() { return this.keyboardFocus !== false; }
     getBoundingClientRect() { return { top: this.top, bottom: this.top + 120, left: this.left, right: this.left + 500 }; }
   }
   const visible = new Component(100), below = new Component(1200), edge = new Component(799);
@@ -108,6 +109,17 @@ test('early keyboard access remains visible after font/scroll initialization', a
   ready(false); await Promise.resolve();
   assert.ok(!header.classes.has('reveal-pending') && !header.classes.has('is-revealing'));
   assert.ok(hero.classes.has('is-revealing'));
+});
+
+test('pointer focus does not snap a revealing control out from under a pending click', async (t) => {
+  const { hero, document } = environment(t, { shell: true });
+  setupReveals(Promise.resolve()); await Promise.resolve();
+  hero.keyboardFocus = false;
+  focus(document, hero);
+  assert.ok(hero.classes.has('is-revealing'));
+  hero.keyboardFocus = true;
+  focus(document, hero);
+  assert.ok(!hero.classes.has('is-revealing'));
 });
 
 test('slow or failed restoration has a bounded visible fallback', (t) => {

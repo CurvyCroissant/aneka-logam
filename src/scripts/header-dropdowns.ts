@@ -86,13 +86,13 @@ export function setupHeaderDropdowns() {
     entry.root.addEventListener('keydown', (event) => {
       if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !entry.panel.contains(event.target as Node)) {
         event.preventDefault(); open(entry);
-        const links = [...entry.panel.querySelectorAll<HTMLAnchorElement>('a[href]')];
+        const links = [...entry.panel.querySelectorAll<HTMLElement>('a[href], button:not(:disabled)')];
         (event.key === 'ArrowDown' ? links[0] : links.at(-1))?.focus();
       }
     });
     entry.panel.addEventListener('click', (event) => {
-      if (!(event.target instanceof Element) || !event.target.closest('a[href]')) return;
-      close(entry, Boolean(event.target.closest('[data-language-link]')));
+      if (!(event.target instanceof Element) || !event.target.closest('a[href], button')) return;
+      close(entry, Boolean(event.target.closest('[data-language-link], [data-product-filter-option]')));
     });
   }
   document.addEventListener('keydown', (event) => {
@@ -114,6 +114,14 @@ export function setupHeaderDropdowns() {
   document.addEventListener('aneka:before-navigation', closeAll);
   window.addEventListener('blur', closeAll);
   window.addEventListener('pagehide', closeAll);
+  window.addEventListener('scroll', () => {
+    for (const entry of entries) {
+      if (!entry.root.dataset.dropdownOpen) continue;
+      const bounds = entry.toggle.getBoundingClientRect();
+      if (bounds.bottom <= 0 || bounds.top >= innerHeight) close(entry);
+      else position(entry);
+    }
+  }, { passive: true });
   window.addEventListener('resize', () => { closeAll(); entries.forEach(position); }, { passive: true });
   // Clamp closed panels too: invisible absolute boxes can still widen the page.
   // Header resizing also covers font readiness and enlarged text without a window resize.

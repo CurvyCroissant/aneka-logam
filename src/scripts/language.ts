@@ -74,7 +74,7 @@ function translationTargets(locale: Locale) {
   });
 }
 
-export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, reducedMotion: MediaQueryList) {
+export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>) {
   if (!['home', 'products'].includes(document.documentElement.dataset.page ?? '')) return;
   const root = document.documentElement;
   const page: MainPage = root.dataset.page === 'products' ? 'products' : 'home';
@@ -93,7 +93,7 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
       const locale = localeFromTag(link.hreflang);
       if (locale === requestedLocale) return;
       before(); requestedLocale = locale; memory.save();
-      transitionTranslatedText(translationTargets(locale), reducedMotion, () => {
+      transitionTranslatedText(translationTargets(locale), () => {
         // Capture at replacement time so a scroll during the outgoing wipe is respected.
         const previous = memory.capture();
         root.classList.add('is-localizing');
@@ -115,7 +115,7 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
       before(); memory.save();
       memory.cleanUrl();
       target.focus({ preventScroll: true });
-      scrollToSection(target, reducedMotion.matches ? 'instant' : 'smooth');
+      scrollToSection(target, 'smooth');
       document.dispatchEvent(new Event('aneka:location-change'));
     });
   }
@@ -130,7 +130,7 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
       event.preventDefault(); before(); memory.save(); memory.cleanUrl();
       if (page === 'products') memory.selectCategory('all');
       target.focus({ preventScroll: true });
-      scrollToSection(target, reducedMotion.matches ? 'instant' : 'smooth');
+      scrollToSection(target, 'smooth');
       document.dispatchEvent(new Event('aneka:location-change'));
     });
   }
@@ -149,7 +149,7 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>, re
     root.classList.add('is-localizing');
     const locale = localeFromPath(location.pathname);
     requestedLocale = locale;
-    transitionTranslatedText(translationTargets(locale), reducedMotion, () => {
+    transitionTranslatedText(translationTargets(locale), () => {
       if (locale !== currentLocale()) applyLocale(locale);
       const saved = memory.fromHistory(event.state?.alScroll);
       if (saved) memory.restore(saved);
