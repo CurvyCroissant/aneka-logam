@@ -251,7 +251,7 @@ test('catalog selection survives refresh, language changes and Back together wit
   const saved = { ...savedVisit, url: '/products/', category: 'as', y: 420.5 };
   const env = environment(t, { page: 'products', saved });
   let selection = 'all';
-  const catalog = { sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: () => undefined };
+  const catalog = { sortColumn: () => 'category', sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: () => undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   setupNavigation(memory);
   assert.equal(selection, 'as');
@@ -272,7 +272,7 @@ test('catalog selection survives refresh, language changes and Back together wit
 test('category entry takes priority over an older saved catalog visit and consumes its fragment', async (t) => {
   const env = environment(t, { page: 'products', navigation: 'navigate', hash: '#per', saved: { ...savedVisit, url: '/products/', y: 600 } });
   let selection = 'all';
-  const catalog = { sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: (id) => id === 'per' ? 'per' : undefined };
+  const catalog = { sortColumn: () => 'category', sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => selection, select: (value) => { selection = value; }, categoryForFragment: (id) => id === 'per' ? 'per' : undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   assert.equal(selection, 'per');
   assert.equal(env.window.scrollY, 0, 'Category entries start with the filter controls in view');
@@ -366,7 +366,7 @@ for (const page of ['home', 'products']) test(`Mandarin switches in place on ${p
 test('catalog category links filter in place; the Products page link returns to All Products', async (t) => {
   const env = environment(t, { page: 'products', saved: { ...savedVisit, url: '/products/' } });
   let category = 'all';
-  const catalog = { sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => category, select: (value) => { category = value; }, categoryForFragment: (id) => ['all', 'per'].includes(id) ? id : undefined };
+  const catalog = { sortColumn: () => 'category', sort: () => 'none', setSort: () => {}, view: () => 'thumbnails', setView: () => {}, current: () => category, select: (value) => { category = value; }, categoryForFragment: (id) => ['all', 'per'].includes(id) ? id : undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   setupNavigation(memory);
   assert.equal(env.click(env.categoryLink).defaultPrevented, true);
@@ -406,7 +406,7 @@ test('catalog view is restored before scroll positioning and survives language h
   const saved = { ...savedVisit, url: '/products/', category: 'per', view: 'details', y: 420.25 };
   const env = environment(t, { page: 'products', saved });
   let category = 'all', view = 'thumbnails';
-  const catalog = { sort: () => 'none', setSort: () => {}, current: () => category, view: () => view, select: (next) => { category = next; }, setView: (next) => { view = next; }, categoryForFragment: () => undefined };
+  const catalog = { sortColumn: () => 'category', sort: () => 'none', setSort: () => {}, current: () => category, view: () => view, select: (next) => { category = next; }, setView: (next) => { view = next; }, categoryForFragment: () => undefined };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   assert.equal(view, 'details');
   assert.equal(category, 'per');
@@ -452,7 +452,7 @@ test('category sort order returns with the saved catalog view and pixels', async
   const saved = { ...savedVisit, url: '/products/', category: 'all', view: 'details', categorySort: 'ascending', y: 420.25 };
   const env = environment(t, { page: 'products', saved });
   let order = 'none';
-  const catalog = { current: () => 'all', view: () => 'details', sort: () => order, setSort: (next) => { order = next; }, setView: () => {}, select: () => {} };
+  const catalog = { current: () => 'all', view: () => 'details', sortColumn: () => 'category', sort: () => order, setSort: (next) => { order = next; }, setView: () => {}, select: () => {} };
   const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
   assert.equal(order, 'ascending'); assert.equal(env.window.scrollY, 420.25);
   memory.save(); assert.equal(env.history.state.alScroll.categorySort, 'ascending');
@@ -500,4 +500,21 @@ test('a rapid reversal preserves the no-wrap constraint at a partially resized w
   assert.ok(outgoing.frames.every((frame) => frame.whiteSpace === 'nowrap'));
   assert.ok(outgoing.frames.every((frame) => frame.inlineSize === '50px'));
   cancelTextTransition(); assert.ok(!env.heading.classes.has('i18n-sizing'), 'Release temporary whitespace on cancellation');
+});
+
+test('Product name sorting survives reload and language history with exact page pixels', async (t) => {
+  const saved = { ...savedVisit, url: '/products/', category: 'all', view: 'details', productSort: 'descending', y: 420.25 };
+  const env = environment(t, { page: 'products', saved });
+  let order = 'none', column = 'category';
+  const catalog = { current: () => 'all', view: () => 'details', sort: () => order, sortColumn: () => column, setSort: (next, animate, name) => { order = next; column = name; }, setView: () => {}, select: () => {} };
+  const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
+  assert.equal(order, 'descending'); assert.equal(column, 'product');
+  assert.equal(env.window.scrollY, 420.25);
+  setupNavigation(memory); env.click(env.en);
+  assert.equal(env.history.state.alScroll.productSort, 'descending');
+  assert.equal(env.history.state.alScroll.categorySort, undefined);
+  env.updateUrl('/products/');
+  const back = new Event('popstate'); back.state = { alScroll: saved }; env.window.dispatchEvent(back);
+  assert.equal(order, 'descending'); assert.equal(column, 'product');
+  assert.equal(env.window.scrollY, 420.25);
 });

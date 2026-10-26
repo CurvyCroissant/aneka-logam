@@ -1,14 +1,14 @@
 // Blocking head script: take scroll ownership before a stale fragment can run.
 (() => {
   const root = document.documentElement;
-  root.classList.add('js', 'fonts-loading');
+  root.classList.add('js', 'fonts-loading', 'page-enter-pending');
   // Register before the first render, including when a document returns from BFCache.
   const entryKey = 'aneka-logam:active-entry';
   let revealed = false;
   let browserTransition = false;
   let pendingReturn;
   let returnAnimation;
-  let pageMotion = Promise.resolve();
+  let pageEntering = Promise.resolve();
   let pageRevision = 0;
   function previousEntry() {
     try {
@@ -43,7 +43,7 @@
         { translate: direction === 'back' ? '-100% 0' : '100% 0' }, { translate: '0 0' },
       ], { duration: parseFloat(style.getPropertyValue('--move-duration')) || 850, easing: style.getPropertyValue('--ease').trim() || 'ease-out' });
       returnAnimation = animation;
-      pageMotion = animation.finished.catch(() => {});
+      pageEntering = Promise.resolve();
       void animation.finished.then(() => { if (returnAnimation === animation) returnAnimation = undefined; }, () => {});
     } catch { /* A skipped animation must never block history or restoration. */ }
   }
@@ -64,7 +64,7 @@
     browserTransition = false;
     rememberEntry();
     const transition = event.viewTransition;
-    pageMotion = transition?.finished?.catch(() => {}) ?? Promise.resolve();
+    pageEntering = transition?.ready?.catch(() => {}) ?? Promise.resolve();
     // Browser swipe animations already provide the visual return; do not double it.
     if (previous?.browserTransition) { transition?.skipTransition?.(); return; }
     const fallback = () => {
@@ -85,7 +85,7 @@
   document.addEventListener('aneka:before-navigation', cancelReturn);
   const url = location.pathname + location.search + location.hash;
   const navigation = performance.getEntriesByType('navigation')[0];
-  const valid = (saved) => saved?.version === 1 && saved.url === url && Number.isFinite(saved.x) && saved.x >= 0 && Number.isFinite(saved.y) && saved.y >= 0 && Array.isArray(saved.details) && saved.details.every((id) => typeof id === 'string') && (saved.category === undefined || typeof saved.category === 'string') && (saved.view === undefined || saved.view === 'thumbnails' || saved.view === 'details') && (saved.categorySort === undefined || saved.categorySort === 'ascending' || saved.categorySort === 'descending') && saved.galleries && typeof saved.galleries === 'object' && !Array.isArray(saved.galleries) && Object.values(saved.galleries).every((n) => Number.isInteger(n) && n >= 0);
+  const valid = (saved) => saved?.version === 1 && saved.url === url && Number.isFinite(saved.x) && saved.x >= 0 && Number.isFinite(saved.y) && saved.y >= 0 && Array.isArray(saved.details) && saved.details.every((id) => typeof id === 'string') && (saved.category === undefined || typeof saved.category === 'string') && (saved.view === undefined || saved.view === 'thumbnails' || saved.view === 'details') && (saved.categorySort === undefined || saved.categorySort === 'ascending' || saved.categorySort === 'descending') && (saved.productSort === undefined || saved.productSort === 'ascending' || saved.productSort === 'descending') && !(saved.productSort !== undefined && saved.categorySort !== undefined) && saved.galleries && typeof saved.galleries === 'object' && !Array.isArray(saved.galleries) && Object.values(saved.galleries).every((n) => Number.isInteger(n) && n >= 0);
   let saved = history.state?.alScroll;
   if (!valid(saved)) {
     try { saved = JSON.parse(sessionStorage.getItem(`aneka-logam:scroll:${location.pathname}${location.search}`) || 'null'); } catch { /* Privacy setting. */ }
@@ -94,9 +94,10 @@
   let timer;
   const boot = {
     snapshot: restoring ? saved : undefined, restoring: Boolean(restoring), completed: false,
-    whenVisible() { return pageMotion; },
+    whenEntering() { return pageEntering; },
+    startEntrance() { clearTimeout(timer); root.classList.remove('page-enter-pending'); },
     finish() {
-      this.completed = true; clearTimeout(timer); root.classList.remove('is-restoring');
+      this.completed = true; root.classList.remove('is-restoring');
       try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch { /* Restricted history. */ }
       // Keep the shell readable if a later enhancement fails before reveal setup.
       root.classList.add('js', 'reveals-ready');
@@ -117,6 +118,7 @@
     }
   } catch { boot.snapshot = undefined; boot.restoring = false; root.classList.remove('is-restoring'); }
   timer = setTimeout(() => {
+    root.classList.remove('page-enter-pending');
     if (boot.completed) return;
     root.classList.remove('is-restoring', 'fonts-loading', 'js');
     // A delayed/broken enhancement is not a font failure. Native font-display

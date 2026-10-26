@@ -5,12 +5,14 @@ import { localeFromTag } from '../i18n/routes.ts';
 
 export type CatalogView = 'thumbnails' | 'details';
 export type CatalogSort = 'none' | 'ascending' | 'descending';
+export type CatalogSortColumn = 'category' | 'product';
 export interface ProductCatalog {
   current(): string;
   view(): CatalogView;
   sort(): CatalogSort;
+  sortColumn(): CatalogSortColumn;
   setView(view: CatalogView, animate?: boolean): void;
-  setSort(order: CatalogSort, animate?: boolean): void;
+  setSort(order: CatalogSort, animate?: boolean, column?: CatalogSortColumn): void;
   select(category: string, animate?: boolean): void;
   categoryForFragment(fragment: string): string | undefined;
 }
@@ -25,7 +27,8 @@ export function setupProductCatalog(): ProductCatalog | undefined {
   const mobileFilter = catalog?.querySelector<HTMLButtonElement>('[data-product-filter-toggle]');
   const mobileValue = catalog?.querySelector<HTMLElement>('[data-product-filter-value]');
   const mobileOptions = [...(mobileControls?.querySelectorAll<HTMLButtonElement>('[data-product-filter-option]') ?? [])];
-  if (!catalog || !list || !controls) return;
+  const detailRows = list?.querySelector<HTMLElement>('[data-catalog-details]');
+  if (!catalog || !list || !controls || !detailRows) return;
   const cards = [...list.querySelectorAll<HTMLElement>('[data-product-category]')];
   const tracks = [...list.querySelectorAll<HTMLElement>('[data-catalog-track]')];
   const headings = [...list.querySelectorAll<HTMLElement>('[data-catalog-group-heading]')];
@@ -38,12 +41,17 @@ export function setupProductCatalog(): ProductCatalog | undefined {
   const sortButton = list.querySelector<HTMLButtonElement>('[data-category-sort]');
   const sortFallback = list.querySelector<HTMLElement>('[data-sort-fallback]');
   const sortIcon = list.querySelector<HTMLElement>('[data-sort-icon]');
+  const productSortHeader = list.querySelector<HTMLElement>('[data-product-sort-header]');
+  const productSortButton = list.querySelector<HTMLButtonElement>('[data-product-sort]');
+  const productSortFallback = list.querySelector<HTMLElement>('[data-product-sort-fallback]');
+  const productSortIcon = list.querySelector<HTMLElement>('[data-product-sort-icon]');
   const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
   let selected = 'all';
   let view: CatalogView = 'thumbnails';
   let order: CatalogSort = 'none';
+  let sortColumn: CatalogSortColumn = 'category';
   let animation: Animation | undefined;
-  let arranged = [...tracks];
+  const originalRows = new Map(tracks.map((track) => [track, cards.filter((card) => card.dataset.productCategory === track.dataset.catalogTrack)]));
   const carouselOffsets = new Map<HTMLElement, number>();
 
   function rememberCarousels() {
@@ -60,20 +68,19 @@ export function setupProductCatalog(): ProductCatalog | undefined {
       animation = list!.animate([{ opacity: 0.3, translate: '0 18px' }, { opacity: 1, translate: '0 0' }], motionTiming('move'));
     } catch { /* The chosen view/filter remains available without animation. */ }
   }
-  function arrangeGroups() {
-    const sorted = [...tracks];
-    if (view === 'details' && order !== 'none') sorted.sort((a, b) => {
-      const name = (track: HTMLElement) => track.querySelector('.catalog-category-label')?.textContent ?? track.dataset.catalogTrack ?? '';
-      return collator.compare(name(a), name(b)) * (order === 'ascending' ? 1 : -1);
-    });
-    if (sorted.every((track, index) => track === arranged[index])) return;
-    arranged = sorted;
-    for (const track of sorted) {
-      const heading = headings.find((heading) => heading.dataset.catalogGroupHeading === track.dataset.catalogTrack);
-      if (heading) list!.append(heading);
-      list!.append(track);
-      const controls = carouselControls.find((element) => element.dataset.catalogControls === track.dataset.catalogTrack);
-      if (controls) list!.append(controls);
+  function arrangeRows() {
+    if (view === 'details') {
+      const sorted = [...cards];
+      if (order !== 'none') {
+        const selector = sortColumn === 'product' ? '.catalog-product-name' : '.catalog-category-label';
+        const names = new Map(cards.map((card) => [card, card.querySelector(selector)?.textContent?.trim() ?? '']));
+        sorted.sort((a, b) => collator.compare(names.get(a)!, names.get(b)!) * (order === 'ascending' ? 1 : -1));
+      }
+      if (detailRows!.children.length !== sorted.length || sorted.some((card, index) => detailRows!.children[index] !== card)) detailRows!.append(...sorted);
+    } else {
+      for (const [track, rows] of originalRows) {
+        if (track.children.length !== rows.length || rows.some((card, index) => track.children[index] !== card)) track.append(...rows);
+      }
     }
   }
   function refreshInteractions() {
@@ -88,25 +95,34 @@ export function setupProductCatalog(): ProductCatalog | undefined {
     }
   }
   function updateSortControl() {
-    sortHeader?.setAttribute('aria-sort', order);
-    if (sortIcon) sortIcon.textContent = order === 'ascending' ? '▲' : order === 'descending' ? '▼' : '↕';
-    if (sortButton) {
-      const key = order === 'ascending' ? 'sortCategoryDescending' : 'sortCategoryAscending';
-      sortButton.setAttribute('aria-label', copy(localeFromTag(document.documentElement.lang))[key]);
-      sortButton.setAttribute('data-i18n-aria-label', key);
-      sortButton.hidden = view !== 'details';
+    const t = copy(localeFromTag(document.documentElement.lang));
+    const columns = [
+      { column: 'category', header: sortHeader, button: sortButton, icon: sortIcon, fallback: sortFallback, ascending: 'sortCategoryAscending', descending: 'sortCategoryDescending' },
+      { column: 'product', header: productSortHeader, button: productSortButton, icon: productSortIcon, fallback: productSortFallback, ascending: 'sortProductAscending', descending: 'sortProductDescending' },
+    ] as const;
+    for (const control of columns) {
+      const active = sortColumn === control.column ? order : 'none';
+      control.header?.setAttribute('aria-sort', active);
+      if (control.icon) control.icon.textContent = active === 'ascending' ? '▲' : active === 'descending' ? '▼' : '↕';
+      if (control.button) {
+        const key = active === 'ascending' ? control.descending : control.ascending;
+        control.button.setAttribute('aria-label', t[key]);
+        control.button.setAttribute('data-i18n-aria-label', key);
+        control.button.hidden = view !== 'details';
+      }
+      if (control.fallback) control.fallback.hidden = view === 'details';
     }
-    if (sortFallback) sortFallback.hidden = view === 'details';
   }
   function applyPresentation() {
     catalog!.dataset.catalogView = view;
     catalog!.dataset.category = selected;
     if (head) head.hidden = view === 'thumbnails';
-    for (const track of tracks) track.hidden = selected !== 'all' && track.dataset.catalogTrack !== selected;
+    detailRows!.hidden = view !== 'details';
+    for (const track of tracks) track.hidden = view === 'details' || (selected !== 'all' && track.dataset.catalogTrack !== selected);
     for (const heading of headings) heading.hidden = view !== 'thumbnails' || selected !== 'all';
     for (const controls of carouselControls) controls.hidden = view !== 'thumbnails' || selected !== 'all';
     updateSortControl();
-    arrangeGroups();
+    arrangeRows();
   }
   function setView(next: CatalogView, animate = false) {
     const changed = next !== view;
@@ -119,10 +135,11 @@ export function setupProductCatalog(): ProductCatalog | undefined {
     try { window.localStorage?.setItem('aneka-logam:catalog-view', view); } catch { /* Private browsing can disable preference storage. */ }
     if (changed && animate) animateList();
   }
-  function setSort(next: CatalogSort, animate = false) {
+  function setSort(next: CatalogSort, animate = false, column: CatalogSortColumn = 'category') {
+    sortColumn = column === 'product' ? 'product' : 'category';
     order = next === 'ascending' || next === 'descending' ? next : 'none';
     updateSortControl();
-    arrangeGroups();
+    arrangeRows();
     if (animate) animateList();
   }
   function categoryForFragment(fragment: string) {
@@ -185,7 +202,12 @@ export function setupProductCatalog(): ProductCatalog | undefined {
   });
   sortButton?.addEventListener('click', () => {
     document.dispatchEvent(new Event('aneka:before-navigation'));
-    setSort(order === 'ascending' ? 'descending' : 'ascending', true);
+    setSort(sortColumn === 'category' && order === 'ascending' ? 'descending' : 'ascending', true, 'category');
+    document.dispatchEvent(new Event('aneka:catalog-change'));
+  });
+  productSortButton?.addEventListener('click', () => {
+    document.dispatchEvent(new Event('aneka:before-navigation'));
+    setSort(sortColumn === 'product' && order === 'ascending' ? 'descending' : 'ascending', true, 'product');
     document.dispatchEvent(new Event('aneka:catalog-change'));
   });
   for (const button of [...buttons, ...mobileOptions]) button.addEventListener('click', () => {
@@ -196,5 +218,5 @@ export function setupProductCatalog(): ProductCatalog | undefined {
     document.dispatchEvent(new Event('aneka:catalog-change'));
   });
   window.addEventListener('pagehide', () => animation?.cancel());
-  return { current: () => selected, view: () => view, sort: () => order, setView, setSort, select, categoryForFragment };
+  return { current: () => selected, view: () => view, sort: () => order, sortColumn: () => sortColumn, setView, setSort, select, categoryForFragment };
 }

@@ -235,8 +235,11 @@ for (const [file, { name, nodes }] of pages) {
     const viewControls = nodes.filter((node) => attr(node, 'data-catalog-view-button') !== undefined);
     requireThat(viewControls.map((node) => attr(node, 'data-catalog-view-button')).join(',') === 'thumbnails,details', `${name}: both catalog views must be keyboard reachable.`);
     for (const control of viewControls) requireThat(Boolean(attr(control, 'aria-label')) && !text(control).trim() && elements(control).some((node) => node.tagName === 'svg'), `${name}: catalog view buttons must use icons with localized accessible names.`);
-    const sorter = nodes.find((node) => node.tagName === 'button' && attr(node, 'data-category-sort') !== undefined);
-    requireThat(Boolean(sorter && attr(sorter, 'aria-label') && attr(sorter.parentNode, 'aria-sort') === 'none'), `${name}: Category sorting needs a labeled native button and column-header sort state.`);
+    for (const column of ['category', 'product']) {
+      const sorter = nodes.find((node) => node.tagName === 'button' && attr(node, `data-${column}-sort`) !== undefined);
+      requireThat(Boolean(sorter && attr(sorter, 'aria-label') && attr(sorter, 'data-catalog-sort') !== undefined && attr(sorter.parentNode, 'aria-sort') === 'none'), `${name}: ${column} sorting needs a labeled native button and column-header sort state.`);
+    }
+    requireThat(nodes.some((node) => node.tagName === 'tbody' && attr(node, 'data-catalog-details') !== undefined && attr(node, 'hidden') !== undefined && attr(node, 'data-reveal') !== undefined), `${name}: Details needs one reusable row group for globally sorted products.`);
     for (const category of company.categories) requireThat(nodes.some((node) => node.tagName === 'tbody' && attr(node, 'data-catalog-track') === category.id && attr(node, 'aria-labelledby') === `catalog-group-${category.id}`), `${name}: ${category.name} needs a named category carousel row.`);
     const table = nodes.find((node) => node.tagName === 'table' && attr(node, 'data-product-list') !== undefined);
     requireThat(Boolean(table) && elements(table).filter((node) => node.tagName === 'th' && attr(node, 'scope') === 'col').length === 3, `${name}: the shared catalog must expose Product, Category and Description column headers.`);

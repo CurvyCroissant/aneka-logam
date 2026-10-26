@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readScrollSnapshot, saveScrollSnapshot, shouldRestoreScroll, clampScroll } from '../src/lib/scroll-memory.ts';
+import { parseScrollSnapshot, readScrollSnapshot, saveScrollSnapshot, shouldRestoreScroll, clampScroll } from '../src/lib/scroll-memory.ts';
 
 const snapshot = { version: 1, url: '/#products', x: 0, y: 1234, details: ['details-spring'], galleries: { 'product-spring-track': 2 } };
 
@@ -33,4 +33,12 @@ test('restoration clamps to the available page after a viewport change', () => {
   assert.equal(clampScroll(1234, 800), 800);
   assert.equal(clampScroll(400, 800), 400);
   assert.equal(clampScroll(20, -10), 0);
+});
+
+test('product sorting snapshots validate one active sorting column while accepting legacy category state', () => {
+  const base = { version: 1, url: '/products/', x: 0, y: 100, details: [], galleries: {} };
+  assert.equal(parseScrollSnapshot({ ...base, productSort: 'ascending' }).productSort, 'ascending');
+  assert.equal(parseScrollSnapshot({ ...base, categorySort: 'descending' }).categorySort, 'descending');
+  assert.equal(parseScrollSnapshot({ ...base, productSort: 'random' }), undefined);
+  assert.equal(parseScrollSnapshot({ ...base, productSort: 'ascending', categorySort: 'descending' }), undefined);
 });

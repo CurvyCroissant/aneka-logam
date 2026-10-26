@@ -8,6 +8,7 @@ export interface ScrollSnapshot {
   category?: string;
   view?: 'thumbnails' | 'details';
   categorySort?: 'ascending' | 'descending';
+  productSort?: 'ascending' | 'descending';
 }
 
 type StorageReader = Pick<Storage, 'getItem'>;
@@ -29,6 +30,8 @@ export function parseScrollSnapshot(input: unknown): ScrollSnapshot | undefined 
     if (value.category !== undefined && typeof value.category !== 'string') return;
     if (value.view !== undefined && value.view !== 'thumbnails' && value.view !== 'details') return;
     if (value.categorySort !== undefined && value.categorySort !== 'ascending' && value.categorySort !== 'descending') return;
+    if (value.productSort !== undefined && value.productSort !== 'ascending' && value.productSort !== 'descending') return;
+    if (value.productSort !== undefined && value.categorySort !== undefined) return;
     return value as ScrollSnapshot;
   } catch { return; }
 }

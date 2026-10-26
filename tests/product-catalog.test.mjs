@@ -4,30 +4,33 @@ import { setupProductCatalog } from '../src/scripts/product-catalog.ts';
 
 function environment(t, hash = '', { preference, blocked = false, extraPer = false } = {}) {
   class Control extends EventTarget {
-    dataset = {}; attrs = new Map(); hidden = false; classes = new Set(); scrollLeft = 0; clientWidth = 300; scrollWidth = 300;
+    dataset = {}; attrs = new Map(); hidden = false; classes = new Set(); scrollLeft = 0; clientWidth = 300; scrollWidth = 300; children = [];
     classList = { add: (name) => this.classes.add(name), toggle: (name, force) => force ? this.classes.add(name) : this.classes.delete(name) };
     setAttribute(key, value) { this.attrs.set(key, value); }
     removeAttribute(key) { this.attrs.delete(key); }
-    querySelector(selector) { return this.children?.[selector] ?? null; }
+    querySelector(selector) { return this.lookups?.[selector] ?? null; }
     querySelectorAll(selector) { return this.selectors?.[selector] ?? this.items ?? []; }
-    append(child) { this.order = (this.order ?? []).filter((item) => item !== child); this.order.push(child); }
+    append(...nodes) { for (const child of nodes) { if (child.parentElement) child.parentElement.children = child.parentElement.children.filter((item) => item !== child); this.children.push(child); child.parentElement = this; } }
   }
   const categories = ['shim-plate', 'per', 'kawat', 'as'];
   const names = ['Shim Plate', 'Per', 'Kawat', 'As'];
-  const cards = categories.map((category) => { const card = new Control(); card.id = category; card.dataset.productCategory = category; return card; });
-  if (extraPer) { const card = new Control(); card.id = 'per-test'; card.dataset.productCategory = 'per'; cards.push(card); }
-  const tracks = categories.map((category, index) => {
+  const cards = categories.map((category, index) => {
+    const card = new Control(); card.id = category; card.dataset.productCategory = category;
+    card.lookups = { '.catalog-category-label': { textContent: names[index] }, '.catalog-product-name': { textContent: names[index] } }; return card;
+  });
+  if (extraPer) { const card = new Control(); card.id = 'per-test'; card.dataset.productCategory = 'per'; card.lookups = { '.catalog-category-label': { textContent: 'Per' }, '.catalog-product-name': { textContent: 'Per Test' } }; cards.push(card); }
+  const tracks = categories.map((category) => {
     const track = new Control(); track.dataset.catalogTrack = category; track.items = cards.filter((card) => card.dataset.productCategory === category);
-    track.children = { '.catalog-category-label': { textContent: names[index] } }; track.scrollWidth = track.items.length * 300; return track;
+    track.append(...track.items); track.scrollWidth = track.items.length * 300; return track;
   });
   const headings = categories.map((category) => { const heading = new Control(); heading.dataset.catalogGroupHeading = category; return heading; });
-  const buttons = ['all', ...categories].map((category) => { const button = new Control(); button.dataset.productFilter = category; button.children = { '[data-product-filter-name]': { textContent: ({ all: 'Semua Produk', 'shim-plate': 'Shim Plate', per: 'Per', kawat: 'Kawat', as: 'As' })[category] } }; return button; });
+  const buttons = ['all', ...categories].map((category) => { const button = new Control(); button.dataset.productFilter = category; button.lookups = { '[data-product-filter-name]': { textContent: ({ all: 'Semua Produk', 'shim-plate': 'Shim Plate', per: 'Per', kawat: 'Kawat', as: 'As' })[category] } }; return button; });
   const carouselControls = categories.map((category) => { const control = new Control(); control.dataset.catalogControls = category; return control; });
   const head = new Control(), sortHeader = new Control(), sortButton = new Control(), sortIcon = new Control(), sortFallback = new Control();
+  const productSortHeader = new Control(), productSortButton = new Control(), productSortIcon = new Control(), productSortFallback = new Control(), detailRows = new Control();
   const list = new Control();
   list.selectors = { '[data-product-category]': cards, '[data-catalog-track]': tracks, '[data-catalog-group-heading]': headings, '[data-catalog-controls]': carouselControls };
-  list.children = { thead: head, '[data-category-sort-header]': sortHeader, '[data-category-sort]': sortButton, '[data-sort-icon]': sortIcon, '[data-sort-fallback]': sortFallback };
-  list.order = categories.flatMap((category, index) => [headings[index], tracks[index], carouselControls[index]]);
+  list.lookups = { thead: head, '[data-catalog-details]': detailRows, '[data-category-sort-header]': sortHeader, '[data-category-sort]': sortButton, '[data-sort-icon]': sortIcon, '[data-sort-fallback]': sortFallback, '[data-product-sort-header]': productSortHeader, '[data-product-sort]': productSortButton, '[data-product-sort-icon]': productSortIcon, '[data-product-sort-fallback]': productSortFallback };
   let cardHeight = 200, layoutReads = 0;
   list.getBoundingClientRect = () => { layoutReads++; return { height: root.dataset.catalogView === 'details' ? 20 + cards.filter((card) => !card.hidden).length * 60 : root.dataset.category === 'all' ? tracks.filter((track) => !track.hidden).length * (cardHeight + 30) : Math.ceil(cards.filter((card) => !card.hidden).length / 2) * cardHeight }; };
   const viewport = new Control(); viewport.style = {};
@@ -39,7 +42,7 @@ function environment(t, hash = '', { preference, blocked = false, extraPer = fal
   const mobileControls = new Control(); mobileControls.hidden = true; mobileControls.items = mobileOptions;
   const viewButtons = ['thumbnails', 'details'].map((view) => { const button = new Control(); button.dataset.catalogViewButton = view; return button; });
   const views = new Control(); views.items = viewButtons; views.hidden = true;
-  const root = new Control(); root.children = { '[data-product-list]': list, '[data-product-filters]': controls, '[data-catalog-viewport]': viewport, '[data-catalog-views]': views, '[data-catalog-scroll]': scroll, '[data-product-filter-toggle]': mobileFilter, '[data-product-filter-value]': mobileValue, '[data-product-mobile-filter]': mobileControls };
+  const root = new Control(); root.lookups = { '[data-product-list]': list, '[data-product-filters]': controls, '[data-catalog-viewport]': viewport, '[data-catalog-views]': views, '[data-catalog-scroll]': scroll, '[data-product-filter-toggle]': mobileFilter, '[data-product-filter-value]': mobileValue, '[data-product-mobile-filter]': mobileControls };
   const document = Object.assign(new EventTarget(), { documentElement: { lang: 'id' }, querySelector: () => root, querySelectorAll: () => [] });
   const window = new EventTarget();
   const stored = new Map([['aneka-logam:catalog-view', preference]]);
@@ -50,8 +53,8 @@ function environment(t, hash = '', { preference, blocked = false, extraPer = fal
     t.after(() => { if (previous) Object.defineProperty(globalThis, name, previous); else delete globalThis[name]; });
   }
   const catalog = setupProductCatalog();
-  const order = () => list.order.filter((item) => item.dataset.catalogTrack).map((track) => track.dataset.catalogTrack);
-  return { list, head, carouselControls, mobileValue, mobileOptions, layoutReads: () => layoutReads, catalog, cards, buttons, controls, document, window, viewport, viewButtons, views, stored, tracks, headings, sortHeader, sortButton, sortIcon, scroll, order, mobileFilter, mobileControls, reflow: (height) => { cardHeight = height; } };
+  const order = () => catalog.view() === 'details' ? [...new Set(detailRows.children.map((card) => card.dataset.productCategory))] : tracks.map((track) => track.dataset.catalogTrack);
+  return { list, head, carouselControls, mobileValue, mobileOptions, layoutReads: () => layoutReads, catalog, cards, buttons, controls, document, window, viewport, viewButtons, views, stored, tracks, headings, sortHeader, sortButton, sortIcon, scroll, order, mobileFilter, mobileControls, detailRows, productSortHeader, productSortButton, productSortIcon, reflow: (height) => { cardHeight = height; } };
 }
 
 test('All Products defaults to category rows; filtering removes unrelated cards and row headings', (t) => {
@@ -196,4 +199,33 @@ test('carousel offsets survive the browser clamping hidden tracks during filteri
   env.catalog.select('all'); assert.equal(env.tracks[1].scrollLeft, 180);
   env.catalog.setView('details'); env.tracks[1].scrollLeft = 0;
   env.catalog.setView('thumbnails'); assert.equal(env.tracks[1].scrollLeft, 180);
+});
+
+test('Product sorting is global across categories, toggles direction, and restores original carousel rows', (t) => {
+  const env = environment(t, '', { extraPer: true });
+  ['Zebra', 'Alpha', 'Echo', 'Bravo', 'Delta'].forEach((name, index) => { env.cards[index].lookups['.catalog-product-name'].textContent = name; });
+  const originalRows = env.tracks.map((track) => [...track.children]);
+  env.catalog.setView('details');
+  env.productSortButton.dispatchEvent(new Event('click'));
+  assert.deepEqual(env.detailRows.children.map((row) => row.id), ['per', 'as', 'per-test', 'kawat', 'shim-plate']);
+  assert.equal(env.productSortHeader.attrs.get('aria-sort'), 'ascending');
+  assert.equal(env.sortHeader.attrs.get('aria-sort'), 'none');
+  assert.equal(env.productSortButton.attrs.get('aria-label'), 'Urutkan Produk Z–A');
+  env.productSortButton.dispatchEvent(new Event('click'));
+  assert.deepEqual(env.detailRows.children.map((row) => row.id), ['shim-plate', 'kawat', 'per-test', 'as', 'per']);
+  env.catalog.select('per');
+  assert.deepEqual(env.detailRows.children.filter((row) => !row.hidden).map((row) => row.id), ['per-test', 'per']);
+  env.catalog.setView('thumbnails');
+  for (const [index, track] of env.tracks.entries()) assert.deepEqual(track.children, originalRows[index]);
+  assert.equal(env.detailRows.children.length, 0);
+  env.catalog.setView('details');
+  assert.equal(env.catalog.sortColumn(), 'product');
+  assert.equal(env.productSortHeader.attrs.get('aria-sort'), 'descending');
+  assert.ok(env.detailRows.children.every((row) => env.cards.includes(row)), 'Reuse the original rows and their galleries');
+  env.sortButton.dispatchEvent(new Event('click'));
+  assert.equal(env.sortHeader.attrs.get('aria-sort'), 'ascending');
+  assert.equal(env.productSortHeader.attrs.get('aria-sort'), 'none');
+  env.document.documentElement.lang = 'zh-Hans';
+  env.productSortButton.dispatchEvent(new Event('click'));
+  assert.equal(env.productSortButton.attrs.get('aria-label'), '按产品名称降序排列（Z–A）');
 });

@@ -12,10 +12,11 @@ const t = copy(locale);
 <!-- Keep the same rows and galleries when changing presentation. -->
 <table id="product-list" class="product-grid" data-product-list role="table" aria-labelledby="catalog-heading">
   <thead role="rowgroup" data-reveal hidden><tr role="row">
-    <th scope="col" role="columnheader" data-i18n="productColumn">{t.productColumn}</th>
-    <th scope="col" role="columnheader" data-category-sort-header aria-sort="none"><span data-sort-fallback data-i18n="categoryColumn">{t.categoryColumn}</span><button type="button" tabindex="0" data-category-sort aria-label={t.sortCategoryAscending} data-i18n-aria-label="sortCategoryAscending" hidden><span data-i18n="categoryColumn">{t.categoryColumn}</span><span class="catalog-sort-icon" data-sort-icon aria-hidden="true">↕</span></button></th>
+    <th scope="col" role="columnheader" data-product-sort-header aria-sort="none"><span data-product-sort-fallback data-i18n="productColumn">{t.productColumn}</span><button type="button" tabindex="0" data-product-sort data-catalog-sort aria-label={t.sortProductAscending} data-i18n-aria-label="sortProductAscending" hidden><span data-i18n="productColumn">{t.productColumn}</span><span class="catalog-sort-icon" data-product-sort-icon aria-hidden="true">↕</span></button></th>
+    <th scope="col" role="columnheader" data-category-sort-header aria-sort="none"><span data-sort-fallback data-i18n="categoryColumn">{t.categoryColumn}</span><button type="button" tabindex="0" data-category-sort data-catalog-sort aria-label={t.sortCategoryAscending} data-i18n-aria-label="sortCategoryAscending" hidden><span data-i18n="categoryColumn">{t.categoryColumn}</span><span class="catalog-sort-icon" data-sort-icon aria-hidden="true">↕</span></button></th>
     <th scope="col" role="columnheader" data-i18n="descriptionColumn">{t.descriptionColumn}</th>
   </tr></thead>
+  <tbody class="catalog-details-body" data-catalog-details role="rowgroup" data-reveal hidden></tbody>
   {company.categories.map((category) => <>
     <tbody id={category.id} class="catalog-group-heading" data-catalog-group-heading={category.id} role="rowgroup" data-reveal><tr role="row"><th id={`catalog-group-${category.id}`} scope="rowgroup" colspan={3} role="rowheader">{category.name}</th></tr></tbody>
     <tbody id={`catalog-track-${category.id}`} class="catalog-group-track category-track" data-catalog-track={category.id} data-category-track data-category-carousel data-category-controls-id={`catalog-controls-${category.id}`} role="rowgroup" aria-labelledby={`catalog-group-${category.id}`} data-reveal>

@@ -1,6 +1,7 @@
 export function setupReveals(ready: Promise<unknown>) {
   const root = document.documentElement;
-  if (!('IntersectionObserver' in window)) { root.classList.add('reveals-ready'); return; }
+  const startPage = () => window.__anekaBoot?.startEntrance?.();
+  if (!('IntersectionObserver' in window)) { root.classList.add('reveals-ready'); startPage(); return; }
   const elements = [...document.querySelectorAll<HTMLElement>('[data-reveal]')];
   const pending = new Set(elements);
   const running = new Map<HTMLElement, () => void>();
@@ -48,6 +49,7 @@ export function setupReveals(ready: Promise<unknown>) {
     pending.clear();
     for (const finish of running.values()) finish();
     root.classList.add('reveals-ready');
+    startPage();
   }
   function start(restored: unknown = false) {
     if (started) return;
@@ -66,6 +68,7 @@ export function setupReveals(ready: Promise<unknown>) {
       }
       for (const element of pending) observer.observe(element);
       root.classList.add('reveals-ready');
+      startPage();
     } catch { release(); }
   }
   document.addEventListener('focusin', (event) => {
@@ -79,11 +82,11 @@ export function setupReveals(ready: Promise<unknown>) {
   }, { capture: true });
   timeout = setTimeout(start, 10000);
   const afterRestoration = (restored: unknown = false) => {
-    // Let font skeletons work during startup, then hold entrances until the live
-    // document replaces the page-transition snapshot. Refresh has no such wait.
+    // After fonts/scroll are ready, release the page slide and component reveals
+    // in the same style update. Native snapshots of the incoming view stay live.
     for (const element of pending) element.classList.add('reveal-pending');
     try {
-      const motion = window.__anekaBoot?.whenVisible?.();
+      const motion = window.__anekaBoot?.whenEntering?.();
       if (motion) { void motion.then(() => start(restored), () => start(restored)); return; }
     } catch { /* Skipped transitions still reveal normally. */ }
     start(restored);

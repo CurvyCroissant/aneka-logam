@@ -27,6 +27,7 @@ test('saved reload removes the stale contact hash before parsing and takes one s
   result.window.__anekaBoot.finish();
   assert.ok(result.classes.has('reveals-ready'), 'Scroll/font completion must release shell masking even if reveal setup failed');
   assert.equal(result.history.scrollRestoration, 'manual', 'Do not hand control back to native restoration');
+  result.window.__anekaBoot.startEntrance();
   assert.equal(result.timers.size, 0);
 });
 
@@ -150,4 +151,27 @@ test('OS motion preferences do not disable the designed history animation', () =
   env.window.dispatchEvent(new Event('pagereveal'));
   assert.equal(env.animations.length, 1);
   assert.equal(env.animations[0].options.duration, 850);
+});
+test('incoming page motion releases at ready, without waiting for the transition to finish', async () => {
+  const env = boot();
+  let ready;
+  const transition = { ready: new Promise((resolve) => { ready = resolve; }), finished: new Promise(() => {}) };
+  env.window.dispatchEvent(Object.assign(new Event('pagereveal'), { viewTransition: transition }));
+  let entering = false;
+  const waiting = env.window.__anekaBoot.whenEntering().then(() => { entering = true; });
+  await Promise.resolve(); assert.equal(entering, false);
+  ready(); await waiting; assert.equal(entering, true);
+  assert.ok(env.classes.has('page-enter-pending'));
+  env.window.__anekaBoot.finish();
+  env.window.__anekaBoot.startEntrance();
+  assert.ok(!env.classes.has('page-enter-pending'));
+  assert.equal(env.timers.size, 0);
+});
+
+test('a late enhancement failure cannot leave native page animations paused forever', () => {
+  const env = boot();
+  env.window.__anekaBoot.finish();
+  assert.ok(env.classes.has('page-enter-pending'));
+  env.timers.get(1)();
+  assert.ok(!env.classes.has('page-enter-pending'));
 });

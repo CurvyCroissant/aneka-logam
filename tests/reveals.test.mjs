@@ -141,13 +141,15 @@ test('an observer failure releases every hidden component', async (t) => {
   assert.ok(!visible.classes.has('reveal-pending') && !below.classes.has('reveal-pending'));
 });
 
-test('page-navigation entrances wait for the live document, then start together at the current viewport', async (t) => {
+test('page and visible components release together when the incoming transition is ready', async (t) => {
   const { header, hero } = environment(t, { shell: true });
-  let finishPage;
-  window.__anekaBoot = { whenVisible: () => new Promise((resolve) => { finishPage = resolve; }) };
+  let finishPage; let pageStarted = false;
+  window.__anekaBoot = { whenEntering: () => new Promise((resolve) => { finishPage = resolve; }), startEntrance() { assert.ok(header.classes.has('is-revealing') && hero.classes.has('is-revealing')); pageStarted = true; } };
   setupReveals(Promise.resolve()); await Promise.resolve();
   assert.ok(hero.classes.has('reveal-pending'));
   assert.ok(!header.classes.has('is-revealing') && !hero.classes.has('is-revealing'), 'Do not consume reveal time in a frozen navigation snapshot');
+  assert.equal(pageStarted, false);
   finishPage(); await Promise.resolve();
+  assert.equal(pageStarted, true);
   assert.ok(header.classes.has('is-revealing') && hero.classes.has('is-revealing'));
 });
