@@ -142,7 +142,7 @@ test('Category sorting toggles A–Z/Z–A with correct state and preserves grou
   assert.deepEqual(env.order(), ['as', 'kawat', 'per', 'shim-plate']);
   assert.equal(env.sortHeader.attrs.get('aria-sort'), 'ascending');
   assert.equal(env.sortButton.attrs.get('aria-label'), 'Urutkan Kategori Z–A');
-  assert.equal(env.sortIcon.textContent, '▲');
+  assert.equal(env.sortIcon.attrs.get('data-sort-direction'), 'ascending');
   env.sortButton.dispatchEvent(new Event('click'));
   assert.deepEqual(env.order(), ['shim-plate', 'per', 'kawat', 'as']);
   assert.equal(env.sortHeader.attrs.get('aria-sort'), 'descending');
@@ -213,6 +213,7 @@ test('Product sorting is global across categories, toggles direction, and restor
   assert.equal(env.productSortButton.attrs.get('aria-label'), 'Urutkan Produk Z–A');
   env.productSortButton.dispatchEvent(new Event('click'));
   assert.deepEqual(env.detailRows.children.map((row) => row.id), ['shim-plate', 'kawat', 'per-test', 'as', 'per']);
+  assert.equal(env.productSortIcon.attrs.get('data-sort-direction'), 'descending');
   env.catalog.select('per');
   assert.deepEqual(env.detailRows.children.filter((row) => !row.hidden).map((row) => row.id), ['per-test', 'per']);
   env.catalog.setView('thumbnails');
@@ -225,6 +226,7 @@ test('Product sorting is global across categories, toggles direction, and restor
   env.sortButton.dispatchEvent(new Event('click'));
   assert.equal(env.sortHeader.attrs.get('aria-sort'), 'ascending');
   assert.equal(env.productSortHeader.attrs.get('aria-sort'), 'none');
+  assert.equal(env.productSortIcon.attrs.get('data-sort-direction'), 'ascending', 'Inactive columns keep the upward next-action icon, without a neutral third icon');
   env.document.documentElement.lang = 'zh-Hans';
   env.productSortButton.dispatchEvent(new Event('click'));
   assert.equal(env.productSortButton.attrs.get('aria-label'), '按产品名称降序排列（Z–A）');

@@ -121,7 +121,7 @@ export function setupNavigation(memory: ReturnType<typeof setupScrollMemory>) {
   }
   for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-page-link]')) {
     link.addEventListener('click', (event) => {
-      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       const destination = link.dataset.pageLink as Page;
       const url = new URL(pagePath(currentLocale(), destination), location.href);
       if (url.pathname !== location.pathname || url.hash) return;

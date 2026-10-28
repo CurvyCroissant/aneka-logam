@@ -73,19 +73,17 @@ svg { flex: none; }
 .language-icon { inline-size: 1.25rem; block-size: 1.25rem; }
 .language-switch { padding: 0; background: transparent; }
 .language-toggle { gap: 0.3rem; min-inline-size: 2.75rem; }
-.dropdown-panel { position: absolute; z-index: 2; inset-block-start: 100%; inset-inline-start: 0; inline-size: max-content; min-inline-size: min(11rem, calc(100vw - 2rem)); max-inline-size: min(20rem, calc(100vw - 2rem)); max-block-size: 55svh; margin: 0; padding: 0.5rem; overflow-y: auto; list-style: none; border: 1px solid transparent; border-radius: 4px; isolation: isolate; background: transparent; visibility: hidden; pointer-events: none; transition: visibility 0s var(--move-duration); }
+.dropdown-panel { position: absolute; z-index: 2; inset-block-start: 100%; inset-inline-start: 0; inline-size: max-content; min-inline-size: min(11rem, calc(100vw - 2rem)); max-inline-size: min(20rem, calc(100vw - 2rem)); max-block-size: 55svh; border-radius: 4px; visibility: hidden; pointer-events: none; transition: visibility 0s var(--move-duration); }
+.dropdown-content { margin: 0; padding: 0.5rem; max-block-size: inherit; overflow-y: auto; list-style: none; border: 1px solid #ffffff25; border-radius: inherit; background: var(--shell); box-shadow: 0 16px 36px #0004; clip-path: inset(0 -3rem 100% -3rem); transition: clip-path var(--move-duration) var(--ease); }
 .nav-dropdown:last-child > .dropdown-panel, .language-dropdown > .dropdown-panel { inset-inline-start: auto; inset-inline-end: 0; }
 .dropdown-panel a { display: block; min-inline-size: 0; min-block-size: 2.75rem; padding: 0.65rem 0.85rem; color: var(--ink); text-align: left; text-decoration: none; font-size: 0.9rem; font-weight: 400; letter-spacing: normal; line-height: 1.5; border-radius: 2px; }
 .dropdown-panel a::after { content: none; }
 .dropdown-panel [aria-current] { color: var(--brand-ink); background: #f5aa2310; }
 .nav-dropdown[data-dropdown-open] > .dropdown-panel, :root:not(.js) .nav-dropdown:hover > .dropdown-panel, :root:not(.js) .nav-dropdown:focus-within > .dropdown-panel { visibility: visible; pointer-events: auto; transition-delay: 0s; }
-.dropdown-panel::before { content: ''; position: absolute; inset: 0; z-index: -1; border: 1px solid #ffffff25; border-radius: inherit; background: var(--shell); box-shadow: 0 16px 36px #0004; pointer-events: none; transform: translateY(-1.5rem); clip-path: inset(0 -3rem 100% -3rem); transition: transform var(--move-duration) var(--ease), clip-path var(--move-duration) var(--ease); }
-.dropdown-panel :is(a, button) > span { display: inline-block; min-inline-size: 0; translate: 0 -1.5rem; clip-path: inset(0 0 100% 0); transition: translate var(--move-duration) var(--ease), clip-path var(--move-duration) var(--ease); }
-.nav-dropdown[data-dropdown-open] > .dropdown-panel::before, :root:not(.js) .nav-dropdown:is(:hover, :focus-within) > .dropdown-panel::before { transform: none; clip-path: inset(0 -3rem -3rem -3rem); }
-.nav-dropdown[data-dropdown-open] > .dropdown-panel :is(a, button) > span, :root:not(.js) .nav-dropdown:is(:hover, :focus-within) > .dropdown-panel :is(a, button) > span { translate: 0 0; clip-path: inset(0 0 0 0); }
+.dropdown-panel :is(a, button) > span { display: inline-block; min-inline-size: 0; }
+.nav-dropdown[data-dropdown-open] > .dropdown-panel > .dropdown-content, :root:not(.js) .nav-dropdown:is(:hover, :focus-within) > .dropdown-panel > .dropdown-content { clip-path: inset(-3rem); }
 .nav-dropdown[data-dropdown-side='up'] > .dropdown-panel { inset-block-start: auto; inset-block-end: 100%; transform-origin: bottom; }
-.nav-dropdown[data-dropdown-side='up']:not([data-dropdown-open]) > .dropdown-panel::before { transform: translateY(1.5rem); clip-path: inset(100% -3rem 0 -3rem); }
-.nav-dropdown[data-dropdown-side='up']:not([data-dropdown-open]) > .dropdown-panel :is(a, button) > span { translate: 0 1.5rem; clip-path: inset(100% 0 0 0); }
+.nav-dropdown[data-dropdown-side='up']:not([data-dropdown-open]) > .dropdown-panel > .dropdown-content { clip-path: inset(100% -3rem 0 -3rem); }
 .nav-dropdown[data-dropdown-open] > [data-dropdown-toggle] .chevron-icon { transform: rotate(180deg); }
 .dropdown-toggle:focus-visible, .dropdown-toggle:hover { color: var(--ink); background: #f5aa2318; }
 .hero a:focus-visible { outline-color: var(--brand); }
@@ -305,9 +303,11 @@ address { font-style: normal; color: #454d58; font-size: 0.95rem; }
 @media (hover: none), (pointer: coarse) { .contact-hint { opacity: 1; transform: none; } }
 :root, .gallery-track { scroll-behavior: smooth; }
 @view-transition { navigation: auto; }
+/* The root snapshots already share a viewport; do not animate UA width/height. */
+::view-transition-group(root) { animation: none; }
 ::view-transition-image-pair(root) { isolation: isolate; }
-::view-transition-old(root) { z-index: 1; animation: page-exit var(--move-duration) var(--ease) both; mix-blend-mode: normal; }
-::view-transition-new(root) { z-index: 2; animation: page-enter var(--move-duration) var(--ease) both; mix-blend-mode: normal; }
+::view-transition-old(root) { z-index: 1; animation: page-exit var(--reveal-duration) var(--ease) both; mix-blend-mode: normal; will-change: transform; }
+::view-transition-new(root) { z-index: 2; animation: page-enter var(--reveal-duration) var(--ease) both; mix-blend-mode: normal; will-change: transform; }
 :root[data-page-direction='back']::view-transition-old(root) { z-index: 2; animation-name: page-pop; }
 :root[data-page-direction='back']::view-transition-new(root) { z-index: 1; animation: none; }
 .hero-emblem, .hero-orbit, .address-hint .arrow-icon { transition: transform var(--move-duration) var(--ease), color var(--state-duration) var(--ease); }
@@ -346,8 +346,6 @@ address { font-style: normal; color: #454d58; font-size: 0.95rem; }
 .site-header.is-revealing, .site-header.is-revealing.reveal-still { animation-name: header-reveal; }
 .hero.is-revealing, .hero.is-revealing.reveal-still { animation-name: hero-reveal; }
 .site-footer.is-revealing, .site-footer.is-revealing.reveal-still { animation-name: footer-reveal; }
-.is-revealing[data-reveal-order='1'] { animation-delay: 100ms; }
-.is-revealing[data-reveal-order='2'] { animation-delay: 200ms; }
 .is-revealing.reveal-still { animation-name: settle-in; }
 .image-trigger { -webkit-user-select: none; user-select: none; position: relative; display: block; max-inline-size: 100%; cursor: zoom-in; text-decoration: none; transition: transform var(--move-duration) var(--ease), background-color var(--state-duration) var(--ease); }
 .image-trigger.focus-returned:focus { outline: none; }
@@ -380,9 +378,9 @@ address { font-style: normal; color: #454d58; font-size: 0.95rem; }
 @keyframes hero-reveal { from { translate: 0 calc(-100% - var(--header-block-size, var(--header-height))); } to { translate: 0 0; } }
 @keyframes footer-reveal { from { translate: 0 100%; } to { translate: 0 0; } }
 @keyframes settle-in { from { opacity: 0; translate: 0 14px; scale: 0.985; } to { translate: 0 0; scale: 1; } }
-@keyframes page-enter { from { translate: 100% 0; } to { translate: 0 0; } }
-@keyframes page-exit { to { translate: -20% 0; } }
-@keyframes page-pop { from { translate: 0 0; } to { translate: 100% 0; } }
+@keyframes page-enter { from { transform: translate3d(100%, 0, 0); } to { transform: translate3d(0, 0, 0); } }
+@keyframes page-exit { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-20%, 0, 0); } }
+@keyframes page-pop { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(100%, 0, 0); } }
 @keyframes skeleton-sweep { from { background-position: 160% 0; } to { background-position: -60% 0; } }
 
 /* One semantic table and one set of galleries serve both catalog views. */
@@ -443,9 +441,11 @@ address { font-style: normal; color: #454d58; font-size: 0.95rem; }
 [data-catalog-view='details'] .catalog-scroll { overflow-x: auto; overflow-y: hidden; }
 [data-catalog-view='details'] .product-grid { min-inline-size: 48rem; }
 [data-catalog-view='details'] .catalog-group-track { inline-size: 100%; margin: 0; padding: 0; overflow: visible; scroll-snap-type: none; }
-.catalog-sort-icon { display: inline-block; min-inline-size: 1em; font-size: 0.8em; transition: translate var(--move-duration) var(--ease); }
+.catalog-sort-icon { display: block; inline-size: 1.1rem; block-size: 1.1rem; transition: rotate var(--move-duration) var(--ease), translate var(--move-duration) var(--ease); }
+.catalog-sort-icon[data-sort-direction='descending'] { rotate: 180deg; }
 .product-grid th:has([data-catalog-sort]) { padding: 0; }
 [data-catalog-sort] { display: flex; align-items: center; gap: 0.75rem; inline-size: 100%; min-block-size: 3rem; padding: 0.9rem 1rem; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: color var(--state-duration) var(--ease), background-color var(--state-duration) var(--ease); }
+th:is([aria-sort='ascending'], [aria-sort='descending']) [data-catalog-sort] { color: var(--brand-ink); background: #f5aa2330; }
 @media (hover: hover) {
   [data-catalog-sort]:hover { color: var(--brand-ink); background: #f5aa2320; }
 }
@@ -489,7 +489,7 @@ address { font-style: normal; color: #454d58; font-size: 0.95rem; }
 /* Detail filtering uses the desktop filter palette with shared disclosure motion. */
 [data-catalog-view='details'] .catalog-filter-toggle { color: var(--ink); background: var(--brand); border-color: var(--brand); border-radius: 3px; font-size: 0.9rem; }
 [data-catalog-view='details'] .catalog-filter-toggle:is(:hover, :focus-visible) { color: var(--ink); background: #ffc05a; }
-[data-catalog-view='details'] .catalog-mobile-filter .dropdown-panel::before { background: var(--paper); border-color: var(--line); }
+[data-catalog-view='details'] .catalog-mobile-filter .dropdown-content { background: var(--paper); border-color: var(--line); }
 [data-catalog-view='details'] .catalog-mobile-filter .dropdown-panel li + li { margin-block-start: 0.5rem; }
 [data-catalog-view='details'] .catalog-mobile-filter .dropdown-panel button { padding: 0.4rem 0.75rem; border: 1px solid var(--line); border-radius: 3px; color: var(--ink); background: var(--paper); }
 [data-catalog-view='details'] .catalog-mobile-filter .dropdown-panel button[aria-pressed='true'] { background: var(--brand); border-color: var(--brand); }

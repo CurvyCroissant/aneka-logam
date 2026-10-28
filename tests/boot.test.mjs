@@ -14,7 +14,7 @@ function boot({ type = 'reload', stored = snapshot, state, blocked = false, hash
   if (!legacy) window.onpagereveal = null;
   window.matchMedia = () => ({ matches: reduced });
   const data = new Map(); if (activeEntry) data.set('aneka-logam:active-entry', JSON.stringify(activeEntry));
-  vm.runInNewContext(code, { document, history, window, location: { pathname: '/', search: '', hash }, performance: { getEntriesByType: () => [{ type }] }, getComputedStyle: () => ({ getPropertyValue: (key) => key === '--move-duration' ? '850ms' : 'ease-out' }), sessionStorage: { getItem: (key) => { if (blocked) throw new Error('Blocked'); return key === 'aneka-logam:active-entry' ? data.get(key) ?? null : JSON.stringify(stored); }, setItem: (key, value) => { if (blocked) throw new Error('Blocked'); data.set(key, value); } }, setTimeout: (fn) => { timers.set(1, fn); return 1; }, clearTimeout: (id) => timers.delete(id) });
+  vm.runInNewContext(code, { document, history, window, location: { pathname: '/', search: '', hash }, performance: { getEntriesByType: () => [{ type }] }, getComputedStyle: () => ({ getPropertyValue: (key) => key === '--reveal-duration' ? '1100ms' : 'ease-out' }), sessionStorage: { getItem: (key) => { if (blocked) throw new Error('Blocked'); return key === 'aneka-logam:active-entry' ? data.get(key) ?? null : JSON.stringify(stored); }, setItem: (key, value) => { if (blocked) throw new Error('Blocked'); data.set(key, value); } }, setTimeout: (fn) => { timers.set(1, fn); return 1; }, clearTimeout: (id) => timers.delete(id) });
   return { classes, replaced, history, window, timers, document, animations };
 }
 
@@ -105,8 +105,8 @@ test('history returns without a native view transition animate after scroll/font
   assert.equal(env.animations.length, 0, 'Restore the real view before animating it');
   env.window.__anekaBoot.finish();
   assert.equal(env.animations.length, 1);
-  assert.equal(env.animations[0].frames[0].translate, '-100% 0');
-  assert.equal(env.animations[0].options.duration, 850);
+  assert.equal(env.animations[0].frames[0].transform, 'translate3d(-100%, 0, 0)');
+  assert.equal(env.animations[0].options.duration, 1100);
 });
 
 test('legacy pageshow returns use history entry positions to distinguish Back and Forward', () => {
@@ -116,7 +116,7 @@ test('legacy pageshow returns use history entry positions to distinguish Back an
     env.window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
     assert.equal(env.document.documentElement.dataset.pageDirection, direction);
     assert.equal(env.animations.length, 1);
-    assert.equal(env.animations[0].frames[0].translate, direction === 'back' ? '-100% 0' : '100% 0');
+    assert.equal(env.animations[0].frames[0].transform, direction === 'back' ? 'translate3d(-100%, 0, 0)' : 'translate3d(100%, 0, 0)');
     env.window.dispatchEvent(new Event('pagehide'));
     assert.ok(env.animations[0].cancelled, 'Never retain a page transform in BFCache');
   }
@@ -150,7 +150,7 @@ test('OS motion preferences do not disable the designed history animation', () =
   env.window.__anekaBoot.finish();
   env.window.dispatchEvent(new Event('pagereveal'));
   assert.equal(env.animations.length, 1);
-  assert.equal(env.animations[0].options.duration, 850);
+  assert.equal(env.animations[0].options.duration, 1100);
 });
 test('incoming page motion releases at ready, without waiting for the transition to finish', async () => {
   const env = boot();

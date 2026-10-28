@@ -40,8 +40,8 @@
     const style = getComputedStyle(root);
     try {
       const animation = document.body.animate([
-        { translate: direction === 'back' ? '-100% 0' : '100% 0' }, { translate: '0 0' },
-      ], { duration: parseFloat(style.getPropertyValue('--move-duration')) || 850, easing: style.getPropertyValue('--ease').trim() || 'ease-out' });
+        { transform: direction === 'back' ? 'translate3d(-100%, 0, 0)' : 'translate3d(100%, 0, 0)' }, { transform: 'translate3d(0, 0, 0)' },
+      ], { duration: parseFloat(style.getPropertyValue('--reveal-duration')) || 1100, easing: style.getPropertyValue('--ease').trim() || 'ease-out' });
       returnAnimation = animation;
       pageEntering = Promise.resolve();
       void animation.finished.then(() => { if (returnAnimation === animation) returnAnimation = undefined; }, () => {});

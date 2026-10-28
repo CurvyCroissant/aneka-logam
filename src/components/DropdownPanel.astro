@@ -1,0 +1,8 @@
+---
+interface Props { id: string }
+const { id } = Astro.props;
+---
+<!-- Keep the pointer region steady while the complete menu reveals as one surface. -->
+<div id={id} class="dropdown-panel" data-dropdown-panel>
+  <ul class="dropdown-content"><slot /></ul>
+</div>

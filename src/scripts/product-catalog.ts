@@ -40,11 +40,11 @@ export function setupProductCatalog(): ProductCatalog | undefined {
   const sortHeader = list.querySelector<HTMLElement>('[data-category-sort-header]');
   const sortButton = list.querySelector<HTMLButtonElement>('[data-category-sort]');
   const sortFallback = list.querySelector<HTMLElement>('[data-sort-fallback]');
-  const sortIcon = list.querySelector<HTMLElement>('[data-sort-icon]');
+  const sortIcon = list.querySelector<SVGElement>('[data-sort-icon]');
   const productSortHeader = list.querySelector<HTMLElement>('[data-product-sort-header]');
   const productSortButton = list.querySelector<HTMLButtonElement>('[data-product-sort]');
   const productSortFallback = list.querySelector<HTMLElement>('[data-product-sort-fallback]');
-  const productSortIcon = list.querySelector<HTMLElement>('[data-product-sort-icon]');
+  const productSortIcon = list.querySelector<SVGElement>('[data-product-sort-icon]');
   const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
   let selected = 'all';
   let view: CatalogView = 'thumbnails';
@@ -103,7 +103,7 @@ export function setupProductCatalog(): ProductCatalog | undefined {
     for (const control of columns) {
       const active = sortColumn === control.column ? order : 'none';
       control.header?.setAttribute('aria-sort', active);
-      if (control.icon) control.icon.textContent = active === 'ascending' ? '▲' : active === 'descending' ? '▼' : '↕';
+      control.icon?.setAttribute('data-sort-direction', active === 'descending' ? 'descending' : 'ascending');
       if (control.button) {
         const key = active === 'ascending' ? control.descending : control.ascending;
         control.button.setAttribute('aria-label', t[key]);

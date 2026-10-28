@@ -48,8 +48,14 @@ export function setupHeaderDropdowns() {
     close(entry);
     position(entry);
     entry.toggle.addEventListener('click', (event) => {
-      // Home remains one native page link; activating it never pins its panel.
-      if (entry.toggle.matches('a[href]')) { close(entry); return; }
+      // A finger cannot hover: first tap discloses Home's sections, and the next
+      // tap (or its Home option) follows the native link. Mouse/keyboard still navigate.
+      if (entry.toggle.matches('a[href]')) {
+        if (pointerType === 'touch' && event.detail !== 0 && !entry.root.dataset.dropdownOpen) {
+          event.preventDefault(); open(entry);
+        } else close(entry);
+        return;
+      }
       // Hover already opened the language panel. The first mouse click must not
       // undo that state before the visitor can choose a language.
       if (event.detail !== 0 && entry.hovered && pointerType !== 'touch') open(entry);

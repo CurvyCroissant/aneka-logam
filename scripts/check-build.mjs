@@ -159,6 +159,10 @@ for (const [file, { name, nodes }] of pages) {
   const toggles = nodes.filter((node) => attr(node, 'data-dropdown-toggle') !== undefined);
   requireThat(toggles.length === (productsPage ? 3 : 2), `${name}: provide shared dropdown controls for Home, languages and the mobile catalog filter.`);
   for (const toggle of toggles) requireThat(attr(toggle, 'aria-expanded') === 'false' && nodes.some((node) => attr(node, 'id') === attr(toggle, 'aria-controls') && attr(node, 'data-dropdown-panel') !== undefined), `${name}: dropdown controls must identify their collapsed panel.`);
+  for (const panel of nodes.filter((node) => attr(node, 'data-dropdown-panel') !== undefined)) {
+    const contents = (panel.childNodes ?? []).filter((node) => node.tagName);
+    requireThat(contents.length === 1 && contents[0].tagName === 'ul' && attr(contents[0], 'class') === 'dropdown-content', `${name}: dropdown content, selection highlights and background must share one reveal surface.`);
+  }
   requireThat(!nodes.some((node) => ['menu', 'menubar', 'menuitem'].includes(attr(node, 'role'))), `${name}: use native navigation links and disclosure buttons rather than application-menu roles.`);
   const phrase = 'Spring, Steel, Carbon Steel Strip, Shim Plate, SUS, Wire Spring';
   if (!errorPage) {
@@ -238,7 +242,9 @@ for (const [file, { name, nodes }] of pages) {
     for (const column of ['category', 'product']) {
       const sorter = nodes.find((node) => node.tagName === 'button' && attr(node, `data-${column}-sort`) !== undefined);
       requireThat(Boolean(sorter && attr(sorter, 'aria-label') && attr(sorter, 'data-catalog-sort') !== undefined && attr(sorter.parentNode, 'aria-sort') === 'none'), `${name}: ${column} sorting needs a labeled native button and column-header sort state.`);
+      requireThat(elements(sorter).some((node) => node.tagName === 'svg' && attr(node, 'data-sort-direction') === 'ascending'), `${name}: ${column} sorting starts with an upward arrow and uses no neutral third icon.`);
     }
+    for (const label of elements(tableHead).filter((node) => attr(node, 'data-i18n') !== undefined)) requireThat(label.tagName === 'span' && (attr(label, 'data-i18n-size') !== undefined || attr(label, 'data-product-sort-fallback') !== undefined || attr(label, 'data-sort-fallback') !== undefined), `${name}: only header text may wipe/resize during translation, never its cell or background.`);
     requireThat(nodes.some((node) => node.tagName === 'tbody' && attr(node, 'data-catalog-details') !== undefined && attr(node, 'hidden') !== undefined && attr(node, 'data-reveal') !== undefined), `${name}: Details needs one reusable row group for globally sorted products.`);
     for (const category of company.categories) requireThat(nodes.some((node) => node.tagName === 'tbody' && attr(node, 'data-catalog-track') === category.id && attr(node, 'aria-labelledby') === `catalog-group-${category.id}`), `${name}: ${category.name} needs a named category carousel row.`);
     const table = nodes.find((node) => node.tagName === 'table' && attr(node, 'data-product-list') !== undefined);

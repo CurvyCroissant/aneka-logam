@@ -18,7 +18,7 @@ const t = copy(locale);
           <div class="category-copy">
             <h3>{category.name}</h3>
             <p data-i18n={`category.${category.key}.summary`}>{category.summary[locale]}</p>
-            <span class="category-prompt"><span data-i18n="viewCategory">{t.viewCategory}</span><Arrow /></span>
+            <span class="category-prompt"><span data-i18n="viewCategory" data-i18n-size>{t.viewCategory}</span><Arrow /></span>
           </div>
         </a>
       </li>

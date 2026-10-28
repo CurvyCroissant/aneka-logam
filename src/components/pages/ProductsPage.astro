@@ -5,6 +5,7 @@ import { copy } from '../../i18n/copy';
 import { pagePaths, type Locale } from '../../i18n/routes';
 import ProductList from '../ProductList.astro';
 import Chevron from '../Chevron.astro';
+import DropdownPanel from '../DropdownPanel.astro';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = copy(locale);
@@ -21,10 +22,10 @@ const t = copy(locale);
       <div class="nav-dropdown catalog-mobile-filter" data-dropdown data-product-mobile-filter hidden>
         <span id="catalog-filter-label" class="sr-only" data-i18n="productCategories">{t.productCategories}</span>
         <button type="button" class="dropdown-toggle catalog-filter-toggle" tabindex="0" aria-labelledby="catalog-filter-label catalog-filter-value" data-dropdown-toggle data-product-filter-toggle aria-controls="catalog-filter-dropdown" aria-expanded="false" disabled><span id="catalog-filter-value" data-product-filter-value data-i18n="allProducts" data-i18n-size>{t.allProducts}</span><Chevron /></button>
-        <ul id="catalog-filter-dropdown" class="dropdown-panel" data-dropdown-panel>
+        <DropdownPanel id="catalog-filter-dropdown">
           <li><button type="button" tabindex="0" data-product-filter-option="all" aria-pressed="true" aria-controls="product-list"><span data-i18n="allProducts">{t.allProducts}</span><span class="category-count" aria-hidden="true">{company.products.length}</span></button></li>
           {company.categories.map((category) => <li><button type="button" tabindex="0" data-product-filter-option={category.id} aria-pressed="false" aria-controls="product-list"><span>{category.name}</span><span class="category-count" aria-hidden="true">{company.products.filter((product) => product.category === category.id).length}</span></button></li>)}
-        </ul>
+        </DropdownPanel>
       </div>
       <div class="catalog-views" role="group" aria-label={t.catalogView} data-i18n-aria-label="catalogView" data-catalog-views hidden>
         <button type="button" tabindex="0" data-catalog-view-button="thumbnails" aria-pressed="true" aria-controls="product-list" aria-label={t.thumbnailView} data-i18n-aria-label="thumbnailView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>

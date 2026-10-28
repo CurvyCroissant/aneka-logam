@@ -11,7 +11,7 @@ const t = copy(locale);
 <div class="address-panel" data-reveal>
   <MediaGallery id="storefront" images={storefrontPhotos} kind="store" locale={locale} />
   <div class="address-copy">
-    <h3 data-i18n="address">{t.address}</h3>
+    <h3><span data-i18n="address" data-i18n-size>{t.address}</span></h3>
     <AddressLink locale={locale} />
   </div>
 </div>

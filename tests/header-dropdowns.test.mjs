@@ -71,12 +71,18 @@ test('mouse departure closes the panel even when a dropdown item retains focus',
   assert.equal(document.activeElement, home.toggle, 'Do not leave focus inside an inert panel');
 });
 
-test('touch language selection survives finger lift, then closes on another tap or outside input', (t) => {
+test('touch Home and language disclosures survive finger lift, selection and outside input', (t) => {
   const { entries: [home, language], fire, document, outside } = environment(t, { hover: false });
   fire(home.root, 'pointerenter', { pointerType: 'touch' });
   assert.equal(home.panel.inert, true);
-  fire(home.toggle, 'click', { detail: 1 });
-  assert.equal(home.panel.inert, true, 'Home taps navigate directly rather than becoming a disclosure toggle');
+  fire(document, 'pointerdown', { target: home.toggle, pointerType: 'touch' });
+  const firstTap = fire(home.toggle, 'click', { detail: 1 });
+  assert.ok(firstTap.defaultPrevented, 'First touch opens the sections without following the page link');
+  fire(home.root, 'pointerleave', { pointerType: 'touch' });
+  assert.equal(home.panel.inert, false);
+  const secondTap = fire(home.toggle, 'click', { detail: 1 });
+  assert.equal(secondTap.defaultPrevented, false, 'A second tap follows the Home link');
+  assert.equal(home.panel.inert, true);
   fire(document, 'pointerdown', { target: language.toggle, pointerType: 'touch' });
   fire(language.toggle, 'click', { detail: 1 });
   fire(language.root, 'pointerleave', { pointerType: 'touch' });

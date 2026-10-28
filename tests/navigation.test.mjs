@@ -502,6 +502,22 @@ test('a rapid reversal preserves the no-wrap constraint at a partially resized w
   cancelTextTransition(); assert.ok(!env.heading.classes.has('i18n-sizing'), 'Release temporary whitespace on cancellation');
 });
 
+test('a consumed Home disclosure tap does not also scroll or close the navigation', async (t) => {
+  const env = environment(t);
+  env.homeLink.addEventListener('click', (event) => event.preventDefault(), { once: true });
+  const memory = setupScrollMemory(Promise.resolve()); await memory.ready;
+  setupNavigation(memory);
+  env.window.scrollY = 843.5;
+  let navigations = 0;
+  document.addEventListener('aneka:before-navigation', () => navigations++);
+  env.click(env.homeLink);
+  assert.equal(env.window.scrollY, 843.5);
+  assert.equal(navigations, 0);
+  env.click(env.homeLink);
+  assert.equal(env.window.scrollY, 0, 'A subsequent Home activation retains ordinary page navigation');
+  assert.equal(navigations, 1);
+});
+
 test('Product name sorting survives reload and language history with exact page pixels', async (t) => {
   const saved = { ...savedVisit, url: '/products/', category: 'all', view: 'details', productSort: 'descending', y: 420.25 };
   const env = environment(t, { page: 'products', saved });

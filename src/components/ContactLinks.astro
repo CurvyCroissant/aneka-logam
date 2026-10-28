@@ -10,18 +10,18 @@ const { locale } = Astro.props;
 const t = copy(locale);
 ---
 {contactMethods.length > 0 && (
-  <div class="contact-panel" data-reveal data-reveal-order="1">
-    <h3 data-i18n="contactMethods">{t.contactMethods}</h3>
+  <div class="contact-panel" data-reveal>
+    <h3><span data-i18n="contactMethods" data-i18n-size>{t.contactMethods}</span></h3>
     <ul class="contact-list">
       {contactMethods.map((method) => (
         <li class="contact-row">
-          <p class="contact-label" data-i18n={`contactLabels.${method.kind}`}>{t.contactLabels[method.kind]}</p>
+          <p class="contact-label"><span data-i18n={`contactLabels.${method.kind}`} data-i18n-size>{t.contactLabels[method.kind]}</span></p>
           <ContactAction method={method} locale={locale} />
         </li>
       ))}
     </ul>
     <div class="people">
-      <h3 data-i18n="owners">{t.owners}</h3>
+      <h3><span data-i18n="owners" data-i18n-size>{t.owners}</span></h3>
       <ul class="owner-list">
         {company.owners.map(({ name, icon }) => <li><OwnerIcon kind={icon} /><span>{name}</span></li>)}
       </ul>
