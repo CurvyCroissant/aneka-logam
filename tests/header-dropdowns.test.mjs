@@ -182,3 +182,13 @@ test('catalog filter choices reuse header disclosure behavior and return focus a
   outside.focus(); fire(filter.root, 'pointerleave', { pointerType: 'mouse' });
   assert.equal(filter.panel.inert, true);
 });
+
+test('open menus are re-clamped after direct page motion without losing disclosure state', (t) => {
+  const { entries: [, language], fire, document } = environment(t);
+  fire(language.root, 'pointerenter', { pointerType: 'mouse' });
+  language.panel.bounds = { top: 100, bottom: 250, left: 200, right: 376 };
+  fire(document, 'aneka:page-settled');
+  assert.equal(language.panel.inert, false);
+  assert.equal(language.toggle.attrs.get('aria-expanded'), 'true');
+  assert.equal(language.panel.style.translate, '-68px 0');
+});

@@ -5,6 +5,7 @@ export function setupReveals(ready: Promise<unknown>) {
   const elements = [...document.querySelectorAll<HTMLElement>('[data-reveal]')];
   const pending = new Set(elements);
   const running = new Map<HTMLElement, () => void>();
+  const finishRunning = () => { for (const finish of running.values()) finish(); };
   const header = elements.find((element) => element.dataset.reveal === 'header');
   let observer: IntersectionObserver | undefined;
   let started = false;
@@ -47,7 +48,7 @@ export function setupReveals(ready: Promise<unknown>) {
     observer?.disconnect();
     for (const element of pending) element.classList.remove('reveal-pending', 'reveal-still');
     pending.clear();
-    for (const finish of running.values()) finish();
+    finishRunning();
     root.classList.add('reveals-ready');
     startPage();
   }
@@ -80,10 +81,14 @@ export function setupReveals(ready: Promise<unknown>) {
     // animating button away from its pointer before mouse-up can activate it.
     complete(element);
   }, { capture: true });
+  // Cache a stable departing page, rather than resuming partially completed
+  // reveals with stale fallback timers when the browser restores it.
+  window.addEventListener('pageswap', finishRunning);
+  window.addEventListener('pagehide', finishRunning);
   timeout = setTimeout(start, 10000);
   const afterRestoration = (restored: unknown = false) => {
     // After fonts/scroll are ready, release the page slide and component reveals
-    // in the same style update. Native snapshots of the incoming view stay live.
+    // in the same style update. Only the static departing page is snapshotted.
     for (const element of pending) element.classList.add('reveal-pending');
     try {
       const motion = window.__anekaBoot?.whenEntering?.();

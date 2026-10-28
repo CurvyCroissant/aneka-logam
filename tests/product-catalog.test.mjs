@@ -54,7 +54,7 @@ function environment(t, hash = '', { preference, blocked = false, extraPer = fal
   }
   const catalog = setupProductCatalog();
   const order = () => catalog.view() === 'details' ? [...new Set(detailRows.children.map((card) => card.dataset.productCategory))] : tracks.map((track) => track.dataset.catalogTrack);
-  return { list, head, carouselControls, mobileValue, mobileOptions, layoutReads: () => layoutReads, catalog, cards, buttons, controls, document, window, viewport, viewButtons, views, stored, tracks, headings, sortHeader, sortButton, sortIcon, scroll, order, mobileFilter, mobileControls, detailRows, productSortHeader, productSortButton, productSortIcon, reflow: (height) => { cardHeight = height; } };
+  return { list, head, carouselControls, mobileValue, mobileOptions, layoutReads: () => layoutReads, catalog, cards, buttons, controls, document, window, viewport, viewButtons, views, stored, tracks, headings, sortHeader, sortButton, sortIcon, sortFallback, scroll, order, mobileFilter, mobileControls, detailRows, productSortHeader, productSortButton, productSortIcon, reflow: (height) => { cardHeight = height; } };
 }
 
 test('All Products defaults to category rows; filtering removes unrelated cards and row headings', (t) => {
@@ -206,7 +206,6 @@ test('Product sorting is global across categories, toggles direction, and restor
   ['Zebra', 'Alpha', 'Echo', 'Bravo', 'Delta'].forEach((name, index) => { env.cards[index].lookups['.catalog-product-name'].textContent = name; });
   const originalRows = env.tracks.map((track) => [...track.children]);
   env.catalog.setView('details');
-  env.productSortButton.dispatchEvent(new Event('click'));
   assert.deepEqual(env.detailRows.children.map((row) => row.id), ['per', 'as', 'per-test', 'kawat', 'shim-plate']);
   assert.equal(env.productSortHeader.attrs.get('aria-sort'), 'ascending');
   assert.equal(env.sortHeader.attrs.get('aria-sort'), 'none');
@@ -223,11 +222,52 @@ test('Product sorting is global across categories, toggles direction, and restor
   assert.equal(env.catalog.sortColumn(), 'product');
   assert.equal(env.productSortHeader.attrs.get('aria-sort'), 'descending');
   assert.ok(env.detailRows.children.every((row) => env.cards.includes(row)), 'Reuse the original rows and their galleries');
+  env.catalog.select('all');
   env.sortButton.dispatchEvent(new Event('click'));
   assert.equal(env.sortHeader.attrs.get('aria-sort'), 'ascending');
   assert.equal(env.productSortHeader.attrs.get('aria-sort'), 'none');
-  assert.equal(env.productSortIcon.attrs.get('data-sort-direction'), 'ascending', 'Inactive columns keep the upward next-action icon, without a neutral third icon');
+  assert.equal(env.productSortIcon.attrs.get('data-sort-direction'), 'ascending', 'Inactive columns retain the downward ascending icon, without a neutral third icon');
   env.document.documentElement.lang = 'zh-Hans';
   env.productSortButton.dispatchEvent(new Event('click'));
   assert.equal(env.productSortButton.attrs.get('aria-label'), '按产品名称降序排列（Z–A）');
+});
+
+test('Details starts in Product ascending; category sorting exists only for All Products', (t) => {
+  const env = environment(t, '', { preference: 'details' });
+  assert.equal(env.catalog.sortColumn(), 'product');
+  assert.equal(env.catalog.sort(), 'ascending');
+  assert.equal(env.productSortHeader.attrs.get('aria-sort'), 'ascending');
+  assert.deepEqual(env.order(), ['as', 'kawat', 'per', 'shim-plate']);
+  assert.equal(env.sortButton.hidden, false);
+  env.sortButton.dispatchEvent(new Event('click'));
+  assert.equal(env.catalog.sortColumn(), 'category');
+  env.catalog.select('per');
+  assert.equal(env.sortButton.hidden, true);
+  assert.equal(env.sortFallback.hidden, false);
+  assert.equal(env.sortHeader.attrs.get('aria-sort'), 'none');
+  assert.equal(env.catalog.sortColumn(), 'product');
+  assert.equal(env.catalog.sort(), 'ascending');
+  env.sortButton.dispatchEvent(new Event('click'));
+  assert.equal(env.catalog.sortColumn(), 'product', 'A queued activation cannot sort a hidden category control');
+  env.productSortButton.dispatchEvent(new Event('click'));
+  assert.equal(env.catalog.sort(), 'descending');
+  env.mobileOptions[3].dispatchEvent(new Event('click'));
+  assert.equal(env.catalog.sort(), 'descending', 'Keep a valid chosen product direction through mobile filtering');
+  env.catalog.select('all');
+  assert.equal(env.sortButton.hidden, false);
+  assert.equal(env.sortFallback.hidden, true);
+  assert.equal(env.catalog.sortColumn(), 'product');
+  assert.equal(env.catalog.sort(), 'descending');
+});
+
+test('old missing/invalid sorting and unavailable Category sorting normalize to Product ascending', (t) => {
+  const env = environment(t, '#per', { preference: 'details' });
+  env.catalog.setSort('descending', false, 'category');
+  assert.equal(env.catalog.sortColumn(), 'product');
+  assert.equal(env.catalog.sort(), 'ascending');
+  env.catalog.select('all');
+  env.catalog.setSort('descending', false, 'category');
+  env.catalog.setSort('none');
+  assert.equal(env.catalog.sortColumn(), 'product');
+  assert.equal(env.catalog.sort(), 'ascending');
 });

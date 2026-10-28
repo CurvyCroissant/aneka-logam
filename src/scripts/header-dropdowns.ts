@@ -129,6 +129,7 @@ export function setupHeaderDropdowns() {
     }
   }, { passive: true });
   window.addEventListener('resize', () => { closeAll(); entries.forEach(position); }, { passive: true });
+  document.addEventListener('aneka:page-settled', () => entries.filter(({ root }) => root.dataset.dropdownOpen).forEach(position));
   // Clamp closed panels too: invisible absolute boxes can still widen the page.
   // Header resizing also covers font readiness and enlarged text without a window resize.
   try {

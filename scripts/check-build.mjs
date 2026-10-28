@@ -81,8 +81,16 @@ for (const file of files) {
   requireThat(!nodes.some((node) => node.tagName === 'style' || attr(node, 'style') !== undefined), `${name}: inline CSS conflicts with the Content Security Policy.`);
   requireThat(!nodes.some((node) => node.tagName === 'script' && !attr(node, 'src')), `${name}: inline scripts require an explicit Content Security Policy review.`);
   const head = nodes.find((node) => node.tagName === 'head');
-  const startup = elements(head).find((node) => node.tagName === 'script');
+  const headNodes = elements(head);
+  const startup = headNodes.find((node) => node.tagName === 'script');
   requireThat(Boolean(startup && attr(startup, 'src')?.startsWith('/') && !attr(startup, 'type') && attr(startup, 'defer') === undefined && attr(startup, 'async') === undefined), `${name}: scroll ownership and font masking must start in an external blocking head script.`);
+  const navigationStyles = headNodes.find((node) => attr(node, 'data-navigation-styles') !== undefined);
+  const navigationHref = navigationStyles && attr(navigationStyles, 'href');
+  requireThat(Boolean(navigationHref?.startsWith('/') && attr(navigationStyles, 'rel') === 'stylesheet' && headNodes.indexOf(navigationStyles) < headNodes.indexOf(startup)), `${name}: navigation opt-in CSS must precede the blocking startup script, including production builds.`);
+  if (navigationHref?.startsWith('/')) {
+    const navigationCss = await readFile(resolve(root, '.' + navigationHref), 'utf8');
+    requireThat(/@view-transition\s*\{\s*navigation:\s*auto\s*;?\s*\}/.test(navigationCss), `${name}: early navigation stylesheet must opt into cross-document transitions.`);
+  }
   requireThat(nodes.some((node) => attr(node, 'rel') === 'preload' && attr(node, 'as') === 'font' && attr(node, 'crossorigin') !== undefined), `${name}: preload the self-hosted brand font.`);
   for (const image of nodes.filter((node) => node.tagName === 'img')) {
     requireThat(attr(image, 'draggable') === 'false', `${name}: image dragging must not interfere with viewer activation.`);
@@ -241,8 +249,8 @@ for (const [file, { name, nodes }] of pages) {
     for (const control of viewControls) requireThat(Boolean(attr(control, 'aria-label')) && !text(control).trim() && elements(control).some((node) => node.tagName === 'svg'), `${name}: catalog view buttons must use icons with localized accessible names.`);
     for (const column of ['category', 'product']) {
       const sorter = nodes.find((node) => node.tagName === 'button' && attr(node, `data-${column}-sort`) !== undefined);
-      requireThat(Boolean(sorter && attr(sorter, 'aria-label') && attr(sorter, 'data-catalog-sort') !== undefined && attr(sorter.parentNode, 'aria-sort') === 'none'), `${name}: ${column} sorting needs a labeled native button and column-header sort state.`);
-      requireThat(elements(sorter).some((node) => node.tagName === 'svg' && attr(node, 'data-sort-direction') === 'ascending'), `${name}: ${column} sorting starts with an upward arrow and uses no neutral third icon.`);
+      requireThat(Boolean(sorter && attr(sorter, 'aria-label') && attr(sorter, 'data-catalog-sort') !== undefined && attr(sorter.parentNode, 'aria-sort') === (column === 'product' ? 'ascending' : 'none')), `${name}: Details must start in Product ascending with labeled native sort controls.`);
+      requireThat(elements(sorter).some((node) => node.tagName === 'span' && attr(node, 'data-sort-direction') === 'ascending' && text(node) === '▼'), `${name}: ascending sorting uses the filled downward triangle, with no neutral third icon.`);
     }
     for (const label of elements(tableHead).filter((node) => attr(node, 'data-i18n') !== undefined)) requireThat(label.tagName === 'span' && (attr(label, 'data-i18n-size') !== undefined || attr(label, 'data-product-sort-fallback') !== undefined || attr(label, 'data-sort-fallback') !== undefined), `${name}: only header text may wipe/resize during translation, never its cell or background.`);
     requireThat(nodes.some((node) => node.tagName === 'tbody' && attr(node, 'data-catalog-details') !== undefined && attr(node, 'hidden') !== undefined && attr(node, 'data-reveal') !== undefined), `${name}: Details needs one reusable row group for globally sorted products.`);

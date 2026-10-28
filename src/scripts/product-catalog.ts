@@ -40,16 +40,16 @@ export function setupProductCatalog(): ProductCatalog | undefined {
   const sortHeader = list.querySelector<HTMLElement>('[data-category-sort-header]');
   const sortButton = list.querySelector<HTMLButtonElement>('[data-category-sort]');
   const sortFallback = list.querySelector<HTMLElement>('[data-sort-fallback]');
-  const sortIcon = list.querySelector<SVGElement>('[data-sort-icon]');
+  const sortIcon = list.querySelector<HTMLElement>('[data-sort-icon]');
   const productSortHeader = list.querySelector<HTMLElement>('[data-product-sort-header]');
   const productSortButton = list.querySelector<HTMLButtonElement>('[data-product-sort]');
   const productSortFallback = list.querySelector<HTMLElement>('[data-product-sort-fallback]');
-  const productSortIcon = list.querySelector<SVGElement>('[data-product-sort-icon]');
+  const productSortIcon = list.querySelector<HTMLElement>('[data-product-sort-icon]');
   const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
   let selected = 'all';
   let view: CatalogView = 'thumbnails';
-  let order: CatalogSort = 'none';
-  let sortColumn: CatalogSortColumn = 'category';
+  let order: CatalogSort = 'ascending';
+  let sortColumn: CatalogSortColumn = 'product';
   let animation: Animation | undefined;
   const originalRows = new Map(tracks.map((track) => [track, cards.filter((card) => card.dataset.productCategory === track.dataset.catalogTrack)]));
   const carouselOffsets = new Map<HTMLElement, number>();
@@ -101,6 +101,7 @@ export function setupProductCatalog(): ProductCatalog | undefined {
       { column: 'product', header: productSortHeader, button: productSortButton, icon: productSortIcon, fallback: productSortFallback, ascending: 'sortProductAscending', descending: 'sortProductDescending' },
     ] as const;
     for (const control of columns) {
+      const available = view === 'details' && (control.column === 'product' || selected === 'all');
       const active = sortColumn === control.column ? order : 'none';
       control.header?.setAttribute('aria-sort', active);
       control.icon?.setAttribute('data-sort-direction', active === 'descending' ? 'descending' : 'ascending');
@@ -108,9 +109,9 @@ export function setupProductCatalog(): ProductCatalog | undefined {
         const key = active === 'ascending' ? control.descending : control.ascending;
         control.button.setAttribute('aria-label', t[key]);
         control.button.setAttribute('data-i18n-aria-label', key);
-        control.button.hidden = view !== 'details';
+        control.button.hidden = !available;
       }
-      if (control.fallback) control.fallback.hidden = view === 'details';
+      if (control.fallback) control.fallback.hidden = available;
     }
   }
   function applyPresentation() {
@@ -135,9 +136,10 @@ export function setupProductCatalog(): ProductCatalog | undefined {
     try { window.localStorage?.setItem('aneka-logam:catalog-view', view); } catch { /* Private browsing can disable preference storage. */ }
     if (changed && animate) animateList();
   }
-  function setSort(next: CatalogSort, animate = false, column: CatalogSortColumn = 'category') {
-    sortColumn = column === 'product' ? 'product' : 'category';
-    order = next === 'ascending' || next === 'descending' ? next : 'none';
+  function setSort(next: CatalogSort, animate = false, column: CatalogSortColumn = 'product') {
+    const valid = next !== 'none' && (column === 'product' || selected === 'all');
+    sortColumn = valid && column === 'category' ? 'category' : 'product';
+    order = valid && next === 'descending' ? 'descending' : 'ascending';
     updateSortControl();
     arrangeRows();
     if (animate) animateList();
@@ -163,6 +165,7 @@ export function setupProductCatalog(): ProductCatalog | undefined {
     const changed = next !== selected;
     rememberCarousels();
     selected = next;
+    if (selected !== 'all' && sortColumn === 'category') { sortColumn = 'product'; order = 'ascending'; }
     animation?.cancel();
     for (const card of cards) card.hidden = next !== 'all' && card.dataset.productCategory !== next;
     for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.productFilter === next));
@@ -201,6 +204,7 @@ export function setupProductCatalog(): ProductCatalog | undefined {
     document.dispatchEvent(new Event('aneka:catalog-change'));
   });
   sortButton?.addEventListener('click', () => {
+    if (selected !== 'all') return;
     document.dispatchEvent(new Event('aneka:before-navigation'));
     setSort(sortColumn === 'category' && order === 'ascending' ? 'descending' : 'ascending', true, 'category');
     document.dispatchEvent(new Event('aneka:catalog-change'));

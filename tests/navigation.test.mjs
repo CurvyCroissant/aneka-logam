@@ -534,3 +534,24 @@ test('Product name sorting survives reload and language history with exact page 
   assert.equal(order, 'descending'); assert.equal(column, 'product');
   assert.equal(env.window.scrollY, 420.25);
 });
+
+test('a pre-sort catalog snapshot restores the new Product ascending default', async (t) => {
+  const saved = { ...savedVisit, url: '/products/', view: 'details', category: 'all', y: 420.25 };
+  const env = environment(t, { page: 'products', saved });
+  let order = 'none', column = 'category', selected = 'all';
+  const catalog = { view: () => 'details', sort: () => order, sortColumn: () => column, current: () => selected, setView() {}, select: (next) => { selected = next; }, setSort: (next, animate, field) => { order = next; column = field; } };
+  const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
+  assert.equal(order, 'ascending'); assert.equal(column, 'product');
+  assert.equal(env.window.scrollY, 420.25);
+  memory.save(); assert.equal(env.history.state.alScroll.productSort, 'ascending');
+});
+
+test('restore the filter before validating a saved Category sort', async (t) => {
+  const saved = { ...savedVisit, url: '/products/', view: 'details', category: 'all', categorySort: 'descending', y: 420.25 };
+  const env = environment(t, { page: 'products', saved });
+  let selected = 'per', order = 'ascending', column = 'product';
+  const catalog = { view: () => 'details', sort: () => order, sortColumn: () => column, current: () => selected, setView() {}, select: (next) => { selected = next; }, setSort: (next, animate, field) => { const valid = field === 'product' || selected === 'all'; order = valid ? next : 'ascending'; column = valid ? field : 'product'; } };
+  const memory = setupScrollMemory(Promise.resolve(), catalog); await memory.ready;
+  assert.equal(selected, 'all'); assert.equal(column, 'category'); assert.equal(order, 'descending');
+  assert.equal(env.window.scrollY, 420.25);
+});

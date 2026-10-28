@@ -3,6 +3,7 @@ import { getImage } from 'astro:assets';
 import logo from '../assets/logo-no-bg.png';
 import shareLogo from '../assets/logo.jpg';
 import bootUrl from '../scripts/boot.js?url';
+import navigationStylesUrl from '../styles/navigation.css?url';
 import montserratUrl from '@fontsource/montserrat/files/montserrat-latin-700-normal.woff2?url';
 import { company } from '../config/company';
 import { indexingEnabled } from '../config/site';
@@ -35,6 +36,7 @@ const shareImage = await getImage({ src: shareLogo, width: 1200, height: 1200, f
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href={navigationStylesUrl} data-navigation-styles />
     <script is:inline src={bootUrl}></script>
     <meta name="description" content={description} data-i18n-content={descriptionKey} />
     <meta name="robots" content={shouldIndex ? 'index, follow' : 'noindex, nofollow'} />

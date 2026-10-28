@@ -1,0 +1,2 @@
+/* Load before the blocking head script: pagereveal can precede the main CSS. */
+@view-transition { navigation: auto; }

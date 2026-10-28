@@ -21,13 +21,14 @@ function environment(t, { support = true, broken = false, shell = false, heroTop
     disconnect() { this.observed.clear(); }
   }
   const document = Object.assign(new EventTarget(), { documentElement: root, querySelectorAll: () => shell ? [header, hero, visible, below, edge, footer] : [visible, below, edge] });
-  const globals = { window: support ? { IntersectionObserver: Observer } : {}, document, Element: Component, innerHeight: 800, innerWidth: 1000, IntersectionObserver: Observer };
+  const window = Object.assign(new EventTarget(), support ? { IntersectionObserver: Observer } : {});
+  const globals = { window, document, Element: Component, innerHeight: 800, innerWidth: 1000, IntersectionObserver: Observer };
   for (const [key, value] of Object.entries(globals)) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, key);
     Object.defineProperty(globalThis, key, { configurable: true, value });
     t.after(() => { if (previous) Object.defineProperty(globalThis, key, previous); else delete globalThis[key]; });
   }
-  return { visible, below, edge, header, hero, footer, root, document, observer: () => observer };
+  return { visible, below, edge, header, hero, footer, root, document, window, observer: () => observer };
 }
 
 const focus = (document, target) => { const event = new Event('focusin'); Object.defineProperty(event, 'target', { value: target }); document.dispatchEvent(event); };

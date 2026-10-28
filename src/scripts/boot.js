@@ -8,6 +8,10 @@
   let browserTransition = false;
   let pendingReturn;
   let returnAnimation;
+  let entryNeedsGate = false;
+  let entranceStarted = false;
+  let activeTransition;
+  let revealDone = Promise.resolve();
   let pageEntering = Promise.resolve();
   let pageRevision = 0;
   function previousEntry() {
@@ -29,26 +33,68 @@
   function cancelReturn() {
     pageRevision++;
     pendingReturn = undefined;
+    entryNeedsGate = false;
+    revealDone = Promise.resolve();
     returnAnimation?.cancel();
     returnAnimation = undefined;
+    activeTransition?.skipTransition?.();
+    activeTransition = undefined;
   }
   function playReturn() {
     const direction = pendingReturn;
-    if (!direction || !window.__anekaBoot?.completed) return;
+    if (!direction || !window.__anekaBoot?.completed || (entryNeedsGate && !entranceStarted)) return;
     pendingReturn = undefined;
     if (typeof document.body?.animate !== 'function') return;
     const style = getComputedStyle(root);
+    // CSS optimizers may turn 850ms into .85s; WAAPI always expects milliseconds.
+    const timing = /^(\d*\.?\d+)(ms|s)$/.exec(style.getPropertyValue('--move-duration').trim());
+    const duration = timing ? Number(timing[1]) * (timing[2] === 's' ? 1000 : 1) : 850;
     try {
       const animation = document.body.animate([
         { transform: direction === 'back' ? 'translate3d(-100%, 0, 0)' : 'translate3d(100%, 0, 0)' }, { transform: 'translate3d(0, 0, 0)' },
-      ], { duration: parseFloat(style.getPropertyValue('--reveal-duration')) || 1100, easing: style.getPropertyValue('--ease').trim() || 'ease-out' });
+      ], { duration, easing: style.getPropertyValue('--ease').trim() || 'ease-out', fill: 'forwards' });
       returnAnimation = animation;
       pageEntering = Promise.resolve();
-      void animation.finished.then(() => { if (returnAnimation === animation) returnAnimation = undefined; }, () => {});
+      void animation.finished.then(async () => {
+        if (returnAnimation !== animation) return;
+        document.dispatchEvent(new Event('aneka:page-settled'));
+        // Keep the identity transform/layer until the initial child reveals
+        // settle, so page entry does not dismantle their compositor parent.
+        await revealDone;
+        if (returnAnimation !== animation) return;
+        returnAnimation = undefined;
+        animation.cancel();
+      }, () => {});
     } catch { /* A skipped animation must never block history or restoration. */ }
   }
+  function startEntrance() {
+    clearTimeout(timer);
+    root.classList.remove('page-enter-pending');
+    if (entranceStarted) return;
+    entranceStarted = true;
+    playReturn();
+    // The static outgoing image and the real incoming DOM must share an exact
+    // clock; otherwise their meeting edges can expose a gap for one frame.
+    try {
+      const animations = document.getAnimations?.() ?? [];
+      const reveals = animations.filter((animation) => animation.effect?.target?.classList?.contains('is-revealing'));
+      revealDone = Promise.all(reveals.map((animation) => animation.finished.catch(() => {})));
+      const time = document.timeline?.currentTime;
+      if (typeof time !== 'number') return;
+      for (const animation of animations) {
+        if (animation.animationName !== 'page-exit' && animation.animationName !== 'page-pop' && !animation.effect?.target?.classList?.contains('is-revealing')) continue;
+        animation.play(); animation.startTime = time;
+      }
+      if (returnAnimation) returnAnimation.startTime = time;
+    } catch { /* Native timelines still run if explicit synchronization is unavailable. */ }
+  }
   function revealPage(event) {
+    const returning = revealed;
     cancelReturn();
+    if (returning) entranceStarted = false;
+    // Only the outgoing document is captured. Keep the incoming page and its
+    // component animations on their ordinary DOM/compositor layers.
+    root.style.removeProperty('view-transition-name');
     const ticket = pageRevision;
     const previous = previousEntry();
     const position = currentEntry(previous);
@@ -64,24 +110,49 @@
     browserTransition = false;
     rememberEntry();
     const transition = event.viewTransition;
+    activeTransition = transition;
+    if (transition && returning) { root.classList.add('page-enter-pending'); clearTimeout(timer); timer = setTimeout(releaseStartup, 10000); }
     pageEntering = transition?.ready?.catch(() => {}) ?? Promise.resolve();
     // Browser swipe animations already provide the visual return; do not double it.
-    if (previous?.browserTransition) { transition?.skipTransition?.(); return; }
+    if (previous?.browserTransition) { transition?.skipTransition?.(); root.classList.remove('page-enter-pending'); entranceStarted = true; return; }
     const fallback = () => {
       if (!traversal || ticket !== pageRevision) return;
+      entryNeedsGate = false;
       pendingReturn = direction;
       playReturn();
     };
     if (transition) {
       transition.types?.add(direction);
-      void transition.ready?.catch(fallback);
+      if (direction === 'forward') { pendingReturn = direction; entryNeedsGate = true; }
+      void (transition.ready ?? Promise.resolve()).then(() => {
+        if (returning && ticket === pageRevision) startEntrance();
+      }, fallback);
+      void transition.finished?.then(() => { if (activeTransition === transition) activeTransition = undefined; }, () => {});
     } else fallback();
   }
   window.navigation?.addEventListener?.('navigate', (event) => { browserTransition = Boolean(event.hasUAVisualTransition); });
   window.addEventListener('pagereveal', revealPage);
+  window.addEventListener('pageswap', (event) => {
+    cancelReturn();
+    if (!event.viewTransition || browserTransition) return;
+    root.style.viewTransitionName = 'root';
+    // Clear the temporary capture name before a BFCache document can return.
+    void event.viewTransition.finished?.then(() => root.style.removeProperty('view-transition-name'), () => {});
+  });
   // Older browsers have pageshow but no pagereveal/cross-document transitions.
   if (!('onpagereveal' in window)) window.addEventListener('pageshow', revealPage);
   window.addEventListener('pagehide', () => { rememberEntry(); cancelReturn(); });
+  window.addEventListener('resize', () => { cancelReturn(); root.classList.remove('page-enter-pending'); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelReturn(); root.classList.remove('page-enter-pending'); } });
+  function finishForInput() {
+    if (!returnAnimation && !activeTransition) return;
+    cancelReturn(); root.classList.remove('page-enter-pending');
+    document.dispatchEvent(new Event('aneka:page-settled'));
+  }
+  // Finish after mouse-up/click, never during pointerdown: the pressed target
+  // must not move away before its activation can be delivered.
+  document.addEventListener('click', finishForInput, { capture: true });
+  document.addEventListener('keydown', (event) => { if (['Tab', 'Enter', ' ', 'Escape'].includes(event.key)) finishForInput(); }, { capture: true });
   document.addEventListener('aneka:before-navigation', cancelReturn);
   const url = location.pathname + location.search + location.hash;
   const navigation = performance.getEntriesByType('navigation')[0];
@@ -95,7 +166,7 @@
   const boot = {
     snapshot: restoring ? saved : undefined, restoring: Boolean(restoring), completed: false,
     whenEntering() { return pageEntering; },
-    startEntrance() { clearTimeout(timer); root.classList.remove('page-enter-pending'); },
+    startEntrance,
     finish() {
       this.completed = true; root.classList.remove('is-restoring');
       try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch { /* Restricted history. */ }
@@ -117,12 +188,13 @@
       }
     }
   } catch { boot.snapshot = undefined; boot.restoring = false; root.classList.remove('is-restoring'); }
-  timer = setTimeout(() => {
+  function releaseStartup() {
     root.classList.remove('page-enter-pending');
     if (boot.completed) return;
     root.classList.remove('is-restoring', 'fonts-loading', 'js');
     // A delayed/broken enhancement is not a font failure. Native font-display
     // already has a readable fallback and can recover without this bundle.
     if ('scrollRestoration' in history) history.scrollRestoration = 'auto';
-  }, 10000);
+  }
+  timer = setTimeout(releaseStartup, 10000);
 })();

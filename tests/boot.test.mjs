@@ -5,16 +5,16 @@ import { readFileSync } from 'node:fs';
 const code = readFileSync(new URL('../src/scripts/boot.js', import.meta.url), 'utf8');
 const snapshot = { version: 1, url: '/#contact', x: 0, y: 1267, details: ['details-spring'], galleries: {} };
 
-function boot({ type = 'reload', stored = snapshot, state, blocked = false, hash = '#contact', activeEntry, legacy = false, reduced = false } = {}) {
+function boot({ type = 'reload', stored = snapshot, state, blocked = false, hash = '#contact', activeEntry, legacy = false, reduced = false, moveDuration = '850ms' } = {}) {
   const classes = new Set(), replaced = [], timers = new Map();
   const animations = [];
-  const document = Object.assign(new EventTarget(), { documentElement: { dataset: {}, classList: { add: (...names) => names.forEach((n) => classes.add(n)), remove: (...names) => names.forEach((n) => classes.delete(n)) } }, body: { animate(frames, options) { let finish; const animation = { frames, options, cancelled: false, finished: new Promise((resolve) => { finish = resolve; }), cancel() { this.cancelled = true; finish(); } }; animations.push(animation); return animation; } } });
+  const document = Object.assign(new EventTarget(), { documentElement: { style: { viewTransitionName: 'none', removeProperty() { this.viewTransitionName = 'none'; } }, dataset: {}, classList: { add: (...names) => names.forEach((n) => classes.add(n)), remove: (...names) => names.forEach((n) => classes.delete(n)) } }, body: { animate(frames, options) { let finish; const animation = { frames, options, cancelled: false, finished: new Promise((resolve) => { finish = resolve; }), finish() { finish(); }, cancel() { this.cancelled = true; finish(); } }; animations.push(animation); return animation; } } });
   const history = { scrollRestoration: 'auto', state, replaceState: (s, unused, url) => { replaced.push(url); history.state = s; } };
   const window = new EventTarget();
   if (!legacy) window.onpagereveal = null;
   window.matchMedia = () => ({ matches: reduced });
   const data = new Map(); if (activeEntry) data.set('aneka-logam:active-entry', JSON.stringify(activeEntry));
-  vm.runInNewContext(code, { document, history, window, location: { pathname: '/', search: '', hash }, performance: { getEntriesByType: () => [{ type }] }, getComputedStyle: () => ({ getPropertyValue: (key) => key === '--reveal-duration' ? '1100ms' : 'ease-out' }), sessionStorage: { getItem: (key) => { if (blocked) throw new Error('Blocked'); return key === 'aneka-logam:active-entry' ? data.get(key) ?? null : JSON.stringify(stored); }, setItem: (key, value) => { if (blocked) throw new Error('Blocked'); data.set(key, value); } }, setTimeout: (fn) => { timers.set(1, fn); return 1; }, clearTimeout: (id) => timers.delete(id) });
+  vm.runInNewContext(code, { document, history, window, Event, location: { pathname: '/', search: '', hash }, performance: { getEntriesByType: () => [{ type }] }, getComputedStyle: () => ({ getPropertyValue: (key) => key === '--move-duration' ? moveDuration : 'ease-out' }), sessionStorage: { getItem: (key) => { if (blocked) throw new Error('Blocked'); return key === 'aneka-logam:active-entry' ? data.get(key) ?? null : JSON.stringify(stored); }, setItem: (key, value) => { if (blocked) throw new Error('Blocked'); data.set(key, value); } }, setTimeout: (fn) => { timers.set(1, fn); return 1; }, clearTimeout: (id) => timers.delete(id) });
   return { classes, replaced, history, window, timers, document, animations };
 }
 
@@ -106,7 +106,16 @@ test('history returns without a native view transition animate after scroll/font
   env.window.__anekaBoot.finish();
   assert.equal(env.animations.length, 1);
   assert.equal(env.animations[0].frames[0].transform, 'translate3d(-100%, 0, 0)');
-  assert.equal(env.animations[0].options.duration, 1100);
+  assert.equal(env.animations[0].options.duration, 850);
+});
+
+test('production seconds and source milliseconds keep the same page-motion duration', () => {
+  for (const moveDuration of ['850ms', '.85s', '0.85s', ' 850ms ', '']) {
+    const env = boot({ type: 'back_forward', hash: '', moveDuration, state: { alEntry: 1 }, activeEntry: { position: 2 } });
+    env.window.dispatchEvent(new Event('pagereveal'));
+    env.window.__anekaBoot.finish();
+    assert.equal(env.animations[0].options.duration, 850, `CSS token ${JSON.stringify(moveDuration)} must yield milliseconds`);
+  }
 });
 
 test('legacy pageshow returns use history entry positions to distinguish Back and Forward', () => {
@@ -150,7 +159,7 @@ test('OS motion preferences do not disable the designed history animation', () =
   env.window.__anekaBoot.finish();
   env.window.dispatchEvent(new Event('pagereveal'));
   assert.equal(env.animations.length, 1);
-  assert.equal(env.animations[0].options.duration, 1100);
+  assert.equal(env.animations[0].options.duration, 850);
 });
 test('incoming page motion releases at ready, without waiting for the transition to finish', async () => {
   const env = boot();
@@ -174,4 +183,91 @@ test('a late enhancement failure cannot leave native page animations paused fore
   assert.ok(env.classes.has('page-enter-pending'));
   env.timers.get(1)();
   assert.ok(!env.classes.has('page-enter-pending'));
+});
+
+test('capture only the departing root and synchronize direct DOM entry with its static snapshot', async () => {
+  const env = boot({ type: 'navigate', hash: '', stored: null });
+  let finishCapture;
+  const capture = { finished: new Promise((resolve) => { finishCapture = resolve; }) };
+  env.window.dispatchEvent(Object.assign(new Event('pageswap'), { viewTransition: capture }));
+  assert.equal(env.document.documentElement.style.viewTransitionName, 'root');
+  finishCapture(); await Promise.resolve();
+  assert.equal(env.document.documentElement.style.viewTransitionName, 'none');
+  const old = { animationName: 'page-exit', played: false, play() { this.played = true; } };
+  const component = { animationName: 'hero-reveal', finished: Promise.resolve(), effect: { target: { classList: { contains: () => true } } }, play() {} };
+  env.document.timeline = { currentTime: 123.5 };
+  env.document.getAnimations = () => [old, component];
+  const transition = { ready: Promise.resolve(), finished: new Promise(() => {}), types: new Set() };
+  env.window.dispatchEvent(Object.assign(new Event('pagereveal'), { viewTransition: transition }));
+  env.window.__anekaBoot.finish();
+  assert.equal(env.animations.length, 0, 'Do not start the incoming DOM before visible component classes are applied');
+  await env.window.__anekaBoot.whenEntering();
+  env.window.__anekaBoot.startEntrance();
+  assert.equal(env.animations.length, 1);
+  assert.equal(env.animations[0].frames[0].transform, 'translate3d(100%, 0, 0)');
+  assert.equal(env.animations[0].options.duration, 850);
+  assert.equal(env.animations[0].startTime, 123.5);
+  assert.equal(old.startTime, 123.5);
+  assert.equal(component.startTime, 123.5, 'Visible component reveals use the same clock too');
+  assert.equal(old.played, true);
+  assert.equal(env.document.documentElement.style.viewTransitionName, 'none');
+  env.window.__anekaBoot.startEntrance();
+  assert.equal(env.animations.length, 1, 'A duplicate readiness callback must not replay entry');
+});
+
+test('native Back leaves the incoming DOM stationary under the outgoing stack pop', async () => {
+  const env = boot({ type: 'back_forward', state: { alEntry: 1 }, activeEntry: { position: 2 } });
+  const transition = { ready: Promise.resolve(), types: new Set() };
+  env.window.dispatchEvent(Object.assign(new Event('pagereveal'), { viewTransition: transition }));
+  env.window.__anekaBoot.finish();
+  await env.window.__anekaBoot.whenEntering();
+  env.window.__anekaBoot.startEntrance();
+  assert.equal(env.document.documentElement.dataset.pageDirection, 'back');
+  assert.equal(env.animations.length, 0, 'Never move the revealed previous document during a native pop');
+});
+
+test('BFCache Forward releases its gate without rerunning enhancement setup', async () => {
+  const env = boot({ hash: '' });
+  env.window.dispatchEvent(new Event('pagereveal'));
+  env.window.__anekaBoot.finish(); env.window.__anekaBoot.startEntrance();
+  env.window.navigation = { activation: { navigationType: 'traverse', from: { index: 1 }, entry: { index: 2 } } };
+  const transition = { ready: Promise.resolve(), types: new Set() };
+  env.window.dispatchEvent(Object.assign(new Event('pagereveal'), { persisted: true, viewTransition: transition }));
+  assert.ok(env.classes.has('page-enter-pending'));
+  await Promise.resolve(); await Promise.resolve();
+  assert.ok(!env.classes.has('page-enter-pending'));
+  assert.equal(env.animations.length, 1);
+  assert.equal(env.animations[0].frames[0].transform, 'translate3d(100%, 0, 0)');
+  env.window.dispatchEvent(new Event('resize'));
+  assert.ok(env.animations[0].cancelled, 'Resizing cannot leave mismatched viewport/snapshot edges');
+});
+
+test('input finishes page motion after click, never before a pending pointer activation', async () => {
+  const env = boot({ type: 'navigate', hash: '', stored: null });
+  let skipped = 0;
+  const transition = { ready: Promise.resolve(), types: new Set(), skipTransition() { skipped++; } };
+  env.window.dispatchEvent(Object.assign(new Event('pagereveal'), { viewTransition: transition }));
+  env.window.__anekaBoot.finish(); await env.window.__anekaBoot.whenEntering();
+  env.window.__anekaBoot.startEntrance();
+  env.document.dispatchEvent(new Event('pointerdown'));
+  assert.equal(env.animations[0].cancelled, false, 'Do not snap the control away between mouse-down and click');
+  env.document.dispatchEvent(new Event('click'));
+  assert.equal(env.animations[0].cancelled, true);
+  assert.equal(skipped, 1);
+  assert.ok(!env.classes.has('page-enter-pending'));
+});
+
+test('keep the incoming compositor parent through child reveals, then release its identity fill', async () => {
+  const env = boot({ type: 'navigate', hash: '', stored: null });
+  let finishReveal;
+  const component = { animationName: 'header-reveal', effect: { target: { classList: { contains: () => true } } }, finished: new Promise((resolve) => { finishReveal = resolve; }) };
+  env.document.getAnimations = () => [component];
+  env.window.dispatchEvent(Object.assign(new Event('pagereveal'), { viewTransition: { ready: Promise.resolve(), types: new Set() } }));
+  env.window.__anekaBoot.finish(); await env.window.__anekaBoot.whenEntering(); env.window.__anekaBoot.startEntrance();
+  const entry = env.animations[0];
+  assert.equal(entry.options.fill, 'forwards');
+  entry.finish(); await Promise.resolve(); await Promise.resolve();
+  assert.equal(entry.cancelled, false, 'Do not drop the identity transform while child reveals still run');
+  finishReveal(); for (let i = 0; i < 5; i++) await Promise.resolve();
+  assert.equal(entry.cancelled, true, 'Release the temporary compositor parent once the initial reveals settle');
 });

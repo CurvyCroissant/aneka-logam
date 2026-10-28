@@ -37,8 +37,8 @@ export function setupScrollMemory(fontsReady: Promise<unknown>, catalog?: Produc
   function scheduleSave() { if (ready && saveTimer === undefined) saveTimer = setTimeout(save, 400); }
   function setDetails(snapshot: ScrollSnapshot) {
     if (catalog && snapshot.view) catalog.setView(snapshot.view);
-    catalog?.setSort(snapshot.productSort ?? snapshot.categorySort ?? 'none', false, snapshot.productSort ? 'product' : 'category');
     catalog?.select(snapshot.category ?? 'all');
+    catalog?.setSort(snapshot.productSort ?? snapshot.categorySort ?? 'ascending', false, snapshot.categorySort ? 'category' : 'product');
     details.forEach((element) => { element.open = snapshot.details.includes(element.id); });
     for (const track of galleries) {
       const index = snapshot.galleries[track.id] ?? 0;
